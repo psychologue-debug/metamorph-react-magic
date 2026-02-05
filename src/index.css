@@ -1,96 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Marble & Gold Mythology Palette */
+    --background: 225 25% 8%;
+    --foreground: 40 20% 90%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 225 20% 12%;
+    --card-foreground: 40 20% 90%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 225 20% 12%;
+    --popover-foreground: 40 20% 90%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 42 78% 55%;
+    --primary-foreground: 225 25% 8%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 225 18% 18%;
+    --secondary-foreground: 40 20% 85%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 225 15% 15%;
+    --muted-foreground: 220 10% 55%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 350 55% 45%;
+    --accent-foreground: 40 20% 95%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 40 20% 95%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 225 15% 20%;
+    --input: 225 15% 20%;
+    --ring: 42 78% 55%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
+    /* Game-specific tokens */
+    --ether: 42 78% 55%;
+    --ether-glow: 42 90% 65%;
+    --ether-dim: 42 50% 30%;
+    
+    --marble: 35 15% 88%;
+    --marble-dark: 35 10% 70%;
+    
+    --divine: 270 50% 55%;
+    --divine-glow: 270 70% 70%;
+    
+    --mortal-recto: 200 40% 35%;
+    --mortal-verso: 42 60% 40%;
+    
+    --reaction: 350 60% 50%;
+    --reaction-glow: 350 70% 60%;
+    
+    --cycle-ring-1: 42 78% 55%;
+    --cycle-ring-2: 270 50% 55%;
+    --cycle-ring-3: 200 40% 45%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    --phase-debut: 200 60% 50%;
+    --phase-principale: 42 78% 55%;
+    --phase-defausse: 350 55% 45%;
 
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Sidebar */
+    --sidebar-background: 225 20% 10%;
+    --sidebar-foreground: 40 20% 85%;
+    --sidebar-primary: 42 78% 55%;
+    --sidebar-primary-foreground: 225 25% 8%;
+    --sidebar-accent: 225 18% 18%;
+    --sidebar-accent-foreground: 40 20% 85%;
+    --sidebar-border: 225 15% 20%;
+    --sidebar-ring: 42 78% 55%;
   }
 }
 
@@ -101,5 +81,135 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Cormorant Garamond', serif;
   }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Cinzel', serif;
+  }
+}
+
+@layer components {
+  .font-display {
+    font-family: 'Cinzel', serif;
+  }
+
+  .font-body {
+    font-family: 'Cormorant Garamond', serif;
+  }
+
+  /* Ether pulse animation */
+  .ether-pulse {
+    animation: etherPulse 2s ease-in-out infinite;
+  }
+
+  .ether-glow {
+    box-shadow: 0 0 15px hsl(var(--ether) / 0.4), 0 0 30px hsl(var(--ether) / 0.2);
+  }
+
+  .divine-glow {
+    box-shadow: 0 0 15px hsl(var(--divine) / 0.4), 0 0 30px hsl(var(--divine) / 0.2);
+  }
+
+  .reaction-glow {
+    box-shadow: 0 0 10px hsl(var(--reaction) / 0.5), 0 0 20px hsl(var(--reaction) / 0.2);
+  }
+
+  /* Card styles */
+  .card-mortal {
+    @apply relative overflow-hidden rounded-lg border transition-all duration-300;
+    background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--secondary)) 100%);
+    border-color: hsl(var(--border));
+  }
+
+  .card-mortal.metamorphosed {
+    border-color: hsl(var(--ether));
+    background: linear-gradient(135deg, hsl(var(--ether-dim)) 0%, hsl(var(--card)) 100%);
+  }
+
+  .card-spell {
+    @apply relative overflow-hidden rounded-lg border transition-all duration-300;
+    background: linear-gradient(135deg, hsl(var(--secondary)) 0%, hsl(var(--muted)) 100%);
+    border-color: hsl(var(--divine) / 0.4);
+  }
+
+  .card-reaction {
+    @apply relative overflow-hidden rounded-lg border-2 transition-all duration-300;
+    border-color: hsl(var(--reaction) / 0.6);
+    background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%);
+  }
+
+  /* Marble texture overlay */
+  .marble-texture {
+    background-image: 
+      radial-gradient(ellipse at 20% 50%, hsl(var(--marble) / 0.03) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, hsl(var(--marble) / 0.04) 0%, transparent 40%),
+      radial-gradient(ellipse at 50% 80%, hsl(var(--marble) / 0.02) 0%, transparent 60%);
+  }
+
+  /* Phase indicators */
+  .phase-active {
+    @apply relative;
+  }
+
+  .phase-active::after {
+    content: '';
+    @apply absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full;
+    background: hsl(var(--ether));
+    box-shadow: 0 0 8px hsl(var(--ether));
+  }
+
+  /* Reaction timer */
+  .reaction-timer {
+    animation: timerPulse 1s ease-in-out infinite;
+  }
+
+  /* Player ring */
+  .player-ring {
+    @apply rounded-full border-2 transition-all duration-500;
+    border-color: hsl(var(--border));
+  }
+
+  .player-ring.active {
+    border-color: hsl(var(--ether));
+    box-shadow: 0 0 20px hsl(var(--ether) / 0.3);
+  }
+
+  /* Rotating rings */
+  .ring-rotate-slow {
+    animation: rotateSlow 30s linear infinite;
+  }
+
+  .ring-rotate-medium {
+    animation: rotateMedium 20s linear infinite reverse;
+  }
+
+  .ring-rotate-fast {
+    animation: rotateFast 12s linear infinite;
+  }
+}
+
+@keyframes etherPulse {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+@keyframes timerPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes rotateSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes rotateMedium {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes rotateFast {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
