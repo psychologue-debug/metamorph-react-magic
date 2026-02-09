@@ -41,7 +41,6 @@ const PlayerPanel = ({ player, isActive, isCurrentPlayer, position, index }: Pla
           {player.avatar}
         </span>
         
-        {/* Active indicator */}
         {isActive && (
           <motion.div
             className="absolute -top-1 -right-1 w-3 h-3 rounded-full"
@@ -54,7 +53,7 @@ const PlayerPanel = ({ player, isActive, isCurrentPlayer, position, index }: Pla
 
       {/* Player Info Card */}
       <div className={`
-        rounded-lg p-2 min-w-[120px] max-w-[140px] transition-all duration-300
+        rounded-lg p-2 min-w-[140px] max-w-[160px] transition-all duration-300
         ${isActive ? 'ring-1 ring-ether/50' : ''}
         ${isCurrentPlayer ? 'ring-1 ring-divine/50' : ''}
       `}
@@ -63,7 +62,6 @@ const PlayerPanel = ({ player, isActive, isCurrentPlayer, position, index }: Pla
           backdropFilter: 'blur(8px)',
         }}
       >
-        {/* Name & Divinity */}
         <div className="text-center mb-1">
           <h3 className="font-display text-[10px] font-bold text-foreground truncate">
             {player.name}
@@ -73,7 +71,6 @@ const PlayerPanel = ({ player, isActive, isCurrentPlayer, position, index }: Pla
           </p>
         </div>
 
-        {/* Stats Row */}
         <div className="flex items-center justify-between mb-1.5">
           <EtherCounter amount={player.ether} size="sm" />
           <div className="flex flex-col items-end gap-0.5">
@@ -92,7 +89,7 @@ const PlayerPanel = ({ player, isActive, isCurrentPlayer, position, index }: Pla
           </div>
         </div>
 
-        {/* Mortal Grid */}
+        {/* Mortal Grid - compact */}
         <MortalGrid mortals={player.mortals} compact />
 
         {/* Hand (only visible for current player) */}
