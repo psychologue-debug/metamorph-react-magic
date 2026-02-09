@@ -115,7 +115,7 @@ const CentralZone = ({ gameState }: CentralZoneProps) => {
         {/* Deck info */}
         <div className="flex items-center gap-1 mt-1.5">
           <Layers className="w-2.5 h-2.5 text-muted-foreground" />
-          <span className="text-[8px] text-muted-foreground">{gameState.deckCount} cartes</span>
+          <span className="text-[8px] text-muted-foreground">{gameState.deck.length} cartes</span>
         </div>
       </div>
 

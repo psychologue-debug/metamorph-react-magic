@@ -12,6 +12,11 @@ interface CurrentPlayerHandProps {
 const CurrentPlayerHand = ({ player }: CurrentPlayerHandProps) => {
   const divinity = DIVINITIES[player.divinity];
 
+  // Calculate metamorphose cost: sum of all mortal costs that are not yet metamorphosed
+  // Actually per rules: cost = total mortal value x 2 — but let's show next mortal cost
+  const nextUnmetamorphosed = player.mortals.find(m => !m.isMetamorphosed);
+  const nextCost = nextUnmetamorphosed ? nextUnmetamorphosed.cost : 0;
+
   return (
     <motion.div
       className="rounded-xl p-4 border border-border/50"
@@ -25,7 +30,6 @@ const CurrentPlayerHand = ({ player }: CurrentPlayerHandProps) => {
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
-          {/* Avatar */}
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center border-2"
             style={{
@@ -46,15 +50,16 @@ const CurrentPlayerHand = ({ player }: CurrentPlayerHandProps) => {
           </div>
         </div>
 
-        {/* Stats */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <EtherCounter amount={player.ether} size="md" />
             <div className="text-right">
               <div className="text-[9px] text-muted-foreground font-body">Éther</div>
-              <div className="text-[9px] text-muted-foreground font-body">
-                Coût méta: {player.totalMortalValue * 2}
-              </div>
+              {nextUnmetamorphosed && (
+                <div className="text-[9px] text-muted-foreground font-body">
+                  Prochain: {nextCost} Éther
+                </div>
+              )}
             </div>
           </div>
           <div className="h-8 w-px bg-border" />
@@ -68,9 +73,8 @@ const CurrentPlayerHand = ({ player }: CurrentPlayerHandProps) => {
         </div>
       </div>
 
-      {/* Bottom row: Mortals + Hand + Reactions */}
+      {/* Bottom row */}
       <div className="flex items-start gap-4">
-        {/* Mortal Grid */}
         <div>
           <div className="text-[9px] text-muted-foreground font-display mb-1 uppercase tracking-wider">
             Mortels
@@ -80,7 +84,6 @@ const CurrentPlayerHand = ({ player }: CurrentPlayerHandProps) => {
 
         <div className="h-16 w-px bg-border/50" />
 
-        {/* Hand */}
         <div className="flex-1">
           <div className="text-[9px] text-muted-foreground font-display mb-1 uppercase tracking-wider flex items-center gap-1">
             <Sword className="w-2.5 h-2.5" /> Main ({player.hand.length}/2)
@@ -92,7 +95,6 @@ const CurrentPlayerHand = ({ player }: CurrentPlayerHandProps) => {
           </div>
         </div>
 
-        {/* Reactions */}
         {player.reactions.length > 0 && (
           <>
             <div className="h-16 w-px bg-border/50" />
