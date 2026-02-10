@@ -11,6 +11,8 @@ export interface MortalTemplate {
   effectPermanent?: string;
   comment?: string;
   etherProduction: number; // verso ether
+  imageRectoFile?: string; // explicit filename override
+  imageVersoFile?: string; // explicit filename override
 }
 
 // Apollo's 10 mortals from CSV
@@ -25,6 +27,8 @@ export const MORTAL_TEMPLATES: MortalTemplate[] = [
     effectOnMetamorphose: 'Un dieu ne pourra en aucune façon piocher lors de son prochain tour',
     comment: '"En aucune façon" signifie que la phase de pioche saute ET tous les effets qui permettent de piocher ne marcheront pas.',
     etherProduction: 1,
+    imageRectoFile: 'APO-01-recto-Mydas.png',
+    imageVersoFile: 'APO-01-verso-MydasÂne.png',
   },
   {
     god: 'apollon',
@@ -36,6 +40,8 @@ export const MORTAL_TEMPLATES: MortalTemplate[] = [
     effectOnMetamorphose: 'Vous pouvez défausser jusqu\'à 2 cartes pour incapaciter jusqu\'à 2 mortels ennemis',
     comment: 'Fenêtre demande 0, 1 ou 2 cartes à défausser, puis cliquer sur autant de mortels ennemis.',
     etherProduction: 0,
+    imageRectoFile: 'APO-02-recto-Memnon.png',
+    imageVersoFile: 'APO-02-verso-Memnonides.png',
   },
   {
     god: 'apollon',
@@ -46,6 +52,8 @@ export const MORTAL_TEMPLATES: MortalTemplate[] = [
     cost: 12,
     effectOnMetamorphose: 'Générez 7 éther. Détruisez 3 (cliquer sur réservoirs ennemis)',
     etherProduction: 0,
+    imageRectoFile: 'APO-03-recto-Daédalion.png',
+    imageVersoFile: 'APO-03-verso-Épervier.png',
   },
   {
     god: 'apollon',
@@ -56,6 +64,8 @@ export const MORTAL_TEMPLATES: MortalTemplate[] = [
     cost: 22,
     effectOnMetamorphose: 'Volez jusqu\'à 4 Ether à chaque Dieu (cliquer sur réservoirs)',
     etherProduction: 1,
+    imageRectoFile: 'APO-04-recto-Esculape.png',
+    imageVersoFile: 'APO-04-verso-Serpent doré.png',
   },
   {
     god: 'apollon',
@@ -66,6 +76,8 @@ export const MORTAL_TEMPLATES: MortalTemplate[] = [
     cost: 19,
     effectPermanent: 'A chaque fois que de l\'Ether est généré en dehors du moment normal (au début du cycle), génère 1 dans votre réservoir.',
     etherProduction: 0,
+    imageRectoFile: 'APO-05-recto-Niobé.png',
+    imageVersoFile: "APO-05-verso-Source d'eau.png",
   },
   {
     god: 'apollon',
@@ -76,6 +88,8 @@ export const MORTAL_TEMPLATES: MortalTemplate[] = [
     cost: 9,
     effectPermanent: 'Quand c\'est votre tour, vous pouvez rétromorphoser un de vos mortels de type Animal. Si vous le faites, générez 6 Ether et piochez une carte.',
     etherProduction: 1,
+    imageRectoFile: 'APO-06-recto-Syrinx.png',
+    imageVersoFile: 'APO-06-verso-Flûte de Pan.png',
   },
   {
     god: 'apollon',
@@ -159,7 +173,7 @@ export function createMortalsForGod(god: DivinityId): Mortal[] {
     effectOnMetamorphose: t.effectOnMetamorphose,
     effectPermanent: t.effectPermanent,
     comment: t.comment,
-    imageRecto: `/mortals/${t.code}-recto-${t.nameRecto}.png`,
-    imageVerso: `/mortals/${t.code}-verso-${t.nameVerso}.png`,
+    imageRecto: t.imageRectoFile ? `/mortals/${t.imageRectoFile}` : '',
+    imageVerso: t.imageVersoFile ? `/mortals/${t.imageVersoFile}` : '',
   }));
 }
