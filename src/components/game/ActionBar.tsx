@@ -1,18 +1,28 @@
 import { GameState } from '@/types/game';
+import { InteractionMode } from '@/hooks/useGameLogic';
 import { motion } from 'framer-motion';
-import { Play, SkipForward, Sparkles, RotateCcw, Hand } from 'lucide-react';
+import { SkipForward, Sparkles, RotateCcw, Hand, X } from 'lucide-react';
 
 interface ActionBarProps {
   gameState: GameState;
-  onNextPhase: () => void;
+  interactionMode: InteractionMode;
   onEndTurn: () => void;
-  onMetamorphose: () => void;
+  onToggleMetamorphose: () => void;
+  onToggleSpell: () => void;
   onToggleReactionWindow: () => void;
 }
 
-const ActionBar = ({ gameState, onNextPhase, onEndTurn, onMetamorphose, onToggleReactionWindow }: ActionBarProps) => {
-  const isMainPhase = gameState.phase === 'principale';
+const ActionBar = ({
+  gameState,
+  interactionMode,
+  onEndTurn,
+  onToggleMetamorphose,
+  onToggleSpell,
+  onToggleReactionWindow,
+}: ActionBarProps) => {
   const activePlayer = gameState.players[gameState.activePlayerIndex];
+  const isMetaMode = interactionMode === 'metamorphosing';
+  const isSpellMode = interactionMode === 'playing_spell';
 
   return (
     <motion.div
@@ -24,46 +34,52 @@ const ActionBar = ({ gameState, onNextPhase, onEndTurn, onMetamorphose, onToggle
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
     >
-      {/* Phase info */}
+      {/* Turn info */}
       <div className="flex items-center gap-2 pr-3 border-r border-border/50">
-        <span className="text-[10px] font-display text-muted-foreground uppercase tracking-wider">
-          Tour de
-        </span>
-        <span className="text-xs font-display font-bold text-foreground">
-          {activePlayer.name}
-        </span>
+        <span className="text-[10px] font-display text-muted-foreground uppercase tracking-wider">Tour de</span>
+        <span className="text-xs font-display font-bold text-foreground">{activePlayer.name}</span>
       </div>
 
-      {/* Action buttons */}
-      {isMainPhase && (
-        <>
-          <motion.button
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-display font-semibold transition-all"
-            style={{
-              background: `linear-gradient(135deg, hsl(var(--ether)), hsl(var(--ether-dim)))`,
-              color: 'hsl(var(--primary-foreground))',
-            }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onMetamorphose}
-          >
-            <Sparkles className="w-3 h-3" />
-            Métamorphoser
-          </motion.button>
-
-          <motion.button
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-display font-semibold border border-divine/30 text-foreground transition-all"
-            style={{
-              background: `hsl(var(--divine) / 0.1)`,
-            }}
-            whileHover={{ scale: 1.05, background: 'hsl(var(--divine) / 0.2)' }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Hand className="w-3 h-3 text-divine" />
-            Jouer un Sort
-          </motion.button>
-        </>
+      {/* Mode indicator */}
+      {interactionMode !== 'idle' && (
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-display font-semibold"
+          style={{ background: 'hsl(var(--divine) / 0.15)', color: 'hsl(var(--divine))' }}
+        >
+          {isMetaMode ? '🎯 Choisissez un mortel à métamorphoser' : '🃏 Choisissez un sort à jouer'}
+        </div>
       )}
+
+      {/* Action buttons */}
+      <motion.button
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-display font-semibold transition-all ${
+          isMetaMode ? 'ring-2 ring-ether' : ''
+        }`}
+        style={{
+          background: isMetaMode
+            ? `linear-gradient(135deg, hsl(var(--ether)), hsl(var(--ether-dim)))`
+            : `linear-gradient(135deg, hsl(var(--ether) / 0.8), hsl(var(--ether-dim) / 0.8))`,
+          color: 'hsl(var(--primary-foreground))',
+        }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={onToggleMetamorphose}
+      >
+        {isMetaMode ? <X className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
+        {isMetaMode ? 'Annuler' : 'Métamorphoser'}
+      </motion.button>
+
+      <motion.button
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-display font-semibold border border-divine/30 text-foreground transition-all ${
+          isSpellMode ? 'ring-2 ring-divine' : ''
+        }`}
+        style={{ background: isSpellMode ? 'hsl(var(--divine) / 0.2)' : 'hsl(var(--divine) / 0.1)' }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={onToggleSpell}
+      >
+        {isSpellMode ? <X className="w-3 h-3 text-divine" /> : <Hand className="w-3 h-3 text-divine" />}
+        {isSpellMode ? 'Annuler' : 'Jouer un Sort'}
+      </motion.button>
 
       <div className="flex-1" />
 
@@ -79,23 +95,8 @@ const ActionBar = ({ gameState, onNextPhase, onEndTurn, onMetamorphose, onToggle
       </motion.button>
 
       <motion.button
-        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-display text-foreground transition-all"
-        style={{
-          background: 'hsl(var(--secondary))',
-        }}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={onNextPhase}
-      >
-        <Play className="w-3 h-3" />
-        Phase suivante
-      </motion.button>
-
-      <motion.button
         className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-display font-semibold text-foreground transition-all border border-border/50"
-        style={{
-          background: 'hsl(var(--muted))',
-        }}
+        style={{ background: 'hsl(var(--muted))' }}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={onEndTurn}

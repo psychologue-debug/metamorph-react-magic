@@ -1,4 +1,4 @@
-import { GameState, PHASE_LABELS, SpellCard } from '@/types/game';
+import { GameState } from '@/types/game';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, Layers, RotateCcw, Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -9,7 +9,6 @@ interface CentralZoneProps {
 
 const CentralZone = ({ gameState }: CentralZoneProps) => {
   const activePlayer = gameState.players[gameState.activePlayerIndex];
-  const phases = Object.entries(PHASE_LABELS);
   const [showDiscard, setShowDiscard] = useState(false);
 
   return (
@@ -41,35 +40,6 @@ const CentralZone = ({ gameState }: CentralZoneProps) => {
           >
             🏛 {activePlayer.name}
           </motion.h2>
-
-          {/* Phase indicators */}
-          <div className="flex gap-1 mb-1">
-            {phases.map(([key, label]) => (
-              <div
-                key={key}
-                className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                  key === gameState.phase ? 'scale-125' : 'opacity-30'
-                }`}
-                style={{
-                  background:
-                    key === gameState.phase
-                      ? key === 'principale'
-                        ? 'hsl(var(--ether))'
-                        : key === 'debut_tour' || key === 'pioche'
-                        ? 'hsl(var(--phase-debut))'
-                        : 'hsl(var(--phase-defausse))'
-                      : 'hsl(var(--muted-foreground))',
-                  boxShadow: key === gameState.phase ? '0 0 6px hsl(var(--ether) / 0.5)' : 'none',
-                }}
-                title={label}
-              />
-            ))}
-          </div>
-
-          {/* Current phase label */}
-          <span className="font-body text-[10px] text-muted-foreground italic">
-            {PHASE_LABELS[gameState.phase]}
-          </span>
 
           {/* Deck + Discard row */}
           <div className="flex items-center gap-3 mt-2 pt-2 border-t border-border/20">

@@ -1,4 +1,5 @@
-import { Player, DIVINITIES } from '@/types/game';
+import { Player, GameState, DIVINITIES } from '@/types/game';
+import { InteractionMode, canPlayCard } from '@/hooks/useGameLogic';
 import EtherCounter from './EtherCounter';
 import MortalGrid from './MortalGrid';
 import GameCard from './GameCard';
@@ -7,15 +8,16 @@ import { Shield, Zap, Crown, Sword } from 'lucide-react';
 
 interface CurrentPlayerHandProps {
   player: Player;
+  gameState: GameState;
+  interactionMode: InteractionMode;
+  onMortalClick?: (mortalId: string) => void;
+  onCardClick?: (cardId: string) => void;
 }
 
-const CurrentPlayerHand = ({ player }: CurrentPlayerHandProps) => {
+const CurrentPlayerHand = ({ player, gameState, interactionMode, onMortalClick, onCardClick }: CurrentPlayerHandProps) => {
   const divinity = DIVINITIES[player.divinity];
-
-  // Calculate metamorphose cost: sum of all mortal costs that are not yet metamorphosed
-  // Actually per rules: cost = total mortal value x 2 — but let's show next mortal cost
-  const nextUnmetamorphosed = player.mortals.find(m => !m.isMetamorphosed);
-  const nextCost = nextUnmetamorphosed ? nextUnmetamorphosed.cost : 0;
+  const isMetaMode = interactionMode === 'metamorphosing';
+  const isSpellMode = interactionMode === 'playing_spell';
 
   return (
     <motion.div
@@ -37,9 +39,7 @@ const CurrentPlayerHand = ({ player }: CurrentPlayerHandProps) => {
               background: `linear-gradient(135deg, hsl(${divinity.color} / 0.2), hsl(var(--card)))`,
             }}
           >
-            <span className="font-display text-sm font-bold text-foreground">
-              {player.avatar}
-            </span>
+            <span className="font-display text-sm font-bold text-foreground">{player.avatar}</span>
           </div>
           <div>
             <h2 className="font-display text-sm font-bold text-foreground">{player.name}</h2>
@@ -55,19 +55,12 @@ const CurrentPlayerHand = ({ player }: CurrentPlayerHandProps) => {
             <EtherCounter amount={player.ether} size="md" />
             <div className="text-right">
               <div className="text-[9px] text-muted-foreground font-body">Éther</div>
-              {nextUnmetamorphosed && (
-                <div className="text-[9px] text-muted-foreground font-body">
-                  Prochain: {nextCost} Éther
-                </div>
-              )}
             </div>
           </div>
           <div className="h-8 w-px bg-border" />
           <div className="flex items-center gap-1">
             <Zap className="w-4 h-4 text-ether" />
-            <span className="font-display text-base font-bold text-foreground">
-              {player.metamorphosedCount}
-            </span>
+            <span className="font-display text-base font-bold text-foreground">{player.metamorphosedCount}</span>
             <span className="text-xs text-muted-foreground">/10</span>
           </div>
         </div>
@@ -75,29 +68,48 @@ const CurrentPlayerHand = ({ player }: CurrentPlayerHandProps) => {
 
       {/* Bottom row */}
       <div className="flex items-start gap-4">
+        {/* Mortal grid */}
         <div>
           <div className="text-[9px] text-muted-foreground font-display mb-1 uppercase tracking-wider">
-            Mortels
+            Mortels {isMetaMode && <span className="text-divine ml-1">— Cliquez pour métamorphoser</span>}
           </div>
-          <MortalGrid mortals={player.mortals} />
+          <MortalGrid
+            mortals={player.mortals}
+            selectable={isMetaMode}
+            onMortalClick={isMetaMode ? onMortalClick : undefined}
+          />
         </div>
 
-        <div className="h-16 w-px bg-border/50" />
+        <div className="h-20 w-px bg-border/50" />
 
+        {/* Hand */}
         <div className="flex-1">
           <div className="text-[9px] text-muted-foreground font-display mb-1 uppercase tracking-wider flex items-center gap-1">
-            <Sword className="w-2.5 h-2.5" /> Main ({player.hand.length}/2)
+            <Sword className="w-2.5 h-2.5" /> Main ({player.hand.length})
+            {isSpellMode && <span className="text-divine ml-1">— Cliquez pour jouer</span>}
           </div>
-          <div className="flex gap-1.5">
-            {player.hand.map((card) => (
-              <GameCard key={card.id} card={card} />
-            ))}
+          <div className="flex gap-1.5 flex-wrap">
+            {player.hand.map((card) => {
+              const playable = isSpellMode ? canPlayCard(card, player, gameState) : true;
+              return (
+                <div key={card.id} className={`transition-all ${isSpellMode && !playable ? 'opacity-40' : ''} ${isSpellMode && playable ? 'ring-1 ring-divine/50 rounded-lg' : ''}`}>
+                  <GameCard
+                    card={card}
+                    onClick={isSpellMode ? () => onCardClick?.(card.id) : undefined}
+                  />
+                </div>
+              );
+            })}
+            {player.hand.length === 0 && (
+              <p className="text-[10px] text-muted-foreground italic">Aucune carte en main</p>
+            )}
           </div>
         </div>
 
+        {/* Reactions */}
         {player.reactions.length > 0 && (
           <>
-            <div className="h-16 w-px bg-border/50" />
+            <div className="h-20 w-px bg-border/50" />
             <div>
               <div className="text-[9px] text-muted-foreground font-display mb-1 uppercase tracking-wider flex items-center gap-1">
                 <Shield className="w-2.5 h-2.5 text-reaction" /> Réactions ({player.reactions.length}/2)
@@ -113,24 +125,17 @@ const CurrentPlayerHand = ({ player }: CurrentPlayerHandProps) => {
       </div>
 
       {/* Divine Power */}
-      <div className="mt-3 p-2 rounded-lg border border-divine/20"
-        style={{
-          background: `linear-gradient(135deg, hsl(var(--divine) / 0.05), transparent)`,
-        }}
+      <div
+        className="mt-3 p-2 rounded-lg border border-divine/20"
+        style={{ background: `linear-gradient(135deg, hsl(var(--divine) / 0.05), transparent)` }}
       >
         <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-full flex items-center justify-center"
-            style={{ background: `hsl(${divinity.color} / 0.3)` }}
-          >
+          <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: `hsl(${divinity.color} / 0.3)` }}>
             <Crown className="w-3 h-3" style={{ color: `hsl(${divinity.color})` }} />
           </div>
           <div>
-            <span className="font-display text-[9px] font-semibold" style={{ color: `hsl(${divinity.color})` }}>
-              Pouvoir Divin
-            </span>
-            <p className="text-[9px] text-muted-foreground font-body">
-              {divinity.power}
-            </p>
+            <span className="font-display text-[9px] font-semibold" style={{ color: `hsl(${divinity.color})` }}>Pouvoir Divin</span>
+            <p className="text-[9px] text-muted-foreground font-body">{divinity.power}</p>
           </div>
         </div>
       </div>
