@@ -8,102 +8,64 @@ import { Shield, Zap } from 'lucide-react';
 interface PlayerPanelProps {
   player: Player;
   isActive: boolean;
-  isCurrentPlayer: boolean;
-  position: { x: number; y: number; angle: number };
   index: number;
 }
 
-const PlayerPanel = ({ player, isActive, isCurrentPlayer, position, index }: PlayerPanelProps) => {
+const PlayerPanel = ({ player, isActive, index }: PlayerPanelProps) => {
   const divinity = DIVINITIES[player.divinity];
-  
+
   return (
     <motion.div
-      className={`absolute flex flex-col items-center gap-1`}
-      style={{
-        left: `${position.x}%`,
-        top: `${position.y}%`,
-        transform: 'translate(-50%, -50%)',
-      }}
-      initial={{ opacity: 0, scale: 0.5 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: index * 0.1, duration: 0.5, type: 'spring' }}
+      className={`flex flex-col items-center gap-1.5 ${isActive ? 'ring-2 ring-ether/50 rounded-xl' : ''}`}
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1, duration: 0.4 }}
     >
-      {/* Player Avatar */}
-      <motion.div
-        className={`player-ring ${isActive ? 'active' : ''} w-12 h-12 flex items-center justify-center relative`}
-        style={{
-          background: `linear-gradient(135deg, hsl(${divinity.color} / 0.3), hsl(var(--card)))`,
-        }}
-        animate={isActive ? { scale: [1, 1.05, 1] } : {}}
-        transition={{ duration: 2, repeat: Infinity }}
-      >
-        <span className="font-display text-sm font-bold text-foreground">
-          {player.avatar}
-        </span>
-        
-        {isActive && (
-          <motion.div
-            className="absolute -top-1 -right-1 w-3 h-3 rounded-full"
-            style={{ background: 'hsl(var(--ether))' }}
-            animate={{ scale: [1, 1.3, 1], opacity: [0.8, 1, 0.8] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-          />
-        )}
-      </motion.div>
-
       {/* Player Info Card */}
-      <div className={`
-        rounded-lg p-2 min-w-[140px] max-w-[160px] transition-all duration-300
-        ${isActive ? 'ring-1 ring-ether/50' : ''}
-        ${isCurrentPlayer ? 'ring-1 ring-divine/50' : ''}
-      `}
+      <div
+        className="rounded-xl p-3 transition-all duration-300"
         style={{
           background: `linear-gradient(135deg, hsl(var(--card) / 0.95), hsl(var(--secondary) / 0.9))`,
           backdropFilter: 'blur(8px)',
+          border: isActive ? '1px solid hsl(var(--ether) / 0.4)' : '1px solid hsl(var(--border) / 0.3)',
         }}
       >
-        <div className="text-center mb-1">
-          <h3 className="font-display text-[10px] font-bold text-foreground truncate">
-            {player.name}
-          </h3>
-          <p className="text-[8px] text-muted-foreground font-body italic">
-            {divinity.title}
-          </p>
-        </div>
-
-        <div className="flex items-center justify-between mb-1.5">
+        {/* Header row */}
+        <div className="flex items-center gap-2 mb-2">
+          <div
+            className={`w-9 h-9 rounded-full flex items-center justify-center border-2 ${isActive ? 'border-ether' : 'border-border/50'}`}
+            style={{
+              background: `linear-gradient(135deg, hsl(${divinity.color} / 0.3), hsl(var(--card)))`,
+            }}
+          >
+            <span className="font-display text-xs font-bold text-foreground">{player.avatar}</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-display text-xs font-bold text-foreground truncate">{player.name}</h3>
+            <p className="text-[9px] text-muted-foreground font-body italic">{divinity.title}</p>
+          </div>
           <EtherCounter amount={player.ether} size="sm" />
-          <div className="flex flex-col items-end gap-0.5">
-            <div className="flex items-center gap-1">
-              <Zap className="w-2.5 h-2.5 text-ether" />
-              <span className="text-[9px] font-display text-foreground">
-                {player.metamorphosedCount}/10
-              </span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Shield className="w-2.5 h-2.5 text-reaction" />
-              <span className="text-[9px] text-muted-foreground">
-                {player.reactions.length}
-              </span>
-            </div>
-          </div>
         </div>
 
-        {/* Mortal Grid - compact */}
-        <MortalGrid mortals={player.mortals} compact />
-
-        {/* Hand (only visible for current player) */}
-        {isCurrentPlayer && player.hand.length > 0 && (
-          <div className="mt-1.5 flex gap-0.5 justify-center">
-            {player.hand.map((card) => (
-              <GameCard key={card.id} card={card} small />
-            ))}
+        {/* Stats row */}
+        <div className="flex items-center gap-3 mb-2 text-[9px]">
+          <div className="flex items-center gap-1">
+            <Zap className="w-3 h-3 text-ether" />
+            <span className="font-display text-foreground">{player.metamorphosedCount}/10</span>
           </div>
-        )}
+          <div className="flex items-center gap-1">
+            <Shield className="w-3 h-3 text-reaction" />
+            <span className="text-muted-foreground">{player.reactions.length} réactions</span>
+          </div>
+          <span className="text-muted-foreground">{player.hand.length} cartes</span>
+        </div>
+
+        {/* Mortal Grid */}
+        <MortalGrid mortals={player.mortals} compact />
 
         {/* Reaction cards indicator */}
         {player.reactions.length > 0 && (
-          <div className="mt-1 flex gap-0.5 justify-center">
+          <div className="mt-2 flex gap-1 justify-center">
             {player.reactions.map((r) => (
               <GameCard key={r.id} card={r} faceDown small />
             ))}
