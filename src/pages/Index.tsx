@@ -36,9 +36,10 @@ const Index = () => {
       if (!prev) return prev;
       const currentPlayer = prev.players[prev.activePlayerIndex];
       const nextPlayerIdx = (prev.activePlayerIndex + 1) % prev.players.length;
+      const isNewCycle = nextPlayerIdx === prev.cycleStartPlayerIndex;
 
       // Handle Sursaut: destroy all ether at end of turn
-      const updatedPlayers = prev.players.map((p, i) => {
+      let updatedPlayers = prev.players.map((p, i) => {
         if (i === prev.activePlayerIndex) {
           return {
             ...p,
@@ -51,23 +52,48 @@ const Index = () => {
         return p;
       });
 
+      const newLog = [
+        {
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          playerName: currentPlayer.name,
+          action: 'Fin du Tour',
+          detail: 'a terminé son tour',
+        },
+        ...prev.log,
+      ];
+
+      // Generate ether at start of new cycle for ALL players
+      if (isNewCycle) {
+        updatedPlayers = updatedPlayers.map((p) => {
+          let etherGain = 0;
+          for (const m of p.mortals) {
+            if (m.status === 'incapacite') continue;
+            if (m.isMetamorphosed) {
+              etherGain += m.etherProduction;
+            } else {
+              etherGain += m.etherProductionRecto;
+            }
+          }
+          return { ...p, ether: p.ether + etherGain };
+        });
+        newLog.unshift({
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          playerName: 'Système',
+          action: 'Nouveau Cycle',
+          detail: `Cycle ${prev.turnCount + 1} — Éther généré pour tous les dieux`,
+        });
+      }
+
       return {
         ...prev,
         players: updatedPlayers,
         activePlayerIndex: nextPlayerIdx,
         phase: 'debut_tour' as TurnPhase,
         reactionsBlocked: false,
-        turnCount: nextPlayerIdx === prev.cycleStartPlayerIndex ? prev.turnCount + 1 : prev.turnCount,
-        log: [
-          {
-            id: crypto.randomUUID(),
-            timestamp: Date.now(),
-            playerName: currentPlayer.name,
-            action: 'Fin du Tour',
-            detail: 'a terminé son tour',
-          },
-          ...prev.log,
-        ],
+        turnCount: isNewCycle ? prev.turnCount + 1 : prev.turnCount,
+        log: newLog,
       };
     });
     // In solo test mode: switch to the next player's view
