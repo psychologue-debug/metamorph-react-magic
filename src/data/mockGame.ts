@@ -21,13 +21,6 @@ export function createMockGameState(playerCount: number = 4): GameState {
     const div = DIVINITIES[divId];
     const mortals = createMortalsForGod(divId);
 
-    // Deal 2 cards from deck
-    const hand: SpellCard[] = [];
-    for (let j = 0; j < 2; j++) {
-      const card = deck.pop();
-      if (card) hand.push(card);
-    }
-
     return {
       id: `player-${i}`,
       name: div.name,
@@ -36,7 +29,7 @@ export function createMockGameState(playerCount: number = 4): GameState {
       avatar: div.name.charAt(0),
       ether: 10,
       mortals,
-      hand,
+      hand: [] as SpellCard[], // Start with 0 cards
       reactions: [],
       metamorphosedCount: 0,
       cannotDraw: false,
@@ -48,7 +41,7 @@ export function createMockGameState(playerCount: number = 4): GameState {
     };
   });
 
-  return {
+  const state: GameState = {
     players,
     activePlayerIndex: 0,
     phase: 'principale',
@@ -65,4 +58,23 @@ export function createMockGameState(playerCount: number = 4): GameState {
       { id: '1', timestamp: Date.now() - 10000, playerName: players[0].name, action: 'Début', detail: 'La partie commence !' },
     ],
   };
+
+  // First player draws 2 cards at game start
+  const drawnCards: SpellCard[] = [];
+  for (let j = 0; j < 2; j++) {
+    const card = state.deck.pop();
+    if (card) drawnCards.push(card);
+  }
+  state.players[0].hand = drawnCards;
+  if (drawnCards.length > 0) {
+    state.log.unshift({
+      id: crypto.randomUUID(),
+      timestamp: Date.now(),
+      playerName: state.players[0].name,
+      action: 'Pioche',
+      detail: `a pioché ${drawnCards.length} cartes`,
+    });
+  }
+
+  return state;
 }

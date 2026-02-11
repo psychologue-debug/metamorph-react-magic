@@ -125,7 +125,7 @@ const Index = () => {
         </div>
       </div>
 
-      <div className="border-t border-border/30 p-3 space-y-2" style={{ background: `linear-gradient(180deg, hsl(var(--card) / 0.5), hsl(var(--background)))` }}>
+      <div className="border-t border-border/30 px-3 py-1.5 space-y-1" style={{ background: `linear-gradient(180deg, hsl(var(--card) / 0.5), hsl(var(--background)))` }}>
         <ActionBar
           gameState={gameState}
           interactionMode={interactionMode}
