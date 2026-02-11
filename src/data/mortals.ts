@@ -194,7 +194,7 @@ export function createMortalsForGod(god: DivinityId): Mortal[] {
     effectOnMetamorphose: t.effectOnMetamorphose,
     effectPermanent: t.effectPermanent,
     comment: t.comment,
-    imageRecto: t.imageRectoFile ? `/mortals/${t.imageRectoFile}` : '',
-    imageVerso: t.imageVersoFile ? `/mortals/${t.imageVersoFile}` : '',
+    imageRecto: t.imageRectoFile ? `/mortals/${encodeURI(t.imageRectoFile)}` : '',
+    imageVerso: t.imageVersoFile ? `/mortals/${encodeURI(t.imageVersoFile)}` : '',
   }));
 }
