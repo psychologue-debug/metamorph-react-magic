@@ -100,6 +100,8 @@ export const MORTAL_TEMPLATES: MortalTemplate[] = [
     cost: 16,
     effectPermanent: 'Vos autres mortels coûtent 1 Ether de moins à métamorphoser',
     etherProduction: 1,
+    imageRectoFile: 'APO-07-recto-Marsyas.png',
+    imageVersoFile: 'APO-07-verso-Fleuve Marsyas.png',
   },
   {
     god: 'apollon',
@@ -111,6 +113,8 @@ export const MORTAL_TEMPLATES: MortalTemplate[] = [
     effectPermanent: 'Si le Cyprès (APO-10) et Hyacinthe (APO-09) sont métamorphosés, vos mortels métamorphosés sont invulnérables',
     comment: '"Invulnérable" = ne peuvent ni être incapacités ni rétromorphosés ni retirés du jeu.',
     etherProduction: 1,
+    imageRectoFile: 'APO-08-recto-Philémon et Baucis.png',
+    imageVersoFile: 'APO-08-verso-Deux arbres.png',
   },
   {
     god: 'apollon',
@@ -121,6 +125,8 @@ export const MORTAL_TEMPLATES: MortalTemplate[] = [
     cost: 7,
     effectPermanent: 'Si le Cyprès (APO-10) et Deux arbres (APO-08) sont métamorphosés, vos mortels métamorphosés sont invulnérables',
     etherProduction: 1,
+    imageRectoFile: 'APO-09-recto-Hyacinthe.png',
+    imageVersoFile: 'APO-09-verso-Hyacinthe fleur.png',
   },
   {
     god: 'apollon',
@@ -131,6 +137,21 @@ export const MORTAL_TEMPLATES: MortalTemplate[] = [
     cost: 7,
     effectPermanent: 'Si Hyacinthe (APO-09) et Deux arbres (APO-08) sont métamorphosés, vos mortels métamorphosés sont invulnérables',
     etherProduction: 1,
+    imageRectoFile: 'APO-10-recto-Cyparissius.png',
+    imageVersoFile: 'APO-10-verso-Cyprès.png',
+  },
+  // === Vénus ===
+  {
+    god: 'venus',
+    code: 'VEN-01',
+    nameRecto: 'Philomène',
+    nameVerso: 'Rossignol',
+    type: 'animal',
+    cost: 9,
+    effectPermanent: 'Ne peut pas être incapacité. Rétromorphosez 1 de vos mortels : levez une incapacité.',
+    etherProduction: 1,
+    imageRectoFile: 'VEN-01-recto-Philomène.png',
+    imageVersoFile: 'VEN-01-verso-Rossignol.png',
   },
 ];
 
