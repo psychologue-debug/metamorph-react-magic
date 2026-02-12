@@ -405,6 +405,34 @@ export function useGameLogic() {
     setPendingReactionCard(null);
   }, []);
 
+  const handleDiscardReaction = useCallback((cardId: string) => {
+    setGameState((prev) => {
+      if (!prev) return prev;
+      const player = prev.players[prev.activePlayerIndex];
+      const card = player.reactions.find((c) => c.id === cardId);
+      if (!card) return prev;
+      const updatedPlayers = prev.players.map((p, i) => {
+        if (i !== prev.activePlayerIndex) return p;
+        return { ...p, reactions: p.reactions.filter((c) => c.id !== cardId) };
+      });
+      return {
+        ...prev,
+        players: updatedPlayers,
+        discardPile: [card, ...prev.discardPile],
+        log: [
+          {
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: player.name,
+            action: 'Réaction défaussée',
+            detail: `a défaussé une réaction posée`,
+          },
+          ...prev.log,
+        ],
+      };
+    });
+  }, []);
+
   const toggleMetamorphoseMode = useCallback(() => {
     setInteractionMode((prev) => (prev === 'metamorphosing' ? 'idle' : 'metamorphosing'));
   }, []);
@@ -441,6 +469,7 @@ export function useGameLogic() {
     handleReactionPlay,
     handleReactionPlaceFaceDown,
     cancelReactionDialog,
+    handleDiscardReaction,
     toggleMetamorphoseMode,
     toggleSpellMode,
     handleToggleReactionWindow,

@@ -1,6 +1,6 @@
 import { Mortal } from '@/types/game';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 interface MortalGridProps {
   mortals: Mortal[];
@@ -46,6 +46,9 @@ function MortalToken({
 }) {
   const [imgFailed, setImgFailed] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const tokenRef = useRef<HTMLDivElement>(null);
+  const [tooltipSide, setTooltipSide] = useState<'bottom' | 'top'>('top');
+
   const imageSrc = mortal.isMetamorphosed ? mortal.imageVerso : mortal.imageRecto;
   const displayName = mortal.isMetamorphosed ? mortal.nameVerso : mortal.nameRecto;
   const hasPermanentEffect = mortal.isMetamorphosed && !!mortal.effectPermanent;
@@ -53,10 +56,23 @@ function MortalToken({
   const showImage = imageSrc && !imgFailed;
   const isSmall = size < 80;
   const fontSize = size < 60 ? 'text-xs' : size < 100 ? 'text-sm' : 'text-lg';
-  const costFontSize = size < 60 ? 'text-[10px]' : size < 100 ? 'text-sm' : 'text-lg';
+
+  // Determine tooltip position based on screen position
+  useEffect(() => {
+    if (hovered && tokenRef.current) {
+      const rect = tokenRef.current.getBoundingClientRect();
+      // If token is in the top 400px of the screen, show tooltip below
+      setTooltipSide(rect.top < 400 ? 'bottom' : 'top');
+    }
+  }, [hovered]);
+
+  // Show tooltip for both recto (preview verso) and verso (show current card info)
+  const showTooltip = hovered;
+  const tooltipImage = mortal.isMetamorphosed ? mortal.imageVerso : mortal.imageVerso;
+  const tooltipName = mortal.isMetamorphosed ? mortal.nameVerso : mortal.nameVerso;
 
   return (
-    <div className="relative">
+    <div className="relative" ref={tokenRef}>
       <motion.div
         className={`
           rounded-full relative cursor-pointer transition-all duration-300 group overflow-hidden
@@ -99,13 +115,6 @@ function MortalToken({
           </div>
         )}
 
-        {/* Cost badge (recto only) */}
-        {!mortal.isMetamorphosed && !isSmall && (
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 bg-background/80 rounded-t px-2 py-0.5">
-            <span className={`${costFontSize} font-display text-ether font-bold`}>{mortal.cost}</span>
-          </div>
-        )}
-
         {/* Permanent effect glow */}
         {hasPermanentEffect && !isIncapacitated && (
           <motion.div
@@ -137,44 +146,52 @@ function MortalToken({
         )}
       </motion.div>
 
-      {/* Hover tooltip: verso preview — doubled surface */}
-      {hovered && !mortal.isMetamorphosed && (
+      {/* Hover tooltip — card-shaped, positioned dynamically */}
+      {showTooltip && (
         <motion.div
-          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 z-50 w-[480px] rounded-xl overflow-hidden shadow-2xl pointer-events-none"
-          style={{
-            background: 'hsl(var(--card))',
-            border: '1px solid hsl(var(--border))',
-          }}
-          initial={{ opacity: 0, y: 5 }}
+          className={`absolute left-1/2 -translate-x-1/2 z-50 pointer-events-none ${
+            tooltipSide === 'top' ? 'bottom-full mb-3' : 'top-full mt-3'
+          }`}
+          initial={{ opacity: 0, y: tooltipSide === 'top' ? 5 : -5 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.15 }}
         >
-          {mortal.imageVerso && (
-            <img
-              src={mortal.imageVerso}
-              alt={mortal.nameVerso}
-              className="w-full h-64 object-cover"
-            />
-          )}
-          <div className="p-5">
-            <div className="font-display text-xl font-bold text-foreground">{mortal.nameVerso}</div>
-            <div className="flex items-center gap-3 mt-3">
-              <span className="text-lg text-ether font-display font-semibold">Coût: {mortal.cost} Éther</span>
-              <span className="text-lg text-muted-foreground">|</span>
-              <span className="text-lg text-ether font-display">+{mortal.etherProduction} Éther/cycle</span>
+          <div
+            className="rounded-xl overflow-hidden shadow-2xl"
+            style={{
+              background: 'hsl(var(--card))',
+              border: '1px solid hsl(var(--border))',
+              width: '280px',
+            }}
+          >
+            {tooltipImage && (
+              <img
+                src={tooltipImage}
+                alt={tooltipName}
+                className="w-full object-contain"
+                style={{ maxHeight: '360px' }}
+              />
+            )}
+            <div className="p-3">
+              <div className="font-display text-lg font-bold text-foreground">{tooltipName}</div>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-base text-ether font-display font-semibold">Coût: {mortal.cost} Éther</span>
+                <span className="text-base text-muted-foreground">|</span>
+                <span className="text-base text-ether font-display">+{mortal.etherProduction} Éther/cycle</span>
+              </div>
+              {mortal.effectOnMetamorphose && (
+                <div className="text-sm text-foreground mt-2 flex gap-2">
+                  <span>⚡</span>
+                  <span>{mortal.effectOnMetamorphose}</span>
+                </div>
+              )}
+              {mortal.effectPermanent && (
+                <div className="text-sm mt-1 flex gap-2" style={{ color: 'hsl(var(--divine))' }}>
+                  <span>🔮</span>
+                  <span>{mortal.effectPermanent}</span>
+                </div>
+              )}
             </div>
-            {mortal.effectOnMetamorphose && (
-              <div className="text-base text-foreground mt-3 flex gap-2">
-                <span>⚡</span>
-                <span>{mortal.effectOnMetamorphose}</span>
-              </div>
-            )}
-            {mortal.effectPermanent && (
-              <div className="text-base mt-2 flex gap-2" style={{ color: 'hsl(var(--divine))' }}>
-                <span>🔮</span>
-                <span>{mortal.effectPermanent}</span>
-              </div>
-            )}
           </div>
         </motion.div>
       )}
