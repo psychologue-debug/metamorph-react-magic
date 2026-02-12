@@ -14,7 +14,7 @@ interface PlayerPanelProps {
 const PlayerPanel = ({ player, isActive, index, compact = false }: PlayerPanelProps) => {
   const divinity = DIVINITIES[player.divinity];
   // Always use compact tokens to fit 3 panels in width
-  const tokenSize = compact ? 60 : 84;
+  const tokenSize = compact ? 72 : 101;
 
   return (
     <motion.div
