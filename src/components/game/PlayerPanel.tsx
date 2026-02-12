@@ -2,7 +2,7 @@ import { Player, DIVINITIES } from '@/types/game';
 import EtherCounter from './EtherCounter';
 import MortalGrid from './MortalGrid';
 import { motion } from 'framer-motion';
-import { Shield, Zap } from 'lucide-react';
+import { Shield, RefreshCw } from 'lucide-react';
 
 interface PlayerPanelProps {
   player: Player;
@@ -52,12 +52,28 @@ const PlayerPanel = ({ player, isActive, index, compact = false }: PlayerPanelPr
         {/* Stats row */}
         <div className="flex items-center gap-3 mb-2 text-sm">
           <div className="flex items-center gap-1">
-            <Zap className="text-ether w-4 h-4" />
+            <RefreshCw className="text-ether w-4 h-4" />
             <span className="font-display text-foreground font-bold">{player.metamorphosedCount}/10</span>
           </div>
           <div className="flex items-center gap-1">
-            <Shield className="text-reaction w-4 h-4" />
-            <span className="text-muted-foreground">{player.reactions.length}</span>
+            {[0, 1].map((slot) => (
+              <div
+                key={slot}
+                className="w-5 h-7 rounded-sm border"
+                style={
+                  slot < player.reactions.length
+                    ? {
+                        background: 'linear-gradient(135deg, hsl(var(--reaction)), hsl(var(--reaction) / 0.7))',
+                        border: '1px solid hsl(var(--reaction) / 0.8)',
+                        boxShadow: '0 0 6px hsl(var(--reaction) / 0.4)',
+                      }
+                    : {
+                        background: 'hsl(var(--secondary) / 0.4)',
+                        border: '1px dashed hsl(var(--reaction) / 0.3)',
+                      }
+                }
+              />
+            ))}
           </div>
           <span className="text-muted-foreground">{player.hand.length} cartes</span>
         </div>
