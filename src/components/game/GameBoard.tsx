@@ -30,8 +30,8 @@ const GameBoard = ({ gameState, currentPlayerIndex }: GameBoardProps) => {
       {/* Top-left info */}
       <CentralZone gameState={gameState} />
 
-      {/* Opponents grid — wraps to fit all visible */}
-      <div className={`flex flex-wrap justify-center gap-3 p-3 pt-20`}>
+      {/* Opponents grid — fits all in width without scrolling */}
+      <div className="flex flex-wrap justify-center gap-2 p-2 pt-20">
         {opponents.map(({ player, index: playerIndex }) => (
           <PlayerPanel
             key={player.id}

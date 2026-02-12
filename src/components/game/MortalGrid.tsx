@@ -149,7 +149,7 @@ function MortalToken({
       {/* Hover tooltip — card-shaped, positioned dynamically */}
       {showTooltip && (
         <motion.div
-          className={`absolute left-1/2 -translate-x-1/2 z-50 pointer-events-none ${
+          className={`absolute left-1/2 -translate-x-1/2 z-[9999] pointer-events-none ${
             tooltipSide === 'top' ? 'bottom-full mb-3' : 'top-full mt-3'
           }`}
           initial={{ opacity: 0, y: tooltipSide === 'top' ? 5 : -5 }}

@@ -147,13 +147,9 @@ const Index = () => {
         </div>
       </header>
 
-      <div className="flex-1 flex min-h-0">
-        <div className="flex-1 relative">
-          <GameBoard gameState={gameState} currentPlayerIndex={currentPlayerIndex} />
-        </div>
-        <div className="w-64 border-l border-border/30 p-2 overflow-y-auto" style={{ background: 'hsl(var(--background) / 0.95)' }}>
-          <GameLog entries={gameState.log} />
-        </div>
+      <div className="flex-1 min-h-0 relative">
+        <GameBoard gameState={gameState} currentPlayerIndex={currentPlayerIndex} />
+        <GameLog entries={gameState.log} />
       </div>
 
       <div className="border-t border-border/30 px-3 py-1 space-y-1" style={{ background: `linear-gradient(180deg, hsl(var(--card) / 0.5), hsl(var(--background)))` }}>
