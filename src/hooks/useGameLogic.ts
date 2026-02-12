@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { GameState, Player, SpellCard, TurnPhase } from '@/types/game';
+import { GameState, Player, SpellCard, TurnPhase, DivinityId } from '@/types/game';
 import { createMockGameState } from '@/data/mockGame';
 import { toast } from 'sonner';
 
@@ -14,8 +14,8 @@ export function useGameLogic() {
   const [discardRequired, setDiscardRequired] = useState(false);
   const [pendingReactionCard, setPendingReactionCard] = useState<SpellCard | null>(null);
 
-  const startGame = useCallback((playerCount: number) => {
-    const state = createMockGameState(playerCount);
+  const startGame = useCallback((playerCount: number, selectedGods?: DivinityId[]) => {
+    const state = createMockGameState(playerCount, selectedGods);
     setGameState(state);
     setCurrentPlayerIndex(0);
     setGameStarted(true);
