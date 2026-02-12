@@ -72,7 +72,7 @@ function MortalToken({
   const tooltipName = mortal.isMetamorphosed ? mortal.nameVerso : mortal.nameVerso;
 
   return (
-    <div className="relative" ref={tokenRef}>
+    <div className="relative" ref={tokenRef} style={{ zIndex: hovered ? 9999 : 'auto' }}>
       <motion.div
         className={`
           rounded-full relative cursor-pointer transition-all duration-300 group overflow-hidden

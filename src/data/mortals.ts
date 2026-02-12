@@ -175,6 +175,16 @@ export const MORTAL_TEMPLATES: MortalTemplate[] = [
   },
   // === Minerve ===
   {
+    god: 'minerve', code: 'MIN-01', nameRecto: 'Paysans', nameVerso: 'Grenouilles',
+    type: 'animal', cost: 8, etherProduction: 1,
+    effectOnMetamorphose: 'Chaque Dieu ennemi défausse 1. Si ce n\'est pas le premier mortel que vous métamorphosez ce tour, chaque dieu ennemi défausse 2 et vous générez autant d\'éther.',
+  },
+  {
+    god: 'minerve', code: 'MIN-02', nameRecto: 'Ajax', nameVerso: 'Hyacinthe',
+    type: 'vegetal', cost: 8, etherProduction: 1,
+    effectPermanent: 'Rétromorphosez : vous pouvez métamorphoser un mortel supplémentaire ce tour-ci.',
+  },
+  {
     god: 'minerve', code: 'MIN-03', nameRecto: 'Perdrix', nameVerso: 'Perdrie',
     type: 'animal', cost: 10, etherProduction: 1,
     effectPermanent: 'L\'Éther qu\'il génère est volé à un dieu de votre choix.',
@@ -198,6 +208,22 @@ export const MORTAL_TEMPLATES: MortalTemplate[] = [
     god: 'minerve', code: 'MIN-07', nameRecto: 'Arachné', nameVerso: 'Araignée',
     type: 'animal', cost: 6, etherProduction: 0,
     effectPermanent: 'Quand une réaction est jouée, génère 1.',
+  },
+  {
+    god: 'minerve', code: 'MIN-08', nameRecto: 'Calisto', nameVerso: 'Ours',
+    type: 'animal', cost: 12, etherProduction: 1,
+    effectOnMetamorphose: 'Si ce n\'est pas le premier mortel que vous métamorphosez ce tour, rétromorphosez : retirez du jeu un mortel métamorphosé.',
+    effectPermanent: 'Retirez l\'Ours du jeu et payez 7 Éther : retirez du jeu un mortel métamorphosé.',
+  },
+  {
+    god: 'minerve', code: 'MIN-09', nameRecto: 'Nyctimène', nameVerso: 'Chouette de Minerve',
+    type: 'animal', cost: 10, etherProduction: 0,
+    effectPermanent: 'Ne peut pas être rétromorphosée ni sortie du jeu. Rétromorphosez : levez une incapacité. Si ce n\'est pas le premier mortel que vous métamorphosez ce tour, levez toutes les incapacités de vos mortels.',
+  },
+  {
+    god: 'minerve', code: 'MIN-10', nameRecto: 'Aglaure', nameVerso: 'Statue d\'Aglaure',
+    type: 'mineral', cost: 11, etherProduction: 1,
+    effectOnMetamorphose: 'Incapacitez un mortel ennemi. Si ce n\'est pas le premier mortel que vous métamorphosez ce tour, incapacitez 2 mortels ennemis.',
   },
 ];
 
