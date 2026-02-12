@@ -8,26 +8,26 @@ interface GameLogProps {
 
 const GameLog = ({ entries }: GameLogProps) => {
   return (
-    <div className="rounded-lg p-3 max-h-44 overflow-y-auto" style={{
+    <div className="rounded-lg p-3 h-full overflow-y-auto" style={{
       background: 'hsl(var(--card) / 0.8)',
       backdropFilter: 'blur(8px)',
     }}>
-      <div className="flex items-center gap-1.5 mb-2">
-        <ScrollText className="w-3.5 h-3.5 text-ether" />
-        <h3 className="font-display text-xs font-semibold text-foreground">
+      <div className="flex items-center gap-2 mb-3">
+        <ScrollText className="w-5 h-5 text-ether" />
+        <h3 className="font-display text-base font-semibold text-foreground">
           Chroniques
         </h3>
       </div>
       
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <AnimatePresence>
-          {entries.map((entry, i) => (
+          {entries.slice(0, 30).map((entry, i) => (
             <motion.div
               key={entry.id}
-              className="flex items-start gap-2 text-[10px] font-body"
+              className="flex items-start gap-2 text-sm font-body"
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.05 }}
+              transition={{ delay: i * 0.03 }}
             >
               <span className="text-ether font-display font-semibold whitespace-nowrap">
                 {entry.playerName}
