@@ -27,6 +27,7 @@ const Index = () => {
     handleCardClick,
     handleReactionPlay,
     handleReactionPlaceFaceDown,
+    handleDiscardReaction,
     cancelReactionDialog,
     toggleMetamorphoseMode,
     toggleSpellMode,
@@ -151,6 +152,7 @@ const Index = () => {
           interactionMode={interactionMode}
           onMortalClick={handleMortalClick}
           onCardClick={handleCardClick}
+          onDiscardReaction={handleDiscardReaction}
         />
       </div>
 

@@ -8,10 +8,12 @@ interface GameBoardProps {
 }
 
 const GameBoard = ({ gameState, currentPlayerIndex }: GameBoardProps) => {
-  // Show all players except current player as opponents
   const opponents = gameState.players
     .map((player, index) => ({ player, index }))
     .filter(({ index }) => index !== currentPlayerIndex);
+
+  // Use compact mode when 4+ opponents to fit everything on screen
+  const compact = opponents.length >= 4;
 
   return (
     <div className="relative w-full h-full marble-texture overflow-auto">
@@ -28,14 +30,15 @@ const GameBoard = ({ gameState, currentPlayerIndex }: GameBoardProps) => {
       {/* Top-left info */}
       <CentralZone gameState={gameState} />
 
-      {/* Opponents in horizontal row */}
-      <div className="flex flex-wrap justify-center gap-4 p-4 pt-20">
+      {/* Opponents grid — wraps to fit all visible */}
+      <div className={`flex flex-wrap justify-center gap-3 p-3 pt-20`}>
         {opponents.map(({ player, index: playerIndex }) => (
           <PlayerPanel
             key={player.id}
             player={player}
             isActive={playerIndex === gameState.activePlayerIndex}
             index={playerIndex}
+            compact={compact}
           />
         ))}
       </div>
