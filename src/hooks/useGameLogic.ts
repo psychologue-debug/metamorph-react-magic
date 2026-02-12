@@ -53,119 +53,113 @@ export function useGameLogic() {
   }, []);
 
   const handleEndTurn = useCallback(() => {
+    if (!gameState) return;
+    const currentPlayer = gameState.players[gameState.activePlayerIndex];
+
+    // Check if hand > 2 → need to discard first
+    if (currentPlayer.hand.length > 2) {
+      setDiscardRequired(true);
+      return;
+    }
+
     setInteractionMode('idle');
-    setGameState((prev) => {
-      if (!prev) return prev;
-      const currentPlayer = prev.players[prev.activePlayerIndex];
 
-      // Check if hand > 2 → need to discard first
-      if (currentPlayer.hand.length > 2) {
-        setDiscardRequired(true);
-        return prev;
+    const nextPlayerIdx = (gameState.activePlayerIndex + 1) % gameState.players.length;
+    const isNewCycle = nextPlayerIdx === gameState.cycleStartPlayerIndex;
+
+    let updatedPlayers = gameState.players.map((p, i) => {
+      if (i === gameState.activePlayerIndex) {
+        return {
+          ...p,
+          ether: p.sursautActive ? 0 : p.ether,
+          sursautActive: false,
+          metamorphosesThisTurn: 0,
+          maxMetamorphosesThisTurn: 1,
+          cannotMetamorphose: false,
+        };
       }
-
-      const nextPlayerIdx = (prev.activePlayerIndex + 1) % prev.players.length;
-      const isNewCycle = nextPlayerIdx === prev.cycleStartPlayerIndex;
-
-      let updatedPlayers = prev.players.map((p, i) => {
-        if (i === prev.activePlayerIndex) {
-          return {
-            ...p,
-            ether: p.sursautActive ? 0 : p.ether,
-            sursautActive: false,
-            metamorphosesThisTurn: 0,
-            maxMetamorphosesThisTurn: 1,
-            cannotMetamorphose: false,
-          };
-        }
-        return p;
-      });
-
-      let newDeck = [...prev.deck];
-      const newLog = [
-        {
-          id: crypto.randomUUID(),
-          timestamp: Date.now(),
-          playerName: currentPlayer.name,
-          action: 'Fin du Tour',
-          detail: 'a terminé son tour',
-        },
-        ...prev.log,
-      ];
-
-      // Check victory at end of cycle
-      if (isNewCycle) {
-        const cycleWinners = updatedPlayers.filter((p) => p.metamorphosedCount >= 10);
-        if (cycleWinners.length > 0) {
-          setWinners(cycleWinners);
-          return {
-            ...prev,
-            players: updatedPlayers,
-            log: newLog,
-          };
-        }
-
-        // Generate ether at start of new cycle
-        updatedPlayers = updatedPlayers.map((p) => {
-          let etherGain = 0;
-          for (const m of p.mortals) {
-            if (m.status === 'incapacite') continue;
-            etherGain += m.isMetamorphosed ? m.etherProduction : m.etherProductionRecto;
-          }
-          return { ...p, ether: p.ether + etherGain };
-        });
-        newLog.unshift({
-          id: crypto.randomUUID(),
-          timestamp: Date.now(),
-          playerName: 'Système',
-          action: 'Nouveau Cycle',
-          detail: `Cycle ${prev.turnCount + 1} — Éther généré pour tous les dieux`,
-        });
-      }
-
-      // Draw 2 cards for next player
-      const drawnCards: SpellCard[] = [];
-      if (!updatedPlayers[nextPlayerIdx].cannotDraw) {
-        for (let i = 0; i < 2; i++) {
-          const card = newDeck.pop();
-          if (card) drawnCards.push(card);
-        }
-      }
-      updatedPlayers = updatedPlayers.map((p, i) => {
-        if (i === nextPlayerIdx) {
-          return { ...p, hand: [...p.hand, ...drawnCards], cannotDraw: false };
-        }
-        return p;
-      });
-
-      if (drawnCards.length > 0) {
-        newLog.unshift({
-          id: crypto.randomUUID(),
-          timestamp: Date.now(),
-          playerName: updatedPlayers[nextPlayerIdx].name,
-          action: 'Pioche',
-          detail: `a pioché ${drawnCards.length} cartes`,
-        });
-      }
-
-      return {
-        ...prev,
-        players: updatedPlayers,
-        activePlayerIndex: nextPlayerIdx,
-        phase: 'principale' as TurnPhase,
-        reactionsBlocked: false,
-        turnCount: isNewCycle ? prev.turnCount + 1 : prev.turnCount,
-        deck: newDeck,
-        log: newLog,
-      };
+      return p;
     });
-    setCurrentPlayerIndex((prev) => {
-      if (!gameState) return prev;
-      // Check discard first
-      const currentPlayer = gameState.players[gameState.activePlayerIndex];
-      if (currentPlayer.hand.length > 2) return prev;
-      return (gameState.activePlayerIndex + 1) % gameState.players.length;
+
+    let newDeck = [...gameState.deck];
+    const newLog = [
+      {
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        playerName: currentPlayer.name,
+        action: 'Fin du Tour',
+        detail: 'a terminé son tour',
+      },
+      ...gameState.log,
+    ];
+
+    // Check victory at end of cycle
+    if (isNewCycle) {
+      const cycleWinners = updatedPlayers.filter((p) => p.metamorphosedCount >= 10);
+      if (cycleWinners.length > 0) {
+        setWinners(cycleWinners);
+        setGameState({
+          ...gameState,
+          players: updatedPlayers,
+          log: newLog,
+        });
+        return;
+      }
+
+      // Generate ether at start of new cycle
+      updatedPlayers = updatedPlayers.map((p) => {
+        let etherGain = 0;
+        for (const m of p.mortals) {
+          if (m.status === 'incapacite') continue;
+          etherGain += m.isMetamorphosed ? m.etherProduction : m.etherProductionRecto;
+        }
+        return { ...p, ether: p.ether + etherGain };
+      });
+      newLog.unshift({
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        playerName: 'Système',
+        action: 'Nouveau Cycle',
+        detail: `Cycle ${gameState.turnCount + 1} — Éther généré pour tous les dieux`,
+      });
+    }
+
+    // Draw 2 cards for next player
+    const drawnCards: SpellCard[] = [];
+    if (!updatedPlayers[nextPlayerIdx].cannotDraw) {
+      for (let i = 0; i < 2; i++) {
+        const card = newDeck.pop();
+        if (card) drawnCards.push(card);
+      }
+    }
+    updatedPlayers = updatedPlayers.map((p, i) => {
+      if (i === nextPlayerIdx) {
+        return { ...p, hand: [...p.hand, ...drawnCards], cannotDraw: false };
+      }
+      return p;
     });
+
+    if (drawnCards.length > 0) {
+      newLog.unshift({
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        playerName: updatedPlayers[nextPlayerIdx].name,
+        action: 'Pioche',
+        detail: `a pioché ${drawnCards.length} cartes`,
+      });
+    }
+
+    setGameState({
+      ...gameState,
+      players: updatedPlayers,
+      activePlayerIndex: nextPlayerIdx,
+      phase: 'principale' as TurnPhase,
+      reactionsBlocked: false,
+      turnCount: isNewCycle ? gameState.turnCount + 1 : gameState.turnCount,
+      deck: newDeck,
+      log: newLog,
+    });
+    setCurrentPlayerIndex(nextPlayerIdx);
   }, [gameState]);
 
   const handleMortalClick = useCallback((mortalId: string) => {
