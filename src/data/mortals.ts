@@ -173,6 +173,32 @@ export const MORTAL_TEMPLATES: MortalTemplate[] = [
     type: 'animal', cost: 6, etherProduction: 1,
     effectPermanent: 'Rétromorphosez : générez 8 Éther.',
   },
+  // === Minerve ===
+  {
+    god: 'minerve', code: 'MIN-03', nameRecto: 'Perdrix', nameVerso: 'Perdrie',
+    type: 'animal', cost: 10, etherProduction: 1,
+    effectPermanent: 'L\'Éther qu\'il génère est volé à un dieu de votre choix.',
+  },
+  {
+    god: 'minerve', code: 'MIN-04', nameRecto: 'Écho', nameVerso: 'Montagne',
+    type: 'mineral', cost: 18, etherProduction: 0,
+    effectPermanent: 'Quand un de vos mortels génère de l\'Éther grâce à son effet, génère 1.',
+  },
+  {
+    god: 'minerve', code: 'MIN-05', nameRecto: 'Cénée', nameVerso: 'Phœnix',
+    type: 'animal', cost: 4, etherProduction: 0,
+    effectPermanent: 'Quand vous métamorphosez un mortel au-delà du premier ce tour, génère 4.',
+  },
+  {
+    god: 'minerve', code: 'MIN-06', nameRecto: 'Dents de serpent', nameVerso: 'Soldats de Thèbes',
+    type: 'animal', cost: 30, etherProduction: 3,
+    effectPermanent: 'Invulnérable.',
+  },
+  {
+    god: 'minerve', code: 'MIN-07', nameRecto: 'Arachné', nameVerso: 'Araignée',
+    type: 'animal', cost: 6, etherProduction: 0,
+    effectPermanent: 'Quand une réaction est jouée, génère 1.',
+  },
 ];
 
 // Create mortal instances for a player
