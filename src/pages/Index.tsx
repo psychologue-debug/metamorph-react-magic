@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useGameLogic } from '@/hooks/useGameLogic';
 import GameBoard from '@/components/game/GameBoard';
 import CurrentPlayerHand from '@/components/game/CurrentPlayerHand';
@@ -6,11 +7,15 @@ import GameLog from '@/components/game/GameLog';
 import VictoryModal from '@/components/game/VictoryModal';
 import DiscardModal from '@/components/game/DiscardModal';
 import ReactionDialog from '@/components/game/ReactionDialog';
+import GodSelectionScreen from '@/components/game/GodSelectionScreen';
+import { DivinityId } from '@/types/game';
 import { motion } from 'framer-motion';
 import { Scroll, Plus, LogIn } from 'lucide-react';
 import heroBg from '@/assets/hero-bg.jpg';
 
 const Index = () => {
+  const [godSelectionCount, setGodSelectionCount] = useState<number | null>(null);
+
   const {
     gameState,
     currentPlayerIndex,
@@ -33,6 +38,20 @@ const Index = () => {
     toggleSpellMode,
     handleToggleReactionWindow,
   } = useGameLogic();
+
+  // God selection screen
+  if (godSelectionCount !== null && (!gameStarted || !gameState)) {
+    return (
+      <GodSelectionScreen
+        playerCount={godSelectionCount}
+        onStartGame={(selectedGods: DivinityId[]) => {
+          startGame(godSelectionCount, selectedGods);
+          setGodSelectionCount(null);
+        }}
+        onBack={() => setGodSelectionCount(null)}
+      />
+    );
+  }
 
   // Landing screen
   if (!gameStarted || !gameState) {
@@ -99,7 +118,7 @@ const Index = () => {
                   style={{ background: 'hsl(var(--card))' }}
                   whileHover={{ scale: 1.1, borderColor: 'hsl(var(--ether) / 0.5)', background: 'hsl(var(--ether) / 0.15)' }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => startGame(count)}
+                  onClick={() => setGodSelectionCount(count)}
                 >
                   {count}
                 </motion.button>

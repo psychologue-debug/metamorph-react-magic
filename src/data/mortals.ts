@@ -123,6 +123,32 @@ export const MORTAL_TEMPLATES: MortalTemplate[] = [
     type: 'mineral', cost: 12, etherProduction: 1,
     effectPermanent: 'Rétromorphosez : incapacitez un mortel ennemi.',
   },
+  // === Bacchus ===
+  {
+    god: 'bacchus', code: 'BAC-01', nameRecto: 'Lycaon', nameVerso: 'Lycaon (loup)',
+    type: 'animal', cost: 6, etherProduction: 1,
+    effectOnMetamorphose: 'Un dieu défausse toutes ses cartes.',
+  },
+  {
+    god: 'bacchus', code: 'BAC-02', nameRecto: 'Matelots tyrrhéniens', nameVerso: 'Dauphins',
+    type: 'animal', cost: 18, etherProduction: 1,
+    effectOnMetamorphose: 'Vous pouvez métamorphoser un autre mortel en payant 6 de plus que son coût.',
+  },
+  {
+    god: 'bacchus', code: 'BAC-03', nameRecto: 'Les Isméniennes', nameVerso: 'Mouettes',
+    type: 'animal', cost: 10, etherProduction: 1,
+    effectOnMetamorphose: 'Volez 3 n\'importe où et volez 1 carte sort à un dieu.',
+  },
+  {
+    god: 'bacchus', code: 'BAC-04', nameRecto: 'Les filles d\'Anius', nameVerso: 'Quatre colombes',
+    type: 'animal', cost: 18, etherProduction: 1,
+    effectOnMetamorphose: 'Déplacez jusqu\'à quatre incapacités d\'un mortel à un autre.',
+  },
+  {
+    god: 'bacchus', code: 'BAC-05', nameRecto: 'Myrrha', nameVerso: 'Arbre à myrrhe',
+    type: 'vegetal', cost: 8, etherProduction: 1,
+    effectPermanent: 'Si les Arbres et le Tournesol sont métamorphosés, incapacitez jusqu\'à 2 mortels.',
+  },
 ];
 
 // Create mortal instances for a player

@@ -2,12 +2,12 @@ import { GameState, Player, SpellCard, DivinityId, DIVINITIES } from '@/types/ga
 import { createMortalsForGod } from './mortals';
 import { createDeck } from './spellCards';
 
-export function createMockGameState(playerCount: number = 4): GameState {
-  const divinities: DivinityId[] = ['apollon', 'venus', 'bacchus', 'minerve', 'diane', 'neptune', 'ceres'];
+export function createMockGameState(playerCount: number = 4, selectedGods?: DivinityId[]): GameState {
+  const defaultDivinities: DivinityId[] = ['apollon', 'venus', 'bacchus', 'minerve', 'diane', 'neptune', 'ceres'];
   const deck = createDeck();
 
   const players: Player[] = Array.from({ length: playerCount }, (_, i) => {
-    const divId = divinities[i % divinities.length];
+    const divId = selectedGods ? selectedGods[i] : defaultDivinities[i % defaultDivinities.length];
     const div = DIVINITIES[divId];
     const mortals = createMortalsForGod(divId);
 
