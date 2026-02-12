@@ -21,7 +21,7 @@ const CurrentPlayerHand = ({ player, gameState, interactionMode, onMortalClick, 
 
   return (
     <motion.div
-      className="rounded-lg px-4 py-2 border border-border/50"
+      className="rounded-lg px-3 py-1.5 border border-border/50"
       style={{
         background: `linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%)`,
       }}
@@ -29,51 +29,50 @@ const CurrentPlayerHand = ({ player, gameState, interactionMode, onMortalClick, 
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      {/* Single compact row: avatar + stats | mortals | hand | reactions */}
-      <div className="flex items-center gap-4">
+      {/* Single compact row */}
+      <div className="flex items-center gap-3">
         {/* Identity + stats */}
         <div className="flex items-center gap-2 shrink-0">
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center border-2"
+            className="w-9 h-9 rounded-full flex items-center justify-center border-2"
             style={{
               borderColor: `hsl(${divinity.color})`,
               background: `linear-gradient(135deg, hsl(${divinity.color} / 0.2), hsl(var(--card)))`,
             }}
           >
-            <span className="font-display text-xs font-bold text-foreground">{player.avatar}</span>
+            <span className="font-display text-sm font-bold text-foreground">{player.avatar}</span>
           </div>
           <div className="min-w-0">
-            <h2 className="font-display text-xs font-bold text-foreground truncate">{player.name}</h2>
-            <p className="text-[9px] text-muted-foreground font-body italic">{divinity.title}</p>
+            <h2 className="font-display text-sm font-bold text-foreground truncate">{player.name}</h2>
           </div>
           <EtherCounter amount={player.ether} size="sm" />
           <div className="flex items-center gap-0.5">
-            <Zap className="w-3 h-3 text-ether" />
-            <span className="font-display text-[10px] font-bold text-foreground">{player.metamorphosedCount}/10</span>
+            <Zap className="w-3.5 h-3.5 text-ether" />
+            <span className="font-display text-xs font-bold text-foreground">{player.metamorphosedCount}/10</span>
           </div>
         </div>
 
-        <div className="h-10 w-px bg-border/40 shrink-0" />
+        <div className="h-8 w-px bg-border/40 shrink-0" />
 
         {/* Mortal grid — compact */}
         <div className="shrink-0">
           {isMetaMode && (
-            <div className="text-[8px] text-divine font-display mb-0.5">🎯 Cliquez un mortel</div>
+            <div className="text-xs text-divine font-display mb-0.5">🎯 Cliquez un mortel</div>
           )}
           <MortalGrid
             mortals={player.mortals}
-            tokenSize={36}
+            tokenSize={32}
             selectable={isMetaMode}
             onMortalClick={isMetaMode ? onMortalClick : undefined}
           />
         </div>
 
-        <div className="h-10 w-px bg-border/40 shrink-0" />
+        <div className="h-8 w-px bg-border/40 shrink-0" />
 
         {/* Hand */}
         <div className="flex-1 min-w-0">
-          <div className="text-[8px] text-muted-foreground font-display mb-0.5 uppercase tracking-wider flex items-center gap-1">
-            <Sword className="w-2.5 h-2.5" /> Main ({player.hand.length}/2)
+          <div className="text-xs text-muted-foreground font-display mb-0.5 uppercase tracking-wider flex items-center gap-1">
+            <Sword className="w-3 h-3" /> Main ({player.hand.length}/2)
             {isSpellMode && <span className="text-divine ml-1">— Cliquez pour jouer</span>}
           </div>
           <div className="flex gap-1 flex-wrap">
@@ -90,22 +89,22 @@ const CurrentPlayerHand = ({ player, gameState, interactionMode, onMortalClick, 
               );
             })}
             {player.hand.length === 0 && (
-              <p className="text-[9px] text-muted-foreground italic">Vide</p>
+              <p className="text-xs text-muted-foreground italic">Vide</p>
             )}
           </div>
         </div>
 
         {/* Reactions */}
         <div className="shrink-0">
-          <div className="text-[8px] text-muted-foreground font-display mb-0.5 uppercase tracking-wider flex items-center gap-1">
-            <Shield className="w-2.5 h-2.5 text-reaction" /> Réactions ({player.reactions.length}/2)
+          <div className="text-xs text-muted-foreground font-display mb-0.5 uppercase tracking-wider flex items-center gap-1">
+            <Shield className="w-3 h-3 text-reaction" /> Réactions ({player.reactions.length}/2)
           </div>
           <div className="flex gap-1">
             {player.reactions.map((card) => (
               <GameCard key={card.id} card={card} faceDown small />
             ))}
             {player.reactions.length === 0 && (
-              <p className="text-[9px] text-muted-foreground italic">—</p>
+              <p className="text-xs text-muted-foreground italic">—</p>
             )}
           </div>
         </div>

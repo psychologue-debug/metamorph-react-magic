@@ -16,7 +16,7 @@ const PlayerPanel = ({ player, isActive, index }: PlayerPanelProps) => {
 
   return (
     <motion.div
-      className={`flex flex-col items-center gap-1.5 ${isActive ? 'ring-2 ring-ether/50 rounded-xl' : ''}`}
+      className={`flex flex-col items-center gap-2 ${isActive ? 'ring-2 ring-ether/50 rounded-xl' : ''}`}
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1, duration: 0.4 }}
@@ -37,29 +37,29 @@ const PlayerPanel = ({ player, isActive, index }: PlayerPanelProps) => {
               background: `linear-gradient(135deg, hsl(${divinity.color} / 0.3), hsl(var(--card)))`,
             }}
           >
-            <span className="font-display text-sm font-bold text-foreground">{player.avatar}</span>
+            <span className="font-display text-base font-bold text-foreground">{player.avatar}</span>
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-display text-sm font-bold text-foreground truncate">{player.name}</h3>
-            <p className="text-[10px] text-muted-foreground font-body italic">{divinity.title}</p>
+            <h3 className="font-display text-base font-bold text-foreground truncate">{player.name}</h3>
+            <p className="text-xs text-muted-foreground font-body italic">{divinity.title}</p>
           </div>
           <EtherCounter amount={player.ether} size="sm" />
         </div>
 
         {/* Stats row */}
-        <div className="flex items-center gap-4 mb-3 text-[10px]">
+        <div className="flex items-center gap-4 mb-3 text-xs">
           <div className="flex items-center gap-1">
-            <Zap className="w-3.5 h-3.5 text-ether" />
+            <Zap className="w-4 h-4 text-ether" />
             <span className="font-display text-foreground">{player.metamorphosedCount}/10</span>
           </div>
           <div className="flex items-center gap-1">
-            <Shield className="w-3.5 h-3.5 text-reaction" />
+            <Shield className="w-4 h-4 text-reaction" />
             <span className="text-muted-foreground">{player.reactions.length} réactions</span>
           </div>
           <span className="text-muted-foreground">{player.hand.length} cartes</span>
         </div>
 
-        {/* Mortal Grid — tripled token size */}
+        {/* Mortal Grid */}
         <MortalGrid mortals={player.mortals} tokenSize={48} />
 
         {/* Reaction cards indicator */}
