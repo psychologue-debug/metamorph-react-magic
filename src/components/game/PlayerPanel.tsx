@@ -22,7 +22,7 @@ const PlayerPanel = ({ player, isActive, index }: PlayerPanelProps) => {
       transition={{ delay: index * 0.1, duration: 0.4 }}
     >
       <div
-        className="rounded-xl p-4 transition-all duration-300"
+        className="rounded-xl p-5 transition-all duration-300"
         style={{
           background: `linear-gradient(135deg, hsl(var(--card) / 0.95), hsl(var(--secondary) / 0.9))`,
           backdropFilter: 'blur(8px)',
@@ -30,41 +30,41 @@ const PlayerPanel = ({ player, isActive, index }: PlayerPanelProps) => {
         }}
       >
         {/* Header row */}
-        <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-center gap-3 mb-4">
           <div
-            className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${isActive ? 'border-ether' : 'border-border/50'}`}
+            className={`w-14 h-14 rounded-full flex items-center justify-center border-2 ${isActive ? 'border-ether' : 'border-border/50'}`}
             style={{
               background: `linear-gradient(135deg, hsl(${divinity.color} / 0.3), hsl(var(--card)))`,
             }}
           >
-            <span className="font-display text-base font-bold text-foreground">{player.avatar}</span>
+            <span className="font-display text-xl font-bold text-foreground">{player.avatar}</span>
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-display text-base font-bold text-foreground truncate">{player.name}</h3>
-            <p className="text-xs text-muted-foreground font-body italic">{divinity.title}</p>
+            <h3 className="font-display text-xl font-bold text-foreground truncate">{player.name}</h3>
+            <p className="text-base text-muted-foreground font-body italic">{divinity.title}</p>
           </div>
-          <EtherCounter amount={player.ether} size="sm" />
+          <EtherCounter amount={player.ether} size="md" />
         </div>
 
         {/* Stats row */}
-        <div className="flex items-center gap-4 mb-3 text-xs">
+        <div className="flex items-center gap-4 mb-4 text-base">
           <div className="flex items-center gap-1">
-            <Zap className="w-4 h-4 text-ether" />
-            <span className="font-display text-foreground">{player.metamorphosedCount}/10</span>
+            <Zap className="w-5 h-5 text-ether" />
+            <span className="font-display text-foreground font-bold">{player.metamorphosedCount}/10</span>
           </div>
           <div className="flex items-center gap-1">
-            <Shield className="w-4 h-4 text-reaction" />
+            <Shield className="w-5 h-5 text-reaction" />
             <span className="text-muted-foreground">{player.reactions.length} réactions</span>
           </div>
           <span className="text-muted-foreground">{player.hand.length} cartes</span>
         </div>
 
-        {/* Mortal Grid */}
-        <MortalGrid mortals={player.mortals} tokenSize={48} />
+        {/* Mortal Grid - tripled token size (was ~48, now 144) */}
+        <MortalGrid mortals={player.mortals} tokenSize={144} />
 
         {/* Reaction cards indicator */}
         {player.reactions.length > 0 && (
-          <div className="mt-3 flex gap-1.5 justify-center">
+          <div className="mt-3 flex gap-2 justify-center">
             {player.reactions.map((r) => (
               <GameCard key={r.id} card={r} faceDown small />
             ))}

@@ -3,6 +3,9 @@ import GameBoard from '@/components/game/GameBoard';
 import CurrentPlayerHand from '@/components/game/CurrentPlayerHand';
 import ActionBar from '@/components/game/ActionBar';
 import GameLog from '@/components/game/GameLog';
+import VictoryModal from '@/components/game/VictoryModal';
+import DiscardModal from '@/components/game/DiscardModal';
+import ReactionDialog from '@/components/game/ReactionDialog';
 import { motion } from 'framer-motion';
 import { Scroll, Plus, LogIn } from 'lucide-react';
 import heroBg from '@/assets/hero-bg.jpg';
@@ -13,10 +16,18 @@ const Index = () => {
     currentPlayerIndex,
     gameStarted,
     interactionMode,
+    winners,
+    discardRequired,
+    pendingReactionCard,
     startGame,
+    resetGame,
     handleEndTurn,
+    handleDiscard,
     handleMortalClick,
     handleCardClick,
+    handleReactionPlay,
+    handleReactionPlaceFaceDown,
+    cancelReactionDialog,
     toggleMetamorphoseMode,
     toggleSpellMode,
     handleToggleReactionWindow,
@@ -109,9 +120,9 @@ const Index = () => {
       >
         <div className="flex items-center gap-2">
           <Scroll className="w-5 h-5 text-ether" />
-          <h1 className="font-display text-sm font-bold text-foreground tracking-wider">MÉTAMORPHOSES</h1>
+          <h1 className="font-display text-lg font-bold text-foreground tracking-wider">MÉTAMORPHOSES</h1>
         </div>
-        <div className="font-body text-xs text-muted-foreground italic">
+        <div className="font-body text-base text-muted-foreground italic">
           Cycle {gameState.turnCount} — {gameState.players.length} dieux — Mode test solo
         </div>
       </header>
@@ -120,7 +131,7 @@ const Index = () => {
         <div className="flex-1 relative">
           <GameBoard gameState={gameState} currentPlayerIndex={currentPlayerIndex} />
         </div>
-        <div className="w-56 border-l border-border/30 p-2 overflow-y-auto" style={{ background: 'hsl(var(--background) / 0.95)' }}>
+        <div className="w-64 border-l border-border/30 p-2 overflow-y-auto" style={{ background: 'hsl(var(--background) / 0.95)' }}>
           <GameLog entries={gameState.log} />
         </div>
       </div>
@@ -142,6 +153,32 @@ const Index = () => {
           onCardClick={handleCardClick}
         />
       </div>
+
+      {/* Victory modal */}
+      {winners.length > 0 && (
+        <VictoryModal winners={winners} onClose={resetGame} />
+      )}
+
+      {/* Discard modal */}
+      {discardRequired && (
+        <DiscardModal
+          hand={currentPlayer.hand}
+          excessCount={currentPlayer.hand.length - 2}
+          onConfirm={handleDiscard}
+        />
+      )}
+
+      {/* Reaction dialog */}
+      {pendingReactionCard && (
+        <ReactionDialog
+          card={pendingReactionCard}
+          player={currentPlayer}
+          gameState={gameState}
+          onPlay={handleReactionPlay}
+          onPlaceFaceDown={handleReactionPlaceFaceDown}
+          onCancel={cancelReactionDialog}
+        />
+      )}
     </div>
   );
 };

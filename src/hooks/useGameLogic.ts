@@ -10,12 +10,46 @@ export function useGameLogic() {
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
   const [interactionMode, setInteractionMode] = useState<InteractionMode>('idle');
+  const [winners, setWinners] = useState<Player[]>([]);
+  const [discardRequired, setDiscardRequired] = useState(false);
+  const [pendingReactionCard, setPendingReactionCard] = useState<SpellCard | null>(null);
 
   const startGame = useCallback((playerCount: number) => {
     const state = createMockGameState(playerCount);
     setGameState(state);
     setCurrentPlayerIndex(0);
     setGameStarted(true);
+    setWinners([]);
+    setDiscardRequired(false);
+    setPendingReactionCard(null);
+  }, []);
+
+  const resetGame = useCallback(() => {
+    setGameState(null);
+    setGameStarted(false);
+    setWinners([]);
+    setDiscardRequired(false);
+  }, []);
+
+  const handleDiscard = useCallback((cardIds: string[]) => {
+    setGameState((prev) => {
+      if (!prev) return prev;
+      const updatedPlayers = prev.players.map((p, i) => {
+        if (i !== prev.activePlayerIndex) return p;
+        const discarded = p.hand.filter((c) => cardIds.includes(c.id));
+        return {
+          ...p,
+          hand: p.hand.filter((c) => !cardIds.includes(c.id)),
+        };
+      });
+      const discardedCards = prev.players[prev.activePlayerIndex].hand.filter((c) => cardIds.includes(c.id));
+      return {
+        ...prev,
+        players: updatedPlayers,
+        discardPile: [...discardedCards, ...prev.discardPile],
+      };
+    });
+    setDiscardRequired(false);
   }, []);
 
   const handleEndTurn = useCallback(() => {
@@ -23,6 +57,13 @@ export function useGameLogic() {
     setGameState((prev) => {
       if (!prev) return prev;
       const currentPlayer = prev.players[prev.activePlayerIndex];
+
+      // Check if hand > 2 → need to discard first
+      if (currentPlayer.hand.length > 2) {
+        setDiscardRequired(true);
+        return prev;
+      }
+
       const nextPlayerIdx = (prev.activePlayerIndex + 1) % prev.players.length;
       const isNewCycle = nextPlayerIdx === prev.cycleStartPlayerIndex;
 
@@ -52,8 +93,19 @@ export function useGameLogic() {
         ...prev.log,
       ];
 
-      // Generate ether at start of new cycle for ALL players
+      // Check victory at end of cycle
       if (isNewCycle) {
+        const cycleWinners = updatedPlayers.filter((p) => p.metamorphosedCount >= 10);
+        if (cycleWinners.length > 0) {
+          setWinners(cycleWinners);
+          return {
+            ...prev,
+            players: updatedPlayers,
+            log: newLog,
+          };
+        }
+
+        // Generate ether at start of new cycle
         updatedPlayers = updatedPlayers.map((p) => {
           let etherGain = 0;
           for (const m of p.mortals) {
@@ -71,7 +123,7 @@ export function useGameLogic() {
         });
       }
 
-      // Draw 2 cards for next player at start of their turn
+      // Draw 2 cards for next player
       const drawnCards: SpellCard[] = [];
       if (!updatedPlayers[nextPlayerIdx].cannotDraw) {
         for (let i = 0; i < 2; i++) {
@@ -109,6 +161,9 @@ export function useGameLogic() {
     });
     setCurrentPlayerIndex((prev) => {
       if (!gameState) return prev;
+      // Check discard first
+      const currentPlayer = gameState.players[gameState.activePlayerIndex];
+      if (currentPlayer.hand.length > 2) return prev;
       return (gameState.activePlayerIndex + 1) % gameState.players.length;
     });
   }, [gameState]);
@@ -140,7 +195,9 @@ export function useGameLogic() {
         return prev;
       }
       if (player.ether < mortal.cost) {
-        toast.error(`Pas assez d'Éther (coût: ${mortal.cost}, disponible: ${player.ether})`);
+        toast.error(`Pas assez d'Éther ! (coût: ${mortal.cost}, disponible: ${player.ether})`, {
+          style: { background: 'hsl(0 70% 20%)', border: '1px solid hsl(0 70% 40%)', color: 'white', fontSize: '18px' },
+        });
         return prev;
       }
 
@@ -185,9 +242,17 @@ export function useGameLogic() {
       const card = player.hand.find((c) => c.id === cardId);
       if (!card) return prev;
 
+      // If it's a reaction card, show dialog instead of directly placing
+      if (card.type === 'reaction') {
+        setPendingReactionCard(card);
+        return prev;
+      }
+
       // Check cost
       if (player.ether < card.cost) {
-        toast.error(`Pas assez d'Éther (coût: ${card.cost})`);
+        toast.error(`Pas assez d'Éther ! (coût: ${card.cost}, disponible: ${player.ether})`, {
+          style: { background: 'hsl(0 70% 20%)', border: '1px solid hsl(0 70% 40%)', color: 'white', fontSize: '18px' },
+        });
         return prev;
       }
 
@@ -196,36 +261,6 @@ export function useGameLogic() {
       if (!condCheck.valid) {
         toast.error(condCheck.reason || 'Conditions non remplies');
         return prev;
-      }
-
-      // Reaction → place face down
-      if (card.type === 'reaction') {
-        if (player.reactions.length >= 2) {
-          toast.error('Maximum 2 réactions posées');
-          return prev;
-        }
-        const updatedPlayers = prev.players.map((p, i) => {
-          if (i !== prev.activePlayerIndex) return p;
-          return {
-            ...p,
-            hand: p.hand.filter((c) => c.id !== cardId),
-            reactions: [...p.reactions, card],
-          };
-        });
-        return {
-          ...prev,
-          players: updatedPlayers,
-          log: [
-            {
-              id: crypto.randomUUID(),
-              timestamp: Date.now(),
-              playerName: player.name,
-              action: 'Réaction posée',
-              detail: 'a posé une réaction face cachée',
-            },
-            ...prev.log,
-          ],
-        };
       }
 
       // Sortilege → pay cost and resolve
@@ -240,7 +275,6 @@ export function useGameLogic() {
 
       let reactionsBlocked = prev.reactionsBlocked;
 
-      // Basic effect resolution
       if (card.name === 'Anabolisme') {
         updatedPlayers = updatedPlayers.map((p, i) =>
           i === prev.activePlayerIndex ? { ...p, ether: p.ether + 1 } : p
@@ -258,7 +292,6 @@ export function useGameLogic() {
             : p
         );
       }
-      // TODO: implement targeting effects (Torpeur, Catabolisme, etc.)
 
       return {
         ...prev,
@@ -279,6 +312,98 @@ export function useGameLogic() {
     });
     setInteractionMode('idle');
   }, [interactionMode]);
+
+  const handleReactionPlay = useCallback(() => {
+    if (!pendingReactionCard || !gameState) return;
+    const player = gameState.players[gameState.activePlayerIndex];
+    const card = pendingReactionCard;
+
+    // Check activation conditions
+    const condCheck = checkActivationCondition(card, player, gameState);
+    if (!condCheck.valid) {
+      toast.error(condCheck.reason || 'Conditions d\'activation non remplies');
+      return;
+    }
+
+    if (player.ether < card.cost) {
+      toast.error(`Pas assez d'Éther ! (coût: ${card.cost}, disponible: ${player.ether})`, {
+        style: { background: 'hsl(0 70% 20%)', border: '1px solid hsl(0 70% 40%)', color: 'white', fontSize: '18px' },
+      });
+      return;
+    }
+
+    setGameState((prev) => {
+      if (!prev) return prev;
+      const updatedPlayers = prev.players.map((p, i) => {
+        if (i !== prev.activePlayerIndex) return p;
+        return {
+          ...p,
+          ether: p.ether - card.cost,
+          hand: p.hand.filter((c) => c.id !== card.id),
+        };
+      });
+      return {
+        ...prev,
+        players: updatedPlayers,
+        discardPile: [card, ...prev.discardPile],
+        log: [
+          {
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: player.name,
+            action: 'Réaction lancée',
+            detail: `a lancé ${card.name} — ${card.description}`,
+          },
+          ...prev.log,
+        ],
+      };
+    });
+    setPendingReactionCard(null);
+    setInteractionMode('idle');
+  }, [pendingReactionCard, gameState]);
+
+  const handleReactionPlaceFaceDown = useCallback(() => {
+    if (!pendingReactionCard || !gameState) return;
+    const player = gameState.players[gameState.activePlayerIndex];
+    const card = pendingReactionCard;
+
+    if (player.reactions.length >= 2) {
+      toast.error('Maximum 2 réactions posées');
+      return;
+    }
+
+    setGameState((prev) => {
+      if (!prev) return prev;
+      const updatedPlayers = prev.players.map((p, i) => {
+        if (i !== prev.activePlayerIndex) return p;
+        return {
+          ...p,
+          hand: p.hand.filter((c) => c.id !== card.id),
+          reactions: [...p.reactions, card],
+        };
+      });
+      return {
+        ...prev,
+        players: updatedPlayers,
+        log: [
+          {
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: player.name,
+            action: 'Réaction posée',
+            detail: 'a posé une réaction face cachée',
+          },
+          ...prev.log,
+        ],
+      };
+    });
+    setPendingReactionCard(null);
+    setInteractionMode('idle');
+  }, [pendingReactionCard, gameState]);
+
+  const cancelReactionDialog = useCallback(() => {
+    setPendingReactionCard(null);
+  }, []);
 
   const toggleMetamorphoseMode = useCallback(() => {
     setInteractionMode((prev) => (prev === 'metamorphosing' ? 'idle' : 'metamorphosing'));
@@ -304,10 +429,18 @@ export function useGameLogic() {
     currentPlayerIndex,
     gameStarted,
     interactionMode,
+    winners,
+    discardRequired,
+    pendingReactionCard,
     startGame,
+    resetGame,
     handleEndTurn,
+    handleDiscard,
     handleMortalClick,
     handleCardClick,
+    handleReactionPlay,
+    handleReactionPlaceFaceDown,
+    cancelReactionDialog,
     toggleMetamorphoseMode,
     toggleSpellMode,
     handleToggleReactionWindow,
@@ -336,7 +469,6 @@ function checkActivationCondition(
     if (!hasAna || !hasCata) return { valid: false, reason: 'Il faut un Anabolisme et un Catabolisme dans la défausse' };
   }
 
-  // Reactions with conditions: always valid to place face down
   if (card.type === 'reaction') return { valid: true };
 
   return { valid: true };

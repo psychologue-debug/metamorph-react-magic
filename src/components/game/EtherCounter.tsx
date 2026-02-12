@@ -7,9 +7,9 @@ interface EtherCounterProps {
 
 const EtherCounter = ({ amount, size = 'md' }: EtherCounterProps) => {
   const dims = {
-    sm: { w: 36, h: 32, font: 'text-sm', top: 6 },
-    md: { w: 48, h: 42, font: 'text-base', top: 8 },
-    lg: { w: 64, h: 56, font: 'text-xl', top: 10 },
+    sm: { w: 48, h: 44, font: 'text-lg', top: 8 },
+    md: { w: 64, h: 56, font: 'text-xl', top: 10 },
+    lg: { w: 80, h: 72, font: 'text-3xl', top: 12 },
   }[size];
 
   return (
@@ -25,23 +25,19 @@ const EtherCounter = ({ amount, size = 'md' }: EtherCounterProps) => {
       }}
       transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
     >
-      {/* Cup/chalice SVG shape */}
       <svg viewBox="0 0 48 42" className="absolute inset-0 w-full h-full">
-        {/* Cup body */}
         <path
           d="M6 4 Q6 0 12 0 L36 0 Q42 0 42 4 L40 28 Q39 36 24 38 Q9 36 8 28 Z"
           fill="url(#cupGradient)"
           stroke="hsl(270 50% 40%)"
           strokeWidth="1.2"
         />
-        {/* Base */}
         <path
           d="M16 38 Q24 40 32 38 L30 42 L18 42 Z"
           fill="hsl(270 30% 25%)"
           stroke="hsl(270 50% 40%)"
           strokeWidth="0.8"
         />
-        {/* Inner liquid glow */}
         <path
           d="M10 6 L38 6 L36 26 Q35 33 24 35 Q13 33 12 26 Z"
           fill="url(#liquidGradient)"
@@ -59,7 +55,6 @@ const EtherCounter = ({ amount, size = 'md' }: EtherCounterProps) => {
           </radialGradient>
         </defs>
       </svg>
-      {/* Amount text */}
       <span
         className={`${dims.font} relative z-10 text-white font-bold`}
         style={{ marginTop: dims.top, textShadow: '0 0 8px hsl(270 80% 70% / 0.6)' }}

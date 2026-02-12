@@ -10,7 +10,7 @@ interface MortalGridProps {
 }
 
 const MortalGrid = ({ mortals, tokenSize = 80, selectable = false, onMortalClick }: MortalGridProps) => {
-  const gap = tokenSize < 40 ? 4 : tokenSize < 60 ? 6 : tokenSize < 100 ? 8 : 12;
+  const gap = tokenSize < 60 ? 4 : tokenSize < 100 ? 8 : 12;
 
   return (
     <div
@@ -51,7 +51,9 @@ function MortalToken({
   const hasPermanentEffect = mortal.isMetamorphosed && !!mortal.effectPermanent;
   const isIncapacitated = mortal.status === 'incapacite';
   const showImage = imageSrc && !imgFailed;
-  const isSmall = size < 50;
+  const isSmall = size < 80;
+  const fontSize = size < 60 ? 'text-xs' : size < 100 ? 'text-sm' : 'text-lg';
+  const costFontSize = size < 60 ? 'text-[10px]' : size < 100 ? 'text-sm' : 'text-lg';
 
   return (
     <div className="relative">
@@ -91,20 +93,20 @@ function MortalToken({
                 : `linear-gradient(135deg, hsl(var(--card)), hsl(var(--secondary)))`,
             }}
           >
-            <span className={`font-display font-bold ${isSmall ? 'text-xs' : 'text-sm'} text-muted-foreground`}>
+            <span className={`font-display font-bold ${fontSize} text-muted-foreground`}>
               {mortal.isMetamorphosed ? mortal.etherProduction : mortal.nameRecto.charAt(0)}
             </span>
           </div>
         )}
 
-        {/* Cost badge (recto only, not small) */}
+        {/* Cost badge (recto only) */}
         {!mortal.isMetamorphosed && !isSmall && (
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 bg-background/80 rounded-t px-1.5">
-            <span className="text-[10px] font-display text-ether font-bold">{mortal.cost}</span>
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 bg-background/80 rounded-t px-2 py-0.5">
+            <span className={`${costFontSize} font-display text-ether font-bold`}>{mortal.cost}</span>
           </div>
         )}
 
-        {/* Permanent effect glow halo */}
+        {/* Permanent effect glow */}
         {hasPermanentEffect && !isIncapacitated && (
           <motion.div
             className="absolute -inset-1 rounded-full pointer-events-none"
@@ -120,7 +122,7 @@ function MortalToken({
         {/* Incapacitated overlay */}
         {isIncapacitated && (
           <div className="absolute inset-0 rounded-full flex items-center justify-center bg-background/50">
-            <span className="text-base">⛓️</span>
+            <span className="text-2xl">⛓️</span>
           </div>
         )}
 
@@ -135,10 +137,10 @@ function MortalToken({
         )}
       </motion.div>
 
-      {/* Hover tooltip: show verso preview for non-metamorphosed mortals */}
+      {/* Hover tooltip: verso preview — doubled surface */}
       {hovered && !mortal.isMetamorphosed && (
         <motion.div
-          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 z-50 w-[360px] rounded-xl overflow-hidden shadow-2xl pointer-events-none"
+          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 z-50 w-[480px] rounded-xl overflow-hidden shadow-2xl pointer-events-none"
           style={{
             background: 'hsl(var(--card))',
             border: '1px solid hsl(var(--border))',
@@ -151,24 +153,24 @@ function MortalToken({
             <img
               src={mortal.imageVerso}
               alt={mortal.nameVerso}
-              className="w-full h-52 object-cover"
+              className="w-full h-64 object-cover"
             />
           )}
-          <div className="p-4">
-            <div className="font-display text-base font-bold text-foreground">{mortal.nameVerso}</div>
-            <div className="flex items-center gap-2 mt-2">
-              <span className="text-sm text-ether font-display font-semibold">Coût: {mortal.cost} Éther</span>
-              <span className="text-sm text-muted-foreground">|</span>
-              <span className="text-sm text-ether font-display">+{mortal.etherProduction} Éther/cycle</span>
+          <div className="p-5">
+            <div className="font-display text-xl font-bold text-foreground">{mortal.nameVerso}</div>
+            <div className="flex items-center gap-3 mt-3">
+              <span className="text-lg text-ether font-display font-semibold">Coût: {mortal.cost} Éther</span>
+              <span className="text-lg text-muted-foreground">|</span>
+              <span className="text-lg text-ether font-display">+{mortal.etherProduction} Éther/cycle</span>
             </div>
             {mortal.effectOnMetamorphose && (
-              <div className="text-sm text-foreground mt-2.5 flex gap-2">
+              <div className="text-base text-foreground mt-3 flex gap-2">
                 <span>⚡</span>
                 <span>{mortal.effectOnMetamorphose}</span>
               </div>
             )}
             {mortal.effectPermanent && (
-              <div className="text-sm mt-2 flex gap-2" style={{ color: 'hsl(var(--divine))' }}>
+              <div className="text-base mt-2 flex gap-2" style={{ color: 'hsl(var(--divine))' }}>
                 <span>🔮</span>
                 <span>{mortal.effectPermanent}</span>
               </div>
