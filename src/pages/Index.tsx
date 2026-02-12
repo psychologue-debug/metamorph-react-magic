@@ -78,12 +78,12 @@ const Index = () => {
           </motion.div>
 
           <motion.div className="mt-8 pt-6 border-t border-border/30" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}>
-            <p className="text-[10px] text-muted-foreground font-display uppercase tracking-wider mb-3">Mode test solo — choisissez le nombre de dieux</p>
+            <p className="text-xs text-muted-foreground font-display uppercase tracking-wider mb-3">Mode test solo — choisissez le nombre de dieux</p>
             <div className="flex justify-center gap-2">
               {[2, 3, 4, 5, 6, 7].map((count) => (
                 <motion.button
                   key={count}
-                  className="w-10 h-10 rounded-lg font-display font-bold text-sm border border-border/50 text-foreground transition-all"
+                  className="w-12 h-12 rounded-lg font-display font-bold text-base border border-border/50 text-foreground transition-all"
                   style={{ background: 'hsl(var(--card))' }}
                   whileHover={{ scale: 1.1, borderColor: 'hsl(var(--ether) / 0.5)', background: 'hsl(var(--ether) / 0.15)' }}
                   whileTap={{ scale: 0.95 }}
@@ -108,10 +108,10 @@ const Index = () => {
         style={{ background: `linear-gradient(90deg, hsl(var(--card)), hsl(var(--background)))` }}
       >
         <div className="flex items-center gap-2">
-          <Scroll className="w-4 h-4 text-ether" />
-          <h1 className="font-display text-xs font-bold text-foreground tracking-wider">MÉTAMORPHOSES</h1>
+          <Scroll className="w-5 h-5 text-ether" />
+          <h1 className="font-display text-sm font-bold text-foreground tracking-wider">MÉTAMORPHOSES</h1>
         </div>
-        <div className="font-body text-[10px] text-muted-foreground italic">
+        <div className="font-body text-xs text-muted-foreground italic">
           Cycle {gameState.turnCount} — {gameState.players.length} dieux — Mode test solo
         </div>
       </header>
@@ -125,7 +125,7 @@ const Index = () => {
         </div>
       </div>
 
-      <div className="border-t border-border/30 px-3 py-1.5 space-y-1" style={{ background: `linear-gradient(180deg, hsl(var(--card) / 0.5), hsl(var(--background)))` }}>
+      <div className="border-t border-border/30 px-3 py-1 space-y-1" style={{ background: `linear-gradient(180deg, hsl(var(--card) / 0.5), hsl(var(--background)))` }}>
         <ActionBar
           gameState={gameState}
           interactionMode={interactionMode}

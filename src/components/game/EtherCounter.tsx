@@ -6,29 +6,66 @@ interface EtherCounterProps {
 }
 
 const EtherCounter = ({ amount, size = 'md' }: EtherCounterProps) => {
-  const sizeClasses = {
-    sm: 'w-8 h-8 text-xs',
-    md: 'w-12 h-12 text-sm',
-    lg: 'w-16 h-16 text-lg',
-  };
+  const dims = {
+    sm: { w: 36, h: 32, font: 'text-sm', top: 6 },
+    md: { w: 48, h: 42, font: 'text-base', top: 8 },
+    lg: { w: 64, h: 56, font: 'text-xl', top: 10 },
+  }[size];
 
   return (
     <motion.div
-      className={`${sizeClasses[size]} rounded-full flex items-center justify-center font-display font-bold ether-glow relative`}
-      style={{
-        background: `radial-gradient(circle, hsl(var(--ether-glow)) 0%, hsl(var(--ether)) 60%, hsl(var(--ether-dim)) 100%)`,
-        color: 'hsl(var(--primary-foreground))',
-      }}
+      className="relative flex items-start justify-center font-display font-bold"
+      style={{ width: dims.w, height: dims.h }}
       animate={{
-        boxShadow: [
-          '0 0 10px hsl(42 78% 55% / 0.3), 0 0 20px hsl(42 78% 55% / 0.1)',
-          '0 0 20px hsl(42 78% 55% / 0.5), 0 0 40px hsl(42 78% 55% / 0.2)',
-          '0 0 10px hsl(42 78% 55% / 0.3), 0 0 20px hsl(42 78% 55% / 0.1)',
+        filter: [
+          'drop-shadow(0 0 4px hsl(270 60% 50% / 0.3))',
+          'drop-shadow(0 0 10px hsl(270 60% 50% / 0.5))',
+          'drop-shadow(0 0 4px hsl(270 60% 50% / 0.3))',
         ],
       }}
       transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
     >
-      {amount}
+      {/* Cup/chalice SVG shape */}
+      <svg viewBox="0 0 48 42" className="absolute inset-0 w-full h-full">
+        {/* Cup body */}
+        <path
+          d="M6 4 Q6 0 12 0 L36 0 Q42 0 42 4 L40 28 Q39 36 24 38 Q9 36 8 28 Z"
+          fill="url(#cupGradient)"
+          stroke="hsl(270 50% 40%)"
+          strokeWidth="1.2"
+        />
+        {/* Base */}
+        <path
+          d="M16 38 Q24 40 32 38 L30 42 L18 42 Z"
+          fill="hsl(270 30% 25%)"
+          stroke="hsl(270 50% 40%)"
+          strokeWidth="0.8"
+        />
+        {/* Inner liquid glow */}
+        <path
+          d="M10 6 L38 6 L36 26 Q35 33 24 35 Q13 33 12 26 Z"
+          fill="url(#liquidGradient)"
+          opacity="0.8"
+        />
+        <defs>
+          <linearGradient id="cupGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="hsl(270 40% 35%)" />
+            <stop offset="100%" stopColor="hsl(270 30% 20%)" />
+          </linearGradient>
+          <radialGradient id="liquidGradient" cx="0.5" cy="0.3" r="0.6">
+            <stop offset="0%" stopColor="hsl(270 70% 65%)" />
+            <stop offset="60%" stopColor="hsl(270 60% 45%)" />
+            <stop offset="100%" stopColor="hsl(270 40% 30%)" />
+          </radialGradient>
+        </defs>
+      </svg>
+      {/* Amount text */}
+      <span
+        className={`${dims.font} relative z-10 text-white font-bold`}
+        style={{ marginTop: dims.top, textShadow: '0 0 8px hsl(270 80% 70% / 0.6)' }}
+      >
+        {amount}
+      </span>
     </motion.div>
   );
 };
