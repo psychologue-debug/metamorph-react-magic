@@ -15,14 +15,14 @@ const CentralZone = ({ gameState }: CentralZoneProps) => {
     <>
       {/* Top-left info panel */}
       <div className="absolute top-2 left-2 z-20 flex items-start gap-3">
-        <div className="rounded-xl p-4 min-w-[200px]"
+        <div className="rounded-xl px-4 py-2 flex items-center gap-4 flex-wrap"
           style={{
             background: `linear-gradient(135deg, hsl(var(--card) / 0.95), hsl(var(--secondary) / 0.9))`,
             backdropFilter: 'blur(8px)',
             border: '1px solid hsl(var(--border) / 0.3)',
           }}
         >
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2">
             <RotateCcw className="w-5 h-5 text-ether" />
             <span className="font-display text-base text-muted-foreground">
               Cycle {gameState.turnCount}
@@ -30,7 +30,7 @@ const CentralZone = ({ gameState }: CentralZoneProps) => {
           </div>
 
           <motion.h2
-            className="font-display text-xl font-bold text-foreground mb-3"
+            className="font-display text-lg font-bold text-foreground"
             key={activePlayer.name}
             initial={{ opacity: 0, x: -5 }}
             animate={{ opacity: 1, x: 0 }}
@@ -38,18 +38,22 @@ const CentralZone = ({ gameState }: CentralZoneProps) => {
             🏛 {activePlayer.name}
           </motion.h2>
 
-          <div className="flex items-center gap-4 mt-2 pt-2 border-t border-border/20">
-            <div className="flex items-center gap-1.5">
-              <Layers className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">{gameState.deck.length} cartes</span>
+          <div className="h-5 w-px bg-border/40" />
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 bg-secondary/60 rounded-lg px-2.5 py-1">
+              <Layers className="w-4 h-4 text-ether" />
+              <span className="text-sm font-display font-bold text-foreground">{gameState.deck.length}</span>
+              <span className="text-sm text-muted-foreground">pioche</span>
             </div>
             <button
-              className="flex items-center gap-1.5 hover:text-ether transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 bg-secondary/60 rounded-lg px-2.5 py-1 hover:bg-ether/20 transition-colors cursor-pointer"
               onClick={() => setShowDiscard(!showDiscard)}
               title="Voir la défausse"
             >
-              <Trash2 className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">{gameState.discardPile.length} défausse</span>
+              <Trash2 className="w-4 h-4 text-ether" />
+              <span className="text-sm font-display font-bold text-foreground">{gameState.discardPile.length}</span>
+              <span className="text-sm text-muted-foreground">défausse</span>
             </button>
           </div>
         </div>
