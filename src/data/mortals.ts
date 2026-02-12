@@ -149,6 +149,30 @@ export const MORTAL_TEMPLATES: MortalTemplate[] = [
     type: 'vegetal', cost: 8, etherProduction: 1,
     effectPermanent: 'Si les Arbres et le Tournesol sont métamorphosés, incapacitez jusqu\'à 2 mortels.',
   },
+  {
+    god: 'bacchus', code: 'BAC-06', nameRecto: 'Clytie', nameVerso: 'Tournesol',
+    type: 'vegetal', cost: 7, etherProduction: 1,
+    effectPermanent: 'Si les Arbres et le Tournesol sont métamorphosés, rétromorphosez : choisissez entre incapaciter un mortel ou lever une incapacité.',
+  },
+  {
+    god: 'bacchus', code: 'BAC-07', nameRecto: 'Battus', nameVerso: 'Statue de Battus',
+    type: 'mineral', cost: 6, etherProduction: 0,
+    effectPermanent: 'Rétromorphosez : incapacitez un mortel.',
+  },
+  {
+    god: 'bacchus', code: 'BAC-08', nameRecto: 'Les Ménades', nameVerso: 'Arbres',
+    type: 'vegetal', cost: 5, etherProduction: 1,
+  },
+  {
+    god: 'bacchus', code: 'BAC-09', nameRecto: 'Les trois filles de Mynias', nameVerso: 'Trois chauves-souris',
+    type: 'animal', cost: 9, etherProduction: 1,
+    effectPermanent: 'Vos sorts coûtent 1 de moins à jouer.',
+  },
+  {
+    god: 'bacchus', code: 'BAC-10', nameRecto: 'Arne', nameVerso: 'Corneille',
+    type: 'animal', cost: 6, etherProduction: 1,
+    effectPermanent: 'Rétromorphosez : générez 8 Éther.',
+  },
 ];
 
 // Create mortal instances for a player
