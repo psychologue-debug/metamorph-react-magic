@@ -14,8 +14,15 @@ export function useGameLogic() {
   const [discardRequired, setDiscardRequired] = useState(false);
   const [pendingReactionCard, setPendingReactionCard] = useState<SpellCard | null>(null);
 
-  const startGame = useCallback((playerCount: number, selectedGods?: DivinityId[]) => {
+  const startGame = useCallback((playerCount: number, selectedGods?: DivinityId[], playerNames?: string[]) => {
     const state = createMockGameState(playerCount, selectedGods);
+    // Apply player names
+    if (playerNames) {
+      state.players = state.players.map((p, i) => {
+        const pseudo = playerNames[i]?.trim();
+        return pseudo ? { ...p, name: `${p.name} (${pseudo})` } : p;
+      });
+    }
     setGameState(state);
     setCurrentPlayerIndex(0);
     setGameStarted(true);
@@ -125,10 +132,22 @@ export function useGameLogic() {
       });
     }
 
-    // Draw 2 cards for next player
+    // Draw 2 cards for next player (reshuffle discard if deck empty)
     const drawnCards: SpellCard[] = [];
     if (!updatedPlayers[nextPlayerIdx].cannotDraw) {
       for (let i = 0; i < 2; i++) {
+        if (newDeck.length === 0 && newDiscardPile.length > 0) {
+          // Shuffle discard pile into deck
+          newDeck = [...newDiscardPile].sort(() => Math.random() - 0.5);
+          newDiscardPile = [];
+          newLog.unshift({
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: 'Système',
+            action: 'Pioche reconstituée',
+            detail: 'La défausse a été mélangée pour former une nouvelle pioche',
+          });
+        }
         const card = newDeck.pop();
         if (card) drawnCards.push(card);
       }
@@ -158,6 +177,7 @@ export function useGameLogic() {
       reactionsBlocked: false,
       turnCount: isNewCycle ? gameState.turnCount + 1 : gameState.turnCount,
       deck: newDeck,
+      discardPile: newDiscardPile,
       log: newLog,
     });
     setCurrentPlayerIndex(nextPlayerIdx);
