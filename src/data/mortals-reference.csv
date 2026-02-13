@@ -1,0 +1,141 @@
+Dieu auquel ils appartiennent,Code (= nom du fichier .png),Nom recto,Nom verso,Type,Coûts de métamorphose,Effet au moment de la métamorphose,Effet permanent,Commentaire,Quantité d'Ether produite
+Apollon,APO-01-recto-Mydas,Mydas,,,8,,,,2
+Apollon,APO-01-verso-MydasÂne,,Mydas (Âne),Animal,,Un dieu ne pourra en aucune façon piocher lors de son prochain tour,,"en aucune façon' signifie que non seulement la phase de pioche saute, mais que tous les effets qui permettent de piocher des cartes ne marcheront pas.",1
+Apollon,APO-02-recto-Memnon,Memnon,,,14,,,,2
+Apollon,APO-02-verso-Memnonides,,Memnonides,Animal,,Vous pouvez défausser jusqu'à 2 cartes pour incapaciter jusqu'à 2 mortels ennemis,,"Au moment de la métamorphose, une fenêtre demande au joueur actif s'il veut défausser 0, 1 ou 2 cartes. Il clique sur un des trois chiffres, puis clique sur autant de cartes. Elles sont défaussées. Ensuite, si 1 ou 2 cartes ont été défaussées, une fenêtre dit au joueur actif de cliquer sur 1 ou 2 mortels ennemis pour les incapaciter",0
+Apollon,APO-03-recto-Daédalion,Daédalion,,,12,,,,2
+Apollon,APO-03-verso-épervier,,Épervier,Animal,,Générez 7 éther. Détruisez 3,,"Pour la génération, c'est évidemment le réservoir du joueur actif qui monte. Pour la destruction, il faut cliquer autant de fois sur les réservoirs ennemis pour détruire autant d'éther",0
+Apollon,APO-04-recto-Esculape,Esculape,,,22,,,,2
+Apollon,APO-04-verso-Serpent doré,,Serpent doré,Animal,,Volez jusqu'à 4 Ether à chaque Dieu.,,Il faut cliquer jusqu'à 4 fois sur chaque réservoir pour voir détruire autant d'ether. Le réservoir du joueur actif augmente d'autant que d'Ether détruit,1
+Apollon,APO-05-recto-Niobé,Niobé,,,19,,,,2
+Apollon,APO-05-verso-Source d'eau,,Source d'eau,Minéral,,,"A chaque fois que de l'Ether est généré en dehors du moment normal (au début du cycle), génère 1 dans votre réservoir.",,0
+Apollon,APO-06-recto-Syrinx,Syrinx,,,9,,,,2
+Apollon,APO-06-verso-Flûte de Pan,,Flûte de Pan,Végétal,,,"Quand c'est votre tour, vous pouvez rétromorphoser un de vos mortels de type Animal. Si vous le faites, générez 6 Ether et piochez une carte.",,1
+Apollon,APO-07-recto-Marsyas,Marsyas,,,16,,,,2
+Apollon,APO-07-verso-Fleuve Marsyas,,Fleuve Marsyas,Minéral,,,Vos autres mortels coûtent 1 Ether de moins à métamorphoser,,1
+Apollon,APO-08-recto-Philémon et Baucis,Philémon et Baucis,,,7,,,,2
+Apollon,APO-08-verso-Deux arbres,,Deux arbres,Végétal,,,"Si le  'Cyprès' (code = 'APO-10-verso-Cyprès' ) et Hyacinthe (Code = 'APO-09-verso-Hyacinthe (fleur)') sont métamorphosés, vos mortels métamorphosés sont invulnérables","""Invulnérable"" signifie qu'ils ne peuvent ni être incapacités ni rétromorphosés, ni retirés du jeu.",1
+Apollon,APO-09-recto-Hyacinthe,Hyacinthe,,,7,,,,2
+Apollon,APO-09-verso-Hyacinthe (fleur),,Hyacinthe (fleur),Végétal,,,"Si le 'Cyprès' (code = 'APO-10-verso-Cyprès' ) et 'Deux arbres'  (code =' APO-08-verso-Deux arbres' )  sont métamorphosés, vos mortels métamorphosés sont invulnérables,",,1
+Apollon,APO-10-recto-Cyparissius,Cyparissius,,,7,,,,2
+Apollon,APO-10-verso-Cyprès,,Cyprès,Végétal,,,"Si 'Hyacinthe (fleur)' (code =' APO-09-verso-Hyacinthe (fleur)' ) et 'Deux arbres'  (code =' APO-08-verso-Deux arbres' ) sont métamorphosés, vos mortels métamorphosés sont invulnérables,",,1
+Vénus,VEN-01-recto-Philomène,Philomène,,,9,,,,2
+Vénus,VEN-01-verso-Rossignol,,Rossignol,Animal,,,Ne peut pas être incapacité. Vous pouvez rétromorphoser un de vos mortels pour lever une incapacité,,1
+Vénus,VEN-02-recto-Aréthuse,Aréthuse,,,7,,,,2
+Vénus,VEN-02-verso-Fleuve Alphée,,Fleuve Alphée,Minéral,,,"Quand un mortel est incapacité, génère 1",Il faut aussi créer un event listener pour les fois où un mortel est incapacité ,0
+Vénus,VEN-03-recto-Égérie,Égérie,,,20,,,,2
+Vénus,VEN-03-verso-Fontaine intarissable,,Fontaine intarissable,Minéral,,,"Quand un mortel est métamorphosé, génère 1",,0
+Vénus,VEN-04-recto-Les Méléagrides,Les Méléagrides,,,10,,,,2
+Vénus,VEN-04-verso-Oiseaux,,Oiseaux,Animal,,,Vous pouvez à tout moment regarder les réactions posée des autres dieux,"Il faut que, quand les oiseaux sont visibles en jeu (quand ils ont été métamorphosés), le joueur qui joue Vénus puisse, en hover sur les cartes réactions cachées sur les plateaux des autres dieux, les voir s'afficher dans une bulle ""tooltip"". Quand l'affiache est en cours, les oiseaux doivent briller (pour que le joueur ait un feedback clair de l'effet de son mortel)",1
+Vénus,VEN-05-recto-Byblis,Byblis,,,8,,,,2
+Vénus,VEN-05-verso-Fontaine,,Fontaine,Minéral,,,"Quand un effet ennemi vous fait défausser, génère 1 Ether","Si plusieurs cartes sont défaussées par le même effet, ça ne génère toujours qu'1 seul Ether. Il faut que quand un event, comme la défausse d'une ou plusieurs carte, advient, on puisse tracker de quel dieu il vient, et distinguer son propre dieu de tous les autres, afin de savoir si l'effet se déclenche depuis un ennemi ou non",1
+Vénus,VEN-06-recto-Iphigénie,Iphigénie,,,7,,,,2
+Vénus,VEN-06-verso-Biche,,Biche,Animal,,"Si le Cerf (code = VEN-07-verso-Cerf) est métamorphosé, vous pouvez retirer du jeu un mortel ennemi déjà métamorphosé.",,"Les mortels ""retirés du jeu"" deviennent gris (saturation 0), ils ne peuvent plus rien faire : ni générer d'Ether, ni avoir d'effet, ni d'interaction avec les autres, ni être ciblés. Ils sont toujours métamorphosés.",0
+Vénus,VEN-07-recto-Actéon,Actéon,,,7,,,,2
+Vénus,VEN-07-verso-Cerf,,Cerf,Animal,,"Si la Biche (code = VEN-06-verso-Biche) est métamorphosée, vous pouvez retirer du jeu un mortel ennemi déjà métamorphosé.",,"Les mortels ""retirés du jeu"" deviennent gris (saturation 0), ils ne peuvent plus rien faire : ni générer d'Ether, ni avoir d'effet, ni d'interaction avec les autres, ni être ciblés. Ils sont toujours métamorphosés.",0
+Vénus,VEN-08-recto-Coronis,Coronis,,,1,,,,2
+Vénus,VEN-08-verso-Corneille,,Corneille,Animal,,,,,0
+Vénus,VEN-09-recto-Héliades,Les Héliades,,,12,,,,2
+Vénus,VEN-09-verso-Pins,,Pins,Végétal,,,"Quand un mortel est retiré du jeu, piochez 2 carte. Défaussez 2 cartes : générez 1 Ether","L'effet de défausser deux cartes pour générer 1 Ether peut être fait autant de fois qu'on veut, pendant son tour. Il faut un event listener pour quand un mortel est retiré du jeu.",1
+Vénus,VEN-10-recto-Anaxarète,Anaxarète,,,12,,,,2
+Vénus,VEN-10-verso-Statue d'Anaxarète,,Statue d'Anaxarète,Minéral,,Incapacitez un mortel ennemi.,,"Remarque générale sur ce genre d'effet : Si il n'a pas de cible légale (càd si il n'y a jeu que des mortels ennemis déjà incapacités ou pas encore métamorphosé), un message averti le joueur : ""Aucune cible possible !""",1
+Bacchus,BAC-01-recto-Lycaon,Lycaon,,,6,,,,2
+Bacchus,BAC-01-verso-Lycaon (animal),,Lycaon (Animal),Animal,,,Rétromorphosez ce mortel (Lycaon) : Un dieu défausse toutes ses cartes (même les réactions posées),,1
+Bacchus,BAC-02-recto-Matelos tyrrhéniens,Matelos tyrrhéniens,,,18,,,,2
+Bacchus,BAC-02-verso-Dauphins,,Dauphins,Animal,,Vous pouvez métamorphoser un autre mortel en payant 6 Ether de plus que son coût.,,"Au moment où ce mortel est métamorphosé, une fenêtre demande au joueur de Bacchus si il souhaite utiliser l'effet. Si il clique NON, la tour continue normalement. Si il clique OUI, le jeu lui demande quel mortel il souhaite métamorphoser en plus. Le joueur doit alors cliquer sur le mortel qu'il veut métamorphoser. Si il a assez d'Ether, le mortel est métamorphosé. Si il n'a pas assez d'argent, il y a un message ""pas assez d'Ether"". Le joueur a un bouton ""annuler"" si finalement il a chagé d'avis.",1
+Bacchus,BAC-03-recto-Les Isméniennes,Les Isméniennes,,,10,,,,2
+Bacchus,BAC-03-verso-Mouettes,,Mouettes,Animal,,Volez 3 Ether n'importe où. Volez une carte à un dieu,,Il faut cliquer sur le réservoir duquel on veut voler. Il faut cliquer sur la carte qu'on veut voler.,1
+Bacchus,BAC-04-recto-Les filles d'Anius,Les filles d'Anius,,,18,,,,2
+Bacchus,BAC-04-verso-Quatre colombes,,Quatre Colombes,Animal,,Déplacez jusqu'à 4 incapacités d'un mortel à un autre.,,"Cela doit trigger les deux events ""un mortel vient d'être incapacité"" et ""une incapacité vient d'être levée"" autant de fois que le joueur choisit de le faire",1
+Bacchus,BAC-05-recto-Myrrha,Myrrha,,,8,,,,2
+Bacchus,BAC-05-verso-Arbre à Myrrhe,,Arbre à Myrrhe,Végétal,,"Si les Arbres (code = BAC-08-verso-Arbres) et  le Tournesol (code = BAC-06-verso-Tournesol) sont métamorphosés, Incapacitez jusqu'à 2 mortels",,,1
+Bacchus,BAC-06-recto-Clytie,Clytie,,,7,,,,2
+Bacchus,BAC-06-verso-Tournesol,,Tournesol,Végétal,,"Si les Arbres (code = BAC-08-verso-Arbres) sont métamorphosés, choisissez entre : [Incapacitez un mortel] OU [Levez une incapacité]",,Une fenêtre apparait pour demander au joueur de choisir. Il doit ensuite cliquer sur le mortelq u'il veut incapaciter ou sur le mortel dont il veut lever l'incapacité.,1
+Bacchus,BAC-07-recto-Battus,Battus,,,6,,,,2
+Bacchus,BAC-07-verso-Statue de Battus,,Statue de Battus,Minéral,,Incapacitez un mortel,,,0
+Bacchus,BAC-08-recto-Les Ménades,Les Ménades,,,5,,,,2
+Bacchus,BAC-08-verso-Arbres,,Arbres,Végétal,,,,,1
+Bacchus,BAC-09-recto-Les trois filles de Mynias,Les trois filles de Mynias,,,9,,,,2
+Bacchus,BAC-09-verso-Trois chauves-souris,,Trois chauve-souris,Animal,,,Vos cartes (sortilège ET réactions) coûtent 1 Ether de moins à jouer.,Ce coût réduit doit apparaitre sur les cartes qui sont en mains et réactions posées,1
+Bacchus,BAC-10-recto-Arné,Arné,,,6,,,,2
+Bacchus,BAC-10-verso-Corneille,,Corneille,Animal,,,Rétromorphosez ce mortel : générez 8 Ether,,1
+Minerve,MIN-01-recto-Paysans,Paysans,,,8,,,,2
+Minerve,MIN-01-verso-Grenouilles,,Grenouilles,Animal,,"Chaque Dieu ennemi se défausse d'une carte. Si ce n'est pas le premier mortel que vous métamorphosez ce tour, l'effet est remplacé par : Chaque dieu ennemi se défausse de 2 cartes et vous gagnez autant d'Ether que de cartes défaussées de cette manière",,"Il faut tracker si c'est ou non le deuxième / troisième mortel métamorphosé ce tour par le joueur de Minerve, pour déclencher l'un ou l'autre des effets.",1
+Minerve,MIN-02-recto-Ajax,Ajax,,,8,,,,2
+Minerve,MIN-02-verso-Hyacinthe,,Hyacinthe,Végétal,,,Rétromorphosez Ajax : vous pouvez métamorphoser un mortel supplémentaire ce tour-ci,"Cet effet est le même que le sort ""Rage""",1
+Minerve,MIN-03-recto-Perdrix,Perdrix,,,10,,,,2
+Minerve,MIN-03-verso-Perdrie,,Perdrie,Animal,,,L'Ether qu'il génère est volé à un dieu,"Au début du cycle, une fenêtre demande au joueur de cliquer sur le réservoir d'Ether du Dieu dont il veut voler l'Ether. Un Ether est soustrait de ce Dieu, et un Ether est ajouté à MInerve.",1
+Minerve,MIN-04-recto-Echo,Echo,,,18,,,,2
+Minerve,MIN-04-verso-Montagne,,Montagne,Minéral,,,"Quand un de vos mortels génère de l'Ether grâce à son effet, génère 1 Ether",Cela n'inclut pas Perdrie (code = MIN-03-verso-Perdrie),0
+Minerve,MIN-05-recto-Cénée,Cénée,,,4,,,,2
+Minerve,MIN-05-verso-Phoenix,,Phoenix,Animal,,,"Quand vous métamorphosez un mortel au delà du premier ce tour, génère 4 Ether.",,0
+Minerve,MIN-06-recto-Dents de serpent,Dents de serpent,,,30,,,,2
+Minerve,MIN-06-verso-Soldats de thèbes,,Soldats de Thèbes,Animal,,,"Invulnérable (ne peut pas être retiré du jeu, rétromorphosé ni incapacité)",,3
+Minerve,MIN-07-recto-Arachné,Arachné,,,6,,,,2
+Minerve,MIN-07-verso-Araignée,,Araignée,Animal,,,"Quand une réaction est jouée, génère 1 Ether",,0
+Minerve,MIN-08-recto-Calisto,Calisto,,,12,,,,2
+Minerve,MIN-08-verso-Ours,,Ours,Animal,,"Si ce n'est pas le premier mortel que vous métamorphosez ce tour, quand il est métamorphosé, retirez du jeu un mortel métamorphosé.",Retirez du jeu Ours et payez 7 Ether : Retirez du jeu un mortel déjà métamorphosé.,,1
+Minerve,MIN-09-recto-Nyctimène,Nyctimène,,,10,,,,2
+Minerve,MIN-09-verso-Chouette de Minerve,,Chouette de Minerve,Animal,,"Levez une incapacité. Si ce n'est pas le premier mortel que vous métamorphosez ce tour-ci, levez toutes les incapacités de vos mortels.",Ne peut pas être rétromorphosé ni sorti du jeu.,,0
+Minerve,MIN-10-recto-Aglaure,Aglaure,,,11,,,,2
+Minerve,MIN-10-verso-Statue de Aglaure,,Statue de Aglaure,Minéral,,"Incapacitez un mortel ennemi. Si ce n'est pas le premier mortel que vous métamorphosez ce tour-ci, incapacitez jusqu'à 2 mortels ennemis.",,,1
+Diane,DIA-01-recto-Alcione et Céyx,Alcione et Céyx,,,10,,,,2
+Diane,DIA-01-verso-Alcyon,,Alcyon,Animal,,,"Si vous avez 3 mortels métamorphosés ou plus, Alcyon génère 0 à la place de 3 Ether par cycle","Si cette condition est remplie (à partir de 3 mortels métamorphosés), un ""0"" doit apparaitre à l'endroit de l'image des mortels où tu mettais avant le nombre d'Ether géénrés.",3
+Diane,DIA-02-recto-Adonis,Adonis,,,9,,,,2
+Diane,DIA-02-verso-Adonis fleur,,Adonis fleur,Végétal,,,"Une fois par tour, vous pouvez rétromorphoser un de vos mortels. Si vous le faites, détruisez 5 Ether.","Comme d'habitude, une bulle indique au joueur qu'il doit cliquer sur les réservoirs qu'il veut attaquer.",1
+Diane,DIA-03-recto-Atalante,Atalante,,,9,,,,2
+Diane,DIA-03-verso-Lion,,Lion,Animal,,Un dieu ennemi défausse 2 cartes et perd 2 Ether,,"Quand le Lion est métamorphosé, une fenêtre montre tous les dieux présents dans la partie. Le joueur actif doit cliquer sur le dieu qu'il veut cibler. Le dieu qui a été choisi a alors une fenêtre qui apparait et lui dit ""vous avez perdu X (en l'occurrence 2) Ether. Sélectionnez deux cartes à défausser."" Il doit alors cliquer dessus et elles sont défaussées.",1
+Diane,DIA-04-recto-Cadmus et Harmonie,Cadmus et Harmonie,,,19,,,,2
+Diane,DIA-04-verso-Deux serpents,,Deux serpents,Animal,,,"Au moment de la génération d'Ether (au début du cycle), Deux serpent génère 1 Ether pour chaque dieu ennemi",,3
+Diane,DIA-05-recto-Les compagnons de Diomède,Les compagnons de Diomède,,,12,,,,2
+Diane,DIA-05-verso-Mouettes,,Mouettes,Animal,,,"Quand de l'Ether est détruit, génère 2 Ether",,0
+Diane,DIA-06-recto-Hermaphrodite et Salmasis,Hermaphrodite et Salmasis,,,16,,,,2
+Diane,DIA-06-verso-Hermaphrodite,,Hermaphrodite,Animal,,Jouez un sort en réduisant son coût de 10.,,"Quand Hermaphrodite est métamorphosé, Une fenêtre lui demande immédiatement si il veut jouer un sort à coût réduit de 10 (pas besoin que le joueur clique sur ""jouer un sort""). Il peut dire OUI ou NON. Si il dit oui, il doit cliquer sur le sort à jouer, et son coût est réduit de 10 Ether. Si il dit NON, le tour continue.",1
+Diane,DIA-07-recto-Callisto et Arcas,Callisto et Arcas,,,19,,,,2
+Diane,DIA-07-verso-Grande Ours,,Grande Ours,Minéral,,,Invulnérable.Tous les mortels ennemis coûtent 1 Ether de plus à métamorphoser.,,0
+Diane,DIA-08-recto-Les cérastes,Les cérastes,,,7,,,,2
+Diane,DIA-08-verso-Taureaux,,Taureaux,Animal,,,Retirez les Taureaux du jeu : Générez 3 ether et détruisez 3 ethers,Comme d'habitude : pour détruire l'Ether il faut cliquer sur les réservoirs.,1
+Diane,DIA-09-recto-Les Propétides,Les propétides,,,11,,,,2
+Diane,DIA-09-verso-Pierres,,Pierres,Minéral,,Choisissez entre : SOIT incapacitez un mortel ; SOIT levez une incapacité ; SOIT détruisez 4 Ether,,"Quand les pierres sont métamorphosées, une fenêtre demande au joueur actif de choisir entre les 3 options, puis il faut cliquer sur les mortels ou sur les réservoirs sélectionnés",0
+Diane,DIA-10-recto-Ardée,Ardée,,,4,,,,2
+Diane,DIA-10-verso-Héron,,Héron,Animal,,,"Défaussez 4 cartes (sortilège ou réactions, posées ou non) pour rétromorphoser le Héron et un mortel ennemi",,0
+Neptune,NEP-01-recto-Thétis,Thétis,,,5,,,,2
+Neptune,NEP-01-verso-Banc de poissons,,Banc de poissons,Animal,,,"Quand un effet de mortel ou une carte vous fait défausser, générez 1 Ether",,0
+Neptune,NEP-02-recto-Périmèle,Périmèle,,,9,,,,2
+Neptune,NEP-02-verso-Île de Périmèle,,Île de Périmèle,Minéral,,,"Payez 3 Ether : Piochez 1 carte, puis défaussez 1 carte.",,1
+Neptune,NEP-03-recto-Bateaux grecs,Bateaux grecs,,,12,,,,2
+Neptune,NEP-03-verso-Naïade des mers,,Naïade des mers,Animal,,,"Quand un mortel végétal est métamorphosé, générez 1 Ether et piochez 1 carte",,1
+Neptune,NEP-04-recto-Lichas,Lichas,,,11,,,,2
+Neptune,NEP-04-verso-Ecueil,,Ecueil,Minétal,,,"Au moment de la génération d'Ether (début du cycle), génère 1 Ether par mortel minéral métamorphosé en jeu.",,?
+Neptune,NEP-05-recto-Cygnus,Cygnus,,,7,,,,2
+Neptune,NEP-05-verso-Cygne,,Cygne,Animal,,,Payez 6 Ether : piochez 1 carte puis défaussez 2. Ensuite vous pouvez lever une incapacité.,,1
+Neptune,NEP-06-recto-Daphné,Daphné,,,8,,,,2
+Neptune,NEP-06-verso-Laurier,,Laurier,Végétal,,,"Une fois par tour, vous pouvez défausser une réaction pour faire défausser à un dieu une réaction.","Le joueur que joue neptune peut, pendant son tour, cliquer sur le Laurier pour activer cet effet. Une fenêtre lui montre alors ses deux réactions et lui propose SOIT de cliquer sur celle qu'il veut défausser, soit ANNULER. Si il clique sur celle à défausser, une bulle lui dit alors de cliquer sur une réaction d'un dieu, et celle-ci est défaussée.",1
+Neptune,NEP-07-recto-Scylla,Scylla,,,16,,,,2
+Neptune,NEP-07-verso-Monstre marin,,Monstre marin,Animal,,Retirez du jeu un mortel déjà métamorphosé,,,0
+Neptune,NEP-08-recto-Périclymène,Périclymène,,,10,,,,2
+Neptune,NEP-08-verso-Aigle,,Aigle,Animal,,Détruisez 4 Ether,"Quand vous piochez en dehors de la phase de pioche, générez 1 Ether.","Pour détruire l'Ether, il faut cliquer sur les réservoir qu'on veut cibler. Quand on pioche plusieurs cartes grâce au même effet, on ne génère toujours qu'un seul Ether. ",0
+Neptune,NEP-09-recto-Cénis,Cénis,,,5,,,,2
+Neptune,NEP-09-verso-Cénée,,Cénée,Animal,,,"Si un effet devait rétromorphoser un de vos mortels, vous pouvez rétromorphoser Cénée à la place.","Il doit donc y avoir une alerte pour Neptune si un effet ennemi essaye de rétromorphoser un de ses mortels ET que Cénée est métamorphosé. Une fenêtre apparait et dit [nom du mortel ciblé] est sur le point d'être rétromorphosé. Souhaitez-vous rétromorphoser Cénée  à la palce ?"" Le joueur peut répondre OUI ou NON.",1
+Neptune,NEP-10-recto-Ino et Mélicerte,Ino et Mélicerte,,,16,,,,2
+Neptune,NEP-10-verso-Leucothée et Palémon,,Leucothée et Palémon,Animal,,,"Quand vous métamorphosez un mortel, piochez 1 carte. Quand vous voulez pendant votre tour, vous pouvez défausser 7 cartes, pour incapaciter un mortel.","Le joueur que joue neptune peut, pendant son tour, cliquer sur Leucothée et Palémon pour activer cet effet. Une fenêtre s'ouvre et lui demande soit de cliquer sur les 7 cartes à défausser, soit ANNULER. Si 7 cartes sont sélectionnées, elles sont défaussées, puis on demande au joueur de cliquer sur le mortel qu'on souhaite incapaciter.",1
+Cérès,CER-01-recto-Lyncus,Lyncus,,,20,,,,2
+Cérès,CER-01-verso-Lynx,,Lynx,Animal,,,"Pendant votre tour, le joueur de Cérès peut cliquer sur Lyncus pour activer son effet. Une fenêtre apparait et lui demande si il veut ""rétromorphoser Lyncus"" ou ""Annuler"". Si il clique sur ""Annuler"", le tour continue normalement. S'il clique ""rétromorphoser Lyncus"", Lyncus est rétromorphosé et le joueur clique sur le mortel ennemi qui sera rétromorphosé.",,1
+Cérès,CER-02-recto-Les compagnons de Macarée,Les compagnons de Macarée,,,21,,,,2
+Cérès,CER-02-verso-Bêtes sauvages,,Bêtes sauvages,Animal,,,"Génère 1 Ether par mortel de type ""Animal"" non-incapacité que vous possédez",,?
+Cérès,CER-03-recto-Ascalaphus,Ascalaphus,,,6,,,,2
+Cérès,CER-03-verso-Hiboux,,Hiboux,Animal,,Piochez 2 cartes puis défaussez 1 carte,,,1
+Cérès,CER-04-recto-Cyané,Cyané,,,15,,,,2
+Cérès,CER-04-verso-Lac,,Lac,Minéral,,,Vos mortels végétaux génèrent 1 Ether de plus au moment de la génération.,,0
+Cérès,CER-05-recto-Enfant,Enfant de la maison de chaume,,,9,,,,2
+Cérès,CER-05-verso-Monstre de Gila,,Monstre de Gila,Animal,,Vous pouvez payer un multiple de 3 Ether pour que chaque dieu ennemi défausse autant de cartes,,"Au moment où il est métamorphosé, une fenêtre apparait avec écrit ""combien de cartes voulez-vous faire défausser à chaque dieu ?"" avec  un compteur. Le joueur peut le laisser à 0, ou le monter, puis le descendre. A côté de ce compteur, dans la fenêtre, il est doit être écrit X 3 = __ Ether (pour l'aider à compter combien il doit payer). Ensuite le joueur clique sur ""Payer"", son Ether est payé, et tous les autres dieux ont une fenêtre leur demandant de sélectionner le nombre choisi de cartes à défausser, en cliquant sur un bouton ""Défausser"". Si un dieu n'a pas assez de carte, il ne faut pas que ça fasse bugger le jeu. Il clique juste sur toutes ses cartes et clique sur ""Défausser"".",1
+Cérès,CER-06-recto-Fourmillière,Fourmillière,,,8,,,,2
+Cérès,CER-06-verso-Myrmidons,,Myrmidons,Animal,,,"Quand un mortel est rétromorphosé, génère 2 Ether.",,1
+Cérès,CER-07-recto-Arbre aux fruits blancs,Arbre aux fruits blancs,,,6,,,,2
+Cérès,CER-07-verso-Arbre aux fruits noirs,,Arbre aux fruits noirs,Végétal,,,Payez 9 : Levez une incapacité. Payez 14 : Incapacitez un mortel.,"Pendant son tour, le joueur de Cérès peut cliquer sur l'Arbre aux fruits noirs. Une fenêtre s'ouvre avec 3 boutons : ""Levez une incapacité"", ""Incapacitez"", ""Annuler"". Si il clique ""Levez une incapacité"", ou ""Incapacitez"" une bulle lui demande de cliquer sur le mortel à cibler, puis l'Ether est payé. S'il clique sur ""Annuler"", son tour continue.",0
+Cérès,CER-08-recto-Dryope,Dryope,,,3,,,,2
+Cérès,CER-08-verso-Arbre de Lotus,,Arbre de Lotus,Végétal,,,,,1
+Cérès,CER-09-recto-Picus,Picus,,,6,,,,2
+Cérès,CER-09-verso-Pivert,,Pivert,Animal,,Un dieu ne piochera pas au début de son prochain tour,,,1
+Cérès,CER-10-recto-Cadavre de Leucothée,Cadavre de Leucothée,,,8,,,,2
+Cérès,CER-10-verso-Encens,,Encens,Végétal,,,Rétromorphosez l'Encens pour mettre la dernière carte de la défausse (la plus récente) dans votre main,"Pendant son tour, le joueur de Cérès peut cliquer sur l'Encens pour activer son effet. Si il le fait, une fenêtre apparait avec deux boutons : ""Rétromorphoser pour récupérer [nom de la dernière carte de la défausse]"" et ""Annuler"". S'il clique ""Rétro..."" l'Encens est rétromorphosé en ""Cadavre de Leucothée"". Si le joueur clique ""Annuler"", le tour reprend normalement.",1
