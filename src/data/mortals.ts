@@ -225,6 +225,32 @@ export const MORTAL_TEMPLATES: MortalTemplate[] = [
     type: 'mineral', cost: 11, etherProduction: 1,
     effectOnMetamorphose: 'Incapacitez un mortel ennemi. Si ce n\'est pas le premier mortel que vous métamorphosez ce tour, incapacitez 2 mortels ennemis.',
   },
+  // === Diane ===
+  {
+    god: 'diane', code: 'DIA-01', nameRecto: 'Alcione et Céyx', nameVerso: 'Alcyon',
+    type: 'animal', cost: 10, etherProduction: 3,
+    effectPermanent: 'Si vous avez plus de 3 mortels métamorphosés, génère 0 à la place de 3.',
+  },
+  {
+    god: 'diane', code: 'DIA-02', nameRecto: 'Adonis', nameVerso: 'Adonis fleur',
+    type: 'vegetal', cost: 9, etherProduction: 1,
+    effectPermanent: 'Une fois par tour, vous pouvez rétromorphoser un de vos mortels. Si vous le faites, détruisez 5.',
+  },
+  {
+    god: 'diane', code: 'DIA-03', nameRecto: 'Atalante', nameVerso: 'Lion',
+    type: 'animal', cost: 9, etherProduction: 1,
+    effectPermanent: 'Rétromorphosez : un dieu défausse 2 et perd 2 Éther.',
+  },
+  {
+    god: 'diane', code: 'DIA-04', nameRecto: 'Cadmus et Harmonie', nameVerso: 'Deux serpents',
+    type: 'animal', cost: 19, etherProduction: 3,
+    effectPermanent: 'Au moment de la génération, génère et donne 1 Éther à chaque dieu ennemi.',
+  },
+  {
+    god: 'diane', code: 'DIA-05', nameRecto: 'Les compagnons de Diomède', nameVerso: 'Mouettes',
+    type: 'animal', cost: 12, etherProduction: 0,
+    effectPermanent: 'Chaque fois que de l\'Éther est détruit, génère 2.',
+  },
 ];
 
 // Create mortal instances for a player
