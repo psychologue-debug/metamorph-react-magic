@@ -44,8 +44,8 @@ const Index = () => {
     return (
       <GodSelectionScreen
         playerCount={godSelectionCount}
-        onStartGame={(selectedGods: DivinityId[]) => {
-          startGame(godSelectionCount, selectedGods);
+        onStartGame={(selectedGods: DivinityId[], playerNames: string[]) => {
+          startGame(godSelectionCount, selectedGods, playerNames);
           setGodSelectionCount(null);
         }}
         onBack={() => setGodSelectionCount(null)}
