@@ -2,6 +2,8 @@ import { useState, useCallback } from 'react';
 import { GameState, Player, SpellCard, TurnPhase, DivinityId } from '@/types/game';
 import { createMockGameState } from '@/data/mockGame';
 import { toast } from 'sonner';
+import { getEffectiveMetamorphosisCost, getEffectiveCardCost } from '@/engine/costModifiers';
+import { calculateCycleEtherGeneration } from '@/engine/etherGeneration';
 
 export type InteractionMode = 'idle' | 'metamorphosing' | 'playing_spell';
 
@@ -114,15 +116,13 @@ export function useGameLogic() {
         return;
       }
 
-      // Generate ether at start of new cycle
-      updatedPlayers = updatedPlayers.map((p) => {
-        let etherGain = 0;
-        for (const m of p.mortals) {
-          if (m.status === 'incapacite') continue;
-          etherGain += m.isMetamorphosed ? m.etherProduction : m.etherProductionRecto;
-        }
-        return { ...p, ether: p.ether + etherGain };
+      // Generate ether at start of new cycle using engine
+      const genResult = calculateCycleEtherGeneration({
+        ...gameState,
+        players: updatedPlayers,
       });
+      updatedPlayers = genResult.updatedPlayers;
+      newLog.unshift(...genResult.logs);
       newLog.unshift({
         id: crypto.randomUUID(),
         timestamp: Date.now(),
@@ -209,8 +209,9 @@ export function useGameLogic() {
         toast.error('Ce mortel est en Torpeur');
         return prev;
       }
-      if (player.ether < mortal.cost) {
-        toast.error(`Pas assez d'Éther ! (coût: ${mortal.cost}, disponible: ${player.ether})`, {
+      const effectiveCost = getEffectiveMetamorphosisCost(mortal, player, prev);
+      if (player.ether < effectiveCost) {
+        toast.error(`Pas assez d'Éther ! (coût: ${effectiveCost}, disponible: ${player.ether})`, {
           style: { background: 'hsl(0 70% 20%)', border: '1px solid hsl(0 70% 40%)', color: 'white', fontSize: '18px' },
         });
         return prev;
@@ -223,7 +224,7 @@ export function useGameLogic() {
         );
         return {
           ...p,
-          ether: p.ether - mortal.cost,
+          ether: p.ether - effectiveCost,
           mortals: updatedMortals,
           metamorphosedCount: updatedMortals.filter((m) => m.isMetamorphosed).length,
           metamorphosesThisTurn: p.metamorphosesThisTurn + 1,
@@ -239,7 +240,7 @@ export function useGameLogic() {
             timestamp: Date.now(),
             playerName: player.name,
             action: 'Métamorphose',
-            detail: `a métamorphosé ${mortal.nameRecto} → ${mortal.nameVerso} (coût: ${mortal.cost} Éther)`,
+            detail: `a métamorphosé ${mortal.nameRecto} → ${mortal.nameVerso} (coût: ${effectiveCost} Éther${effectiveCost !== mortal.cost ? ` [base: ${mortal.cost}]` : ''})`,
           },
           ...prev.log,
         ],
@@ -263,9 +264,10 @@ export function useGameLogic() {
         return prev;
       }
 
-      // Check cost
-      if (player.ether < card.cost) {
-        toast.error(`Pas assez d'Éther ! (coût: ${card.cost}, disponible: ${player.ether})`, {
+      // Check cost (with modifiers)
+      const effectiveCardCost = getEffectiveCardCost(card, player);
+      if (player.ether < effectiveCardCost) {
+        toast.error(`Pas assez d'Éther ! (coût: ${effectiveCardCost}, disponible: ${player.ether})`, {
           style: { background: 'hsl(0 70% 20%)', border: '1px solid hsl(0 70% 40%)', color: 'white', fontSize: '18px' },
         });
         return prev;
@@ -278,12 +280,12 @@ export function useGameLogic() {
         return prev;
       }
 
-      // Sortilege → pay cost and resolve
+      // Sortilege → pay effective cost and resolve
       let updatedPlayers = prev.players.map((p, i) => {
         if (i !== prev.activePlayerIndex) return p;
         return {
           ...p,
-          ether: p.ether - card.cost,
+          ether: p.ether - effectiveCardCost,
           hand: p.hand.filter((c) => c.id !== cardId),
         };
       });
@@ -319,7 +321,7 @@ export function useGameLogic() {
             timestamp: Date.now(),
             playerName: player.name,
             action: 'Sort joué',
-            detail: `a joué ${card.name} (coût: ${card.cost} Éther) — ${card.description}`,
+            detail: `a joué ${card.name} (coût: ${effectiveCardCost} Éther${effectiveCardCost !== card.cost ? ` [base: ${card.cost}]` : ''}) — ${card.description}`,
           },
           ...prev.log,
         ],
@@ -340,8 +342,9 @@ export function useGameLogic() {
       return;
     }
 
-    if (player.ether < card.cost) {
-      toast.error(`Pas assez d'Éther ! (coût: ${card.cost}, disponible: ${player.ether})`, {
+    const effectiveReactionCost = getEffectiveCardCost(card, player);
+    if (player.ether < effectiveReactionCost) {
+      toast.error(`Pas assez d'Éther ! (coût: ${effectiveReactionCost}, disponible: ${player.ether})`, {
         style: { background: 'hsl(0 70% 20%)', border: '1px solid hsl(0 70% 40%)', color: 'white', fontSize: '18px' },
       });
       return;
@@ -353,7 +356,7 @@ export function useGameLogic() {
         if (i !== prev.activePlayerIndex) return p;
         return {
           ...p,
-          ether: p.ether - card.cost,
+          ether: p.ether - effectiveReactionCost,
           hand: p.hand.filter((c) => c.id !== card.id),
         };
       });
@@ -519,7 +522,8 @@ function checkActivationCondition(
 }
 
 export function canPlayCard(card: SpellCard, player: Player, gameState: GameState): boolean {
-  if (player.ether < card.cost) return false;
+  const effectiveCost = getEffectiveCardCost(card, player);
+  if (player.ether < effectiveCost) return false;
   const check = checkActivationCondition(card, player, gameState);
   return check.valid;
 }

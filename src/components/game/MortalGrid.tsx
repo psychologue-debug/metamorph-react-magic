@@ -1,15 +1,19 @@
-import { Mortal } from '@/types/game';
+import { Mortal, Player, GameState } from '@/types/game';
 import { motion } from 'framer-motion';
 import { useState, useRef, useEffect } from 'react';
+import { getEffectiveMetamorphosisCost } from '@/engine/costModifiers';
+import { getEffectiveEtherProduction } from '@/engine/etherGeneration';
 
 interface MortalGridProps {
   mortals: Mortal[];
+  owner?: Player;
+  gameState?: GameState;
   tokenSize?: number;
   selectable?: boolean;
   onMortalClick?: (mortalId: string) => void;
 }
 
-const MortalGrid = ({ mortals, tokenSize = 80, selectable = false, onMortalClick }: MortalGridProps) => {
+const MortalGrid = ({ mortals, owner, gameState, tokenSize = 80, selectable = false, onMortalClick }: MortalGridProps) => {
   const gap = tokenSize < 60 ? 4 : tokenSize < 100 ? 8 : 12;
 
   return (
@@ -21,6 +25,8 @@ const MortalGrid = ({ mortals, tokenSize = 80, selectable = false, onMortalClick
         <MortalToken
           key={mortal.id}
           mortal={mortal}
+          owner={owner}
+          gameState={gameState}
           size={tokenSize}
           index={i}
           selectable={selectable && !mortal.isMetamorphosed && mortal.status !== 'incapacite'}
@@ -33,12 +39,16 @@ const MortalGrid = ({ mortals, tokenSize = 80, selectable = false, onMortalClick
 
 function MortalToken({
   mortal,
+  owner,
+  gameState,
   size,
   index,
   selectable,
   onClick,
 }: {
   mortal: Mortal;
+  owner?: Player;
+  gameState?: GameState;
   size: number;
   index: number;
   selectable: boolean;
@@ -175,9 +185,25 @@ function MortalToken({
             <div className="p-3">
               <div className="font-display text-lg font-bold text-foreground">{tooltipName}</div>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-base text-ether font-display font-semibold">Coût: {mortal.cost} Éther</span>
-                <span className="text-base text-muted-foreground">|</span>
-                <span className="text-base text-ether font-display">+{mortal.etherProduction} Éther/cycle</span>
+                {(() => {
+                  const effectiveCost = owner && gameState
+                    ? getEffectiveMetamorphosisCost(mortal, owner, gameState)
+                    : mortal.cost;
+                  const effectiveProduction = owner && gameState
+                    ? getEffectiveEtherProduction(mortal, owner, gameState)
+                    : (mortal.isMetamorphosed ? mortal.etherProduction : mortal.etherProductionRecto);
+                  const costModified = effectiveCost !== mortal.cost;
+                  return (
+                    <>
+                      <span className={`text-base font-display font-semibold ${costModified ? 'text-divine' : 'text-ether'}`}>
+                        Coût: {effectiveCost} Éther
+                        {costModified && <span className="text-muted-foreground line-through ml-1 text-sm">{mortal.cost}</span>}
+                      </span>
+                      <span className="text-base text-muted-foreground">|</span>
+                      <span className="text-base text-ether font-display">+{effectiveProduction} Éther/cycle</span>
+                    </>
+                  );
+                })()}
               </div>
               {mortal.effectOnMetamorphose && (
                 <div className="text-sm text-foreground mt-2 flex gap-2">

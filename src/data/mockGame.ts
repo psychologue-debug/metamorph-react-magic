@@ -1,6 +1,7 @@
 import { GameState, Player, SpellCard, DivinityId, DIVINITIES } from '@/types/game';
 import { createMortalsForGod } from './mortals';
 import { createDeck } from './spellCards';
+import { calculateCycleEtherGeneration } from '@/engine/etherGeneration';
 
 export function createMockGameState(playerCount: number = 4, selectedGods?: DivinityId[]): GameState {
   const defaultDivinities: DivinityId[] = ['apollon', 'venus', 'bacchus', 'minerve', 'diane', 'neptune', 'ceres'];
@@ -49,15 +50,9 @@ export function createMockGameState(playerCount: number = 4, selectedGods?: Divi
     ],
   };
 
-  // Cycle 1 start: generate ether for ALL players (2 per non-metamorphosed mortal = 20 each)
-  state.players = state.players.map((p) => {
-    let etherGain = 0;
-    for (const m of p.mortals) {
-      if (m.status === 'incapacite') continue;
-      etherGain += m.isMetamorphosed ? m.etherProduction : m.etherProductionRecto;
-    }
-    return { ...p, ether: etherGain };
-  });
+  // Cycle 1 start: generate ether using the engine
+  const genResult = calculateCycleEtherGeneration(state);
+  state.players = genResult.updatedPlayers;
   state.log.unshift({
     id: crypto.randomUUID(),
     timestamp: Date.now(),

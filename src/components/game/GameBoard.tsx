@@ -36,6 +36,7 @@ const GameBoard = ({ gameState, currentPlayerIndex }: GameBoardProps) => {
         <PlayerPanel
           key={player.id}
           player={player}
+          gameState={gameState}
           isActive={playerIndex === gameState.activePlayerIndex}
           index={playerIndex}
           compact={compact} />

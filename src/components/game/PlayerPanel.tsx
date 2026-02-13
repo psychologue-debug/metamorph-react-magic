@@ -1,4 +1,4 @@
-import { Player, DIVINITIES } from '@/types/game';
+import { Player, GameState, DIVINITIES } from '@/types/game';
 import EtherCounter from './EtherCounter';
 import MortalGrid from './MortalGrid';
 import { motion } from 'framer-motion';
@@ -6,12 +6,13 @@ import { Shield, RefreshCw } from 'lucide-react';
 
 interface PlayerPanelProps {
   player: Player;
+  gameState: GameState;
   isActive: boolean;
   index: number;
   compact?: boolean;
 }
 
-const PlayerPanel = ({ player, isActive, index, compact = false }: PlayerPanelProps) => {
+const PlayerPanel = ({ player, gameState, isActive, index, compact = false }: PlayerPanelProps) => {
   const divinity = DIVINITIES[player.divinity];
   // Always use compact tokens to fit 3 panels in width
   const tokenSize = compact ? 86 : 121;
@@ -79,7 +80,7 @@ const PlayerPanel = ({ player, isActive, index, compact = false }: PlayerPanelPr
         </div>
 
         {/* Mortal Grid */}
-        <MortalGrid mortals={player.mortals} tokenSize={tokenSize} />
+        <MortalGrid mortals={player.mortals} owner={player} gameState={gameState} tokenSize={tokenSize} />
       </div>
     </motion.div>
   );

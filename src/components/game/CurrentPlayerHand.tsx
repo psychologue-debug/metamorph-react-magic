@@ -1,5 +1,6 @@
 import { Player, GameState, DIVINITIES, SpellCard } from '@/types/game';
 import { InteractionMode, canPlayCard } from '@/hooks/useGameLogic';
+import { getEffectiveCardCost } from '@/engine/costModifiers';
 import EtherCounter from './EtherCounter';
 import MortalGrid from './MortalGrid';
 import GameCard from './GameCard';
@@ -64,6 +65,8 @@ const CurrentPlayerHand = ({ player, gameState, interactionMode, onMortalClick, 
           )}
           <MortalGrid
             mortals={player.mortals}
+            owner={player}
+            gameState={gameState}
             tokenSize={40}
             selectable={isMetaMode}
             onMortalClick={isMetaMode ? onMortalClick : undefined}
@@ -85,6 +88,7 @@ const CurrentPlayerHand = ({ player, gameState, interactionMode, onMortalClick, 
                 <div key={card.id} className={`transition-all ${isSpellMode && !playable ? 'opacity-40' : ''} ${isSpellMode && playable ? 'ring-1 ring-divine/50 rounded-lg' : ''}`}>
                   <GameCard
                     card={card}
+                    effectiveCost={getEffectiveCardCost(card, player)}
                     small
                     onClick={isSpellMode ? () => onCardClick?.(card.id) : undefined}
                   />

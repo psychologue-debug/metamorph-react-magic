@@ -4,6 +4,7 @@ import { Flame, Shield, Eye, Sparkles } from 'lucide-react';
 
 interface GameCardProps {
   card: SpellCard;
+  effectiveCost?: number;
   faceDown?: boolean;
   small?: boolean;
   onClick?: () => void;
@@ -15,7 +16,7 @@ const cardIcons: Record<string, React.ReactNode> = {
   'Oracle': <Eye className="w-3.5 h-3.5" />,
 };
 
-const GameCard = ({ card, faceDown = false, small = false, onClick }: GameCardProps) => {
+const GameCard = ({ card, effectiveCost, faceDown = false, small = false, onClick }: GameCardProps) => {
   if (faceDown) {
     return (
       <motion.div
@@ -51,9 +52,16 @@ const GameCard = ({ card, faceDown = false, small = false, onClick }: GameCardPr
     >
       {/* Cost badge */}
       <div className="flex items-center justify-between mb-0.5">
-        <span className="text-ether font-display font-bold" style={{ fontSize: small ? '10px' : '12px' }}>
-          {card.cost > 0 ? card.cost : ''}
-        </span>
+        {(() => {
+          const displayCost = effectiveCost ?? card.cost;
+          const isModified = effectiveCost !== undefined && effectiveCost !== card.cost;
+          return (
+            <span className={`font-display font-bold ${isModified ? 'text-divine' : 'text-ether'}`} style={{ fontSize: small ? '10px' : '12px' }}>
+              {displayCost > 0 ? displayCost : (card.cost > 0 ? '0' : '')}
+              {isModified && <span className="text-muted-foreground line-through ml-0.5" style={{ fontSize: small ? '7px' : '9px' }}>{card.cost}</span>}
+            </span>
+          );
+        })()}
         {cardIcons[card.name] || <Sparkles className={small ? 'w-2.5 h-2.5' : 'w-3.5 h-3.5'} style={{ color: 'hsl(var(--divine))' }} />}
       </div>
       
