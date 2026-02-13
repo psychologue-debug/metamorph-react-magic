@@ -6,7 +6,7 @@ import heroBg from '@/assets/hero-bg.jpg';
 
 interface GodSelectionScreenProps {
   playerCount: number;
-  onStartGame: (selectedGods: DivinityId[]) => void;
+  onStartGame: (selectedGods: DivinityId[], playerNames: string[]) => void;
   onBack: () => void;
 }
 
