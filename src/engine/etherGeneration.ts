@@ -35,6 +35,7 @@ export function calculateCycleEtherGeneration(
 
     for (const mortal of player.mortals) {
       if (mortal.status === 'incapacite') continue;
+      if (mortal.status === 'retired') continue;
 
       if (mortal.isMetamorphosed) {
         let production = mortal.etherProduction;
@@ -121,7 +122,7 @@ export function getEffectiveEtherProduction(
   gameState: GameState
 ): number {
   if (!mortal.isMetamorphosed) return mortal.etherProductionRecto;
-  if (mortal.status === 'incapacite') return 0;
+  if (mortal.status === 'incapacite' || mortal.status === 'retired') return 0;
 
   let production = mortal.etherProduction;
 

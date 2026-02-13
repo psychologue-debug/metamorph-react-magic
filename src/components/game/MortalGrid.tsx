@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { useState, useRef, useEffect } from 'react';
 import { getEffectiveMetamorphosisCost } from '@/engine/costModifiers';
 import { getEffectiveEtherProduction } from '@/engine/etherGeneration';
+import { isMortalInvulnerable, isMortalRetired } from '@/engine/mortalStatuses';
+import { Shield } from 'lucide-react';
 
 interface MortalGridProps {
   mortals: Mortal[];
@@ -63,6 +65,8 @@ function MortalToken({
   const displayName = mortal.isMetamorphosed ? mortal.nameVerso : mortal.nameRecto;
   const hasPermanentEffect = mortal.isMetamorphosed && !!mortal.effectPermanent;
   const isIncapacitated = mortal.status === 'incapacite';
+  const isRetired = isMortalRetired(mortal);
+  const isInvulnerable = owner && gameState ? isMortalInvulnerable(mortal, owner, gameState) : false;
   const showImage = imageSrc && !imgFailed;
   const isSmall = size < 80;
   const fontSize = size < 60 ? 'text-xs' : size < 100 ? 'text-sm' : 'text-lg';
@@ -87,7 +91,8 @@ function MortalToken({
         className={`
           rounded-full relative cursor-pointer transition-all duration-300 group overflow-hidden
           ${mortal.isMetamorphosed ? 'ring-2 ring-ether/60' : 'ring-1 ring-border/40'}
-          ${isIncapacitated ? 'grayscale opacity-60' : ''}
+          ${isRetired ? 'grayscale opacity-40 pointer-events-none' : ''}
+          ${isIncapacitated && !isRetired ? 'grayscale opacity-60' : ''}
           ${selectable ? 'ring-2 ring-divine/70 cursor-pointer' : ''}
         `}
         style={{ width: size, height: size }}
@@ -138,15 +143,37 @@ function MortalToken({
           />
         )}
 
+        {/* Retired overlay */}
+        {isRetired && (
+          <div className="absolute inset-0 rounded-full flex items-center justify-center bg-background/60">
+            <span className="text-lg">🚫</span>
+          </div>
+        )}
+
         {/* Incapacitated overlay */}
-        {isIncapacitated && (
+        {isIncapacitated && !isRetired && (
           <div className="absolute inset-0 rounded-full flex items-center justify-center bg-background/50">
             <span className="text-2xl">⛓️</span>
           </div>
         )}
 
+        {/* Invulnerable shield indicator */}
+        {isInvulnerable && !isRetired && (
+          <motion.div
+            className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
+            style={{
+              background: 'linear-gradient(135deg, hsl(45 90% 55%), hsl(35 80% 45%))',
+              boxShadow: '0 0 8px hsl(45 90% 55% / 0.6)',
+            }}
+            animate={{ scale: [1, 1.15, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <Shield className="w-3 h-3 text-white" />
+          </motion.div>
+        )}
+
         {/* Metamorphosed glow */}
-        {mortal.isMetamorphosed && !hasPermanentEffect && !isIncapacitated && (
+        {mortal.isMetamorphosed && !hasPermanentEffect && !isIncapacitated && !isRetired && (
           <motion.div
             className="absolute inset-0 rounded-full pointer-events-none"
             style={{ background: `radial-gradient(circle, hsl(var(--ether) / 0.15) 0%, transparent 70%)` }}

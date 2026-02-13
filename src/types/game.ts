@@ -12,7 +12,7 @@ export type TargetType = 'joueur' | 'mortel' | 'sort' | 'deck' | 'defausse' | 'd
 
 export type MortalType = 'animal' | 'vegetal' | 'mineral';
 
-export type MortalStatus = 'normal' | 'incapacite';
+export type MortalStatus = 'normal' | 'incapacite' | 'retired';
 
 // === Event System ===
 export type GameEventType =
