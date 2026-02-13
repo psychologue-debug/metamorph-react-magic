@@ -8,6 +8,7 @@ import VictoryModal from '@/components/game/VictoryModal';
 import DiscardModal from '@/components/game/DiscardModal';
 import ReactionDialog from '@/components/game/ReactionDialog';
 import GodSelectionScreen from '@/components/game/GodSelectionScreen';
+import TargetingModal from '@/components/game/TargetingModal';
 import { DivinityId } from '@/types/game';
 import { motion } from 'framer-motion';
 import { Scroll, Plus, LogIn } from 'lucide-react';
@@ -24,6 +25,7 @@ const Index = () => {
     winners,
     discardRequired,
     pendingReactionCard,
+    pendingEffect,
     startGame,
     resetGame,
     handleEndTurn,
@@ -37,6 +39,8 @@ const Index = () => {
     toggleMetamorphoseMode,
     toggleSpellMode,
     handleToggleReactionWindow,
+    resolveEffect,
+    cancelEffect,
   } = useGameLogic();
 
   // God selection screen
@@ -194,6 +198,16 @@ const Index = () => {
           onPlay={handleReactionPlay}
           onPlaceFaceDown={handleReactionPlaceFaceDown}
           onCancel={cancelReactionDialog}
+        />
+      )}
+
+      {/* Targeting modal for metamorphose effects */}
+      {pendingEffect && (
+        <TargetingModal
+          effect={pendingEffect}
+          gameState={gameState}
+          onResolve={resolveEffect}
+          onCancel={pendingEffect.optional ? cancelEffect : undefined}
         />
       )}
     </div>
