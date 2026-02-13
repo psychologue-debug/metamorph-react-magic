@@ -15,6 +15,7 @@ const ALL_GODS: DivinityId[] = ['apollon', 'venus', 'bacchus', 'minerve', 'diane
 const GodSelectionScreen = ({ playerCount, onStartGame, onBack }: GodSelectionScreenProps) => {
   // In solo test mode, each "player" picks sequentially
   const [selections, setSelections] = useState<DivinityId[]>([]);
+  const [playerNames, setPlayerNames] = useState<string[]>(Array(playerCount).fill(''));
   const currentPickingPlayer = selections.length; // 0-indexed
   const allPicked = selections.length >= playerCount;
 
