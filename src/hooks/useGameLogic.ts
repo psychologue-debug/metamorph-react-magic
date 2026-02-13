@@ -82,6 +82,7 @@ export function useGameLogic() {
     });
 
     let newDeck = [...gameState.deck];
+    let newDiscardPile = [...gameState.discardPile];
     const newLog = [
       {
         id: crypto.randomUUID(),

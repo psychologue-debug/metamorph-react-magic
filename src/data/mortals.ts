@@ -251,6 +251,31 @@ export const MORTAL_TEMPLATES: MortalTemplate[] = [
     type: 'animal', cost: 12, etherProduction: 0,
     effectPermanent: 'Chaque fois que de l\'Éther est détruit, génère 2.',
   },
+  {
+    god: 'diane', code: 'DIA-06', nameRecto: 'Hermaphrodite et Salmasis', nameVerso: 'Hermaphrodite',
+    type: 'animal', cost: 16, etherProduction: 1,
+    effectPermanent: 'Rétromorphosez : jouez un sort en réduisant son coût de 10.',
+  },
+  {
+    god: 'diane', code: 'DIA-07', nameRecto: 'Callisto et Arcas', nameVerso: 'Grande Ours',
+    type: 'mineral', cost: 19, etherProduction: 0,
+    effectPermanent: 'Invulnérable. Les mortels ennemis coûtent 1 de plus à métamorphoser.',
+  },
+  {
+    god: 'diane', code: 'DIA-08', nameRecto: 'Les cérastes', nameVerso: 'Taureaux',
+    type: 'animal', cost: 7, etherProduction: 1,
+    effectPermanent: 'Retirez les Taureaux du jeu : générez 3 et détruisez 3.',
+  },
+  {
+    god: 'diane', code: 'DIA-09', nameRecto: 'Les Propétides', nameVerso: 'Pierres',
+    type: 'animal', cost: 11, etherProduction: 0,
+    effectPermanent: 'Rétromorphosez, choisissez entre : incapacitez un mortel, levez une incapacité, ou détruisez 4.',
+  },
+  {
+    god: 'diane', code: 'DIA-10', nameRecto: 'Ardée', nameVerso: 'Héron',
+    type: 'animal', cost: 4, etherProduction: 0,
+    effectPermanent: 'Défaussez 4 : rétromorphosez Héron et un mortel ennemi.',
+  },
 ];
 
 // Create mortal instances for a player
