@@ -6,7 +6,7 @@ import heroBg from '@/assets/hero-bg.jpg';
 
 interface GodSelectionScreenProps {
   playerCount: number;
-  onStartGame: (selectedGods: DivinityId[]) => void;
+  onStartGame: (selectedGods: DivinityId[], playerNames: string[]) => void;
   onBack: () => void;
 }
 
@@ -15,6 +15,7 @@ const ALL_GODS: DivinityId[] = ['apollon', 'venus', 'bacchus', 'minerve', 'diane
 const GodSelectionScreen = ({ playerCount, onStartGame, onBack }: GodSelectionScreenProps) => {
   // In solo test mode, each "player" picks sequentially
   const [selections, setSelections] = useState<DivinityId[]>([]);
+  const [playerNames, setPlayerNames] = useState<string[]>(Array(playerCount).fill(''));
   const currentPickingPlayer = selections.length; // 0-indexed
   const allPicked = selections.length >= playerCount;
 
@@ -111,7 +112,7 @@ const GodSelectionScreen = ({ playerCount, onStartGame, onBack }: GodSelectionSc
           })}
         </div>
 
-        {/* Selection summary */}
+        {/* Selection summary with pseudo inputs */}
         <div className="flex justify-center gap-3 mb-6">
           {Array.from({ length: playerCount }, (_, i) => {
             const godId = selections[i];
@@ -119,7 +120,7 @@ const GodSelectionScreen = ({ playerCount, onStartGame, onBack }: GodSelectionSc
             return (
               <div
                 key={i}
-                className={`px-4 py-2 rounded-lg border font-display text-sm ${
+                className={`px-4 py-2 rounded-lg border font-display text-sm flex flex-col items-center gap-1 ${
                   god
                     ? 'border-ether/50 text-white'
                     : i === currentPickingPlayer
@@ -132,8 +133,22 @@ const GodSelectionScreen = ({ playerCount, onStartGame, onBack }: GodSelectionSc
                     : 'hsl(var(--card) / 0.5)',
                 }}
               >
-                <span className="text-xs text-white/50">J{i + 1}:</span>{' '}
+                <span className="text-xs text-white/50">J{i + 1}:</span>
                 {god ? god.name : '...'}
+                {god && (
+                  <input
+                    type="text"
+                    placeholder="Pseudo"
+                    value={playerNames[i]}
+                    onChange={(e) => {
+                      const updated = [...playerNames];
+                      updated[i] = e.target.value;
+                      setPlayerNames(updated);
+                    }}
+                    className="w-24 px-2 py-1 rounded text-xs text-center bg-black/30 border border-white/20 text-white placeholder:text-white/30 focus:outline-none focus:border-ether/60"
+                    maxLength={15}
+                  />
+                )}
               </div>
             );
           })}
@@ -162,7 +177,7 @@ const GodSelectionScreen = ({ playerCount, onStartGame, onBack }: GodSelectionSc
               animate={{ opacity: 1, scale: 1 }}
               whileHover={{ scale: 1.05, boxShadow: '0 0 50px hsl(var(--ether) / 0.6)' }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => onStartGame(selections)}
+              onClick={() => onStartGame(selections, playerNames)}
             >
               <Crown className="w-5 h-5 inline mr-2" />
               Lancer la partie
