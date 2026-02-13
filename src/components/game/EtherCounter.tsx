@@ -1,9 +1,18 @@
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
 
 interface EtherCounterProps {
   amount: number;
   size?: 'sm' | 'md' | 'lg';
 }
+
+interface Particle {
+  id: number;
+  x: number;
+  direction: 'up' | 'down';
+}
+
+let particleId = 0;
 
 const EtherCounter = ({ amount, size = 'md' }: EtherCounterProps) => {
   const dims = {
@@ -11,6 +20,30 @@ const EtherCounter = ({ amount, size = 'md' }: EtherCounterProps) => {
     md: { w: 64, h: 56, font: 'text-xl', top: 10 },
     lg: { w: 80, h: 72, font: 'text-3xl', top: 12 },
   }[size];
+
+  const prevAmount = useRef(amount);
+  const [particles, setParticles] = useState<Particle[]>([]);
+
+  useEffect(() => {
+    const diff = amount - prevAmount.current;
+    if (diff === 0) { prevAmount.current = amount; return; }
+
+    const direction: 'up' | 'down' = diff > 0 ? 'up' : 'down';
+    const count = Math.min(Math.abs(diff), 6);
+    const newParticles: Particle[] = Array.from({ length: count }, () => ({
+      id: ++particleId,
+      x: Math.random() * dims.w * 0.6 + dims.w * 0.2,
+      direction,
+    }));
+
+    setParticles(prev => [...prev, ...newParticles]);
+    prevAmount.current = amount;
+
+    const timeout = setTimeout(() => {
+      setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
+    }, 900);
+    return () => clearTimeout(timeout);
+  }, [amount, dims.w]);
 
   return (
     <motion.div
@@ -25,6 +58,37 @@ const EtherCounter = ({ amount, size = 'md' }: EtherCounterProps) => {
       }}
       transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
     >
+      {/* Smoke particles */}
+      <AnimatePresence>
+        {particles.map(p => (
+          <motion.div
+            key={p.id}
+            className="absolute rounded-full pointer-events-none"
+            style={{
+              left: p.x,
+              width: size === 'sm' ? 6 : 10,
+              height: size === 'sm' ? 6 : 10,
+              background: p.direction === 'up'
+                ? 'radial-gradient(circle, hsl(270 70% 70% / 0.8), hsl(270 50% 60% / 0))'
+                : 'radial-gradient(circle, hsl(0 70% 55% / 0.8), hsl(0 50% 45% / 0))',
+            }}
+            initial={{
+              opacity: 0.9,
+              y: dims.h * 0.4,
+              scale: 0.5,
+            }}
+            animate={{
+              opacity: 0,
+              y: p.direction === 'up' ? -20 : dims.h + 15,
+              scale: p.direction === 'up' ? 2.5 : 2,
+              x: (Math.random() - 0.5) * 16,
+            }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8, ease: 'easeOut' }}
+          />
+        ))}
+      </AnimatePresence>
+
       <svg viewBox="0 0 48 42" className="absolute inset-0 w-full h-full">
         <path
           d="M6 4 Q6 0 12 0 L36 0 Q42 0 42 4 L40 28 Q39 36 24 38 Q9 36 8 28 Z"
@@ -55,12 +119,16 @@ const EtherCounter = ({ amount, size = 'md' }: EtherCounterProps) => {
           </radialGradient>
         </defs>
       </svg>
-      <span
+      <motion.span
+        key={amount}
         className={`${dims.font} relative z-10 text-white font-bold`}
         style={{ marginTop: dims.top, textShadow: '0 0 8px hsl(270 80% 70% / 0.6)' }}
+        initial={{ scale: 1.4, opacity: 0.5 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
       >
         {amount}
-      </span>
+      </motion.span>
     </motion.div>
   );
 };
