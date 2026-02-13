@@ -4,6 +4,8 @@ import { createMockGameState } from '@/data/mockGame';
 import { toast } from 'sonner';
 import { getEffectiveMetamorphosisCost, getEffectiveCardCost } from '@/engine/costModifiers';
 import { calculateCycleEtherGeneration } from '@/engine/etherGeneration';
+import { getMetamorphoseEffect, PendingEffect } from '@/engine/metamorphoseEffects';
+import { TargetingResult } from '@/components/game/TargetingModal';
 
 export type InteractionMode = 'idle' | 'metamorphosing' | 'playing_spell';
 
@@ -15,6 +17,7 @@ export function useGameLogic() {
   const [winners, setWinners] = useState<Player[]>([]);
   const [discardRequired, setDiscardRequired] = useState(false);
   const [pendingReactionCard, setPendingReactionCard] = useState<SpellCard | null>(null);
+  const [pendingEffect, setPendingEffect] = useState<PendingEffect | null>(null);
 
   const startGame = useCallback((playerCount: number, selectedGods?: DivinityId[], playerNames?: string[]) => {
     const state = createMockGameState(playerCount, selectedGods);
@@ -201,6 +204,9 @@ export function useGameLogic() {
   const handleMortalClick = useCallback((mortalId: string) => {
     if (interactionMode !== 'metamorphosing') return;
 
+    // We need to track if an effect should fire, outside setGameState
+    let effectToTrigger: PendingEffect | null = null;
+
     setGameState((prev) => {
       if (!prev) return prev;
       const player = prev.players[prev.activePlayerIndex];
@@ -236,11 +242,11 @@ export function useGameLogic() {
         return prev;
       }
 
+      const updatedMortals = player.mortals.map((m) =>
+        m.id === mortalId ? { ...m, isMetamorphosed: true } : m
+      );
       const updatedPlayers = prev.players.map((p, i) => {
         if (i !== prev.activePlayerIndex) return p;
-        const updatedMortals = p.mortals.map((m) =>
-          m.id === mortalId ? { ...m, isMetamorphosed: true } : m
-        );
         return {
           ...p,
           ether: p.ether - effectiveCost,
@@ -250,7 +256,7 @@ export function useGameLogic() {
         };
       });
 
-      return {
+      const newState = {
         ...prev,
         players: updatedPlayers,
         log: [
@@ -264,8 +270,25 @@ export function useGameLogic() {
           ...prev.log,
         ],
       };
+
+      // Check for on-metamorphose effect
+      const metamorphosedMortal = updatedMortals.find(m => m.id === mortalId)!;
+      const updatedPlayer = updatedPlayers[prev.activePlayerIndex];
+      effectToTrigger = getMetamorphoseEffect(metamorphosedMortal, updatedPlayer, newState);
+
+      return newState;
     });
+
     setInteractionMode('idle');
+
+    // If there's a pending effect, show the targeting modal
+    if (effectToTrigger) {
+      if (effectToTrigger.conditionNotMet && effectToTrigger.type === 'none') {
+        toast.info(effectToTrigger.conditionNotMet);
+      } else {
+        setPendingEffect(effectToTrigger);
+      }
+    }
   }, [interactionMode]);
 
   const handleCardClick = useCallback((cardId: string) => {
@@ -489,6 +512,134 @@ export function useGameLogic() {
     });
   }, []);
 
+  const resolveEffect = useCallback((result: TargetingResult) => {
+    setGameState((prev) => {
+      if (!prev) return prev;
+      const sourcePlayer = prev.players.find((_, i) =>
+        pendingEffect ? i === pendingEffect.sourcePlayerIndex : false
+      );
+      const sourcePlayerName = sourcePlayer?.name || 'Système';
+
+      let updatedPlayers = [...prev.players];
+      const newLog = [...prev.log];
+
+      // Handle mortal targeting (incapacitate / remove)
+      if (result.targetMortals && result.targetMortals.length > 0) {
+        for (const target of result.targetMortals) {
+          updatedPlayers = updatedPlayers.map(p => {
+            if (p.id !== target.playerId) return p;
+            return {
+              ...p,
+              mortals: p.mortals.map(m => {
+                if (m.id !== target.mortalId) return m;
+                if (result.type === 'enemy_mortal_incapacitate') {
+                  return { ...m, status: 'incapacite' as const };
+                }
+                if (result.type === 'enemy_mortal_remove') {
+                  return { ...m, status: 'retired' as const };
+                }
+                return m;
+              }),
+            };
+          });
+
+          // Find mortal name for log
+          const targetPlayer = prev.players.find(p => p.id === target.playerId);
+          const targetMortal = targetPlayer?.mortals.find(m => m.id === target.mortalId);
+          const actionLabel = result.type === 'enemy_mortal_remove' ? 'Retrait du jeu' : 'Incapacitation';
+          const actionDetail = result.type === 'enemy_mortal_remove'
+            ? `a retiré du jeu ${targetMortal?.nameVerso || 'un mortel'} de ${targetPlayer?.name}`
+            : `a incapacité ${targetMortal?.nameVerso || 'un mortel'} de ${targetPlayer?.name}`;
+
+          newLog.unshift({
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: sourcePlayerName,
+            action: actionLabel,
+            detail: actionDetail,
+          });
+        }
+      }
+
+      // Handle ether destruction
+      if (result.etherDestroyed && result.etherDestroyed.length > 0) {
+        // First generate ether for the source player
+        if (pendingEffect?.etherGenerate) {
+          updatedPlayers = updatedPlayers.map((p, i) =>
+            i === pendingEffect.sourcePlayerIndex
+              ? { ...p, ether: p.ether + pendingEffect.etherGenerate! }
+              : p
+          );
+          newLog.unshift({
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: sourcePlayerName,
+            action: 'Éther généré',
+            detail: `a généré ${pendingEffect.etherGenerate} Éther`,
+          });
+        }
+
+        let totalDestroyed = 0;
+        for (const { playerId, amount } of result.etherDestroyed) {
+          updatedPlayers = updatedPlayers.map(p => {
+            if (p.id !== playerId) return p;
+            const actual = Math.min(amount, p.ether);
+            totalDestroyed += actual;
+            return { ...p, ether: p.ether - actual };
+          });
+          const targetPlayer = prev.players.find(p => p.id === playerId);
+          newLog.unshift({
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: sourcePlayerName,
+            action: 'Éther détruit',
+            detail: `a détruit ${amount} Éther de ${targetPlayer?.name}`,
+          });
+        }
+      }
+
+      // Handle ether steal
+      if (result.etherStolen && result.etherStolen.length > 0) {
+        let totalStolen = 0;
+        for (const { playerId, amount } of result.etherStolen) {
+          updatedPlayers = updatedPlayers.map(p => {
+            if (p.id !== playerId) return p;
+            const actual = Math.min(amount, p.ether);
+            totalStolen += actual;
+            return { ...p, ether: p.ether - actual };
+          });
+          const targetPlayer = prev.players.find(p => p.id === playerId);
+          newLog.unshift({
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: sourcePlayerName,
+            action: 'Éther volé',
+            detail: `a volé ${amount} Éther à ${targetPlayer?.name}`,
+          });
+        }
+        // Add stolen ether to source player
+        if (pendingEffect) {
+          updatedPlayers = updatedPlayers.map((p, i) =>
+            i === pendingEffect.sourcePlayerIndex
+              ? { ...p, ether: p.ether + totalStolen }
+              : p
+          );
+        }
+      }
+
+      return {
+        ...prev,
+        players: updatedPlayers,
+        log: newLog,
+      };
+    });
+    setPendingEffect(null);
+  }, [pendingEffect]);
+
+  const cancelEffect = useCallback(() => {
+    setPendingEffect(null);
+  }, []);
+
   return {
     gameState,
     currentPlayerIndex,
@@ -497,6 +648,7 @@ export function useGameLogic() {
     winners,
     discardRequired,
     pendingReactionCard,
+    pendingEffect,
     startGame,
     resetGame,
     handleEndTurn,
@@ -510,6 +662,8 @@ export function useGameLogic() {
     toggleMetamorphoseMode,
     toggleSpellMode,
     handleToggleReactionWindow,
+    resolveEffect,
+    cancelEffect,
   };
 }
 
