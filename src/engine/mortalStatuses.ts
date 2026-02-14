@@ -103,6 +103,11 @@ export function canBeIncapacitated(
   if (mortal.status === 'retired') return false;
   if (isMortalInvulnerable(mortal, owner, gameState)) return false;
 
+  // VEN-01 (Rossignol): immune to incapacitation
+  if (mortal.code === 'VEN-01') {
+    return false;
+  }
+
   return true;
 }
 

@@ -329,6 +329,37 @@ export function useGameLogic() {
         return prev;
       }
 
+      // Pre-validate targeting spells BEFORE paying cost
+      if (card.name === 'Torpeur') {
+        const hasValidTarget = prev.players.some((p, idx) =>
+          idx !== prev.activePlayerIndex && p.mortals.some(m =>
+            canBeIncapacitatedCheck(m, p, prev)
+          )
+        );
+        if (!hasValidTarget) {
+          toast.error('Aucune cible valide pour Torpeur (aucun mortel ennemi métamorphosé éligible)');
+          return prev;
+        }
+      } else if (card.name === 'Doute') {
+        const hasRetroTarget = player.mortals.some(m =>
+          m.isMetamorphosed && canBeRetroCheck(m, player, prev)
+        );
+        if (!hasRetroTarget) {
+          toast.error('Aucun de vos mortels ne peut être rétromorphosé');
+          return prev;
+        }
+      } else if (card.name === 'Pharmaka') {
+        const hasRetroTarget = prev.players.some((p, idx) =>
+          idx !== prev.activePlayerIndex && p.mortals.some(m =>
+            m.isMetamorphosed && canBeRetroCheck(m, p, prev)
+          )
+        );
+        if (!hasRetroTarget) {
+          toast.error('Aucun mortel ennemi ne peut être rétromorphosé');
+          return prev;
+        }
+      }
+
       // Sortilege → pay effective cost and resolve
       let updatedPlayers = prev.players.map((p, i) => {
         if (i !== prev.activePlayerIndex) return p;
@@ -358,61 +389,38 @@ export function useGameLogic() {
             : p
         );
       } else if (card.name === 'Torpeur') {
-        const hasValidTarget = prev.players.some((p, idx) =>
-          idx !== prev.activePlayerIndex && p.mortals.some(m =>
-            canBeIncapacitatedCheck(m, p, prev)
-          )
-        );
-        if (hasValidTarget) {
-          spellEffectToTrigger = {
-            effectId: crypto.randomUUID(),
-            type: 'enemy_mortal_incapacitate',
-            sourcePlayerIndex: prev.activePlayerIndex,
-            sourceMortalCode: 'SPELL-TORPEUR',
-            sourceMortalName: 'Torpeur',
-            description: 'Incapacitez un mortel ennemi.',
-            maxTargets: 1,
-          };
-        } else {
-          toast.info('Aucune cible valide pour Torpeur');
-        }
+        // Target validation already done above — always set targeting
+        spellEffectToTrigger = {
+          effectId: crypto.randomUUID(),
+          type: 'enemy_mortal_incapacitate',
+          sourcePlayerIndex: prev.activePlayerIndex,
+          sourceMortalCode: 'SPELL-TORPEUR',
+          sourceMortalName: 'Torpeur',
+          description: 'Incapacitez un mortel ennemi.',
+          maxTargets: 1,
+        };
       } else if (card.name === 'Doute') {
-        const activePlayer = updatedPlayers[prev.activePlayerIndex];
-        const hasRetroTarget = activePlayer.mortals.some(m =>
-          m.isMetamorphosed && canBeRetroCheck(m, activePlayer, prev)
-        );
-        if (hasRetroTarget) {
-          spellEffectToTrigger = {
-            effectId: crypto.randomUUID(),
-            type: 'retro_own_mortal',
-            sourcePlayerIndex: prev.activePlayerIndex,
-            sourceMortalCode: 'SPELL-DOUTE',
-            sourceMortalName: 'Doute',
-            description: 'Rétromorphosez un de vos mortels.',
-            maxTargets: 1,
-          };
-        } else {
-          toast.info('Aucun de vos mortels ne peut être rétromorphosé');
-        }
+        // Target validation already done above — always set targeting
+        spellEffectToTrigger = {
+          effectId: crypto.randomUUID(),
+          type: 'retro_own_mortal',
+          sourcePlayerIndex: prev.activePlayerIndex,
+          sourceMortalCode: 'SPELL-DOUTE',
+          sourceMortalName: 'Doute',
+          description: 'Rétromorphosez un de vos mortels.',
+          maxTargets: 1,
+        };
       } else if (card.name === 'Pharmaka') {
-        const hasRetroTarget = prev.players.some((p, idx) =>
-          idx !== prev.activePlayerIndex && p.mortals.some(m =>
-            m.isMetamorphosed && canBeRetroCheck(m, p, prev)
-          )
-        );
-        if (hasRetroTarget) {
-          spellEffectToTrigger = {
-            effectId: crypto.randomUUID(),
-            type: 'retro_enemy_mortal',
-            sourcePlayerIndex: prev.activePlayerIndex,
-            sourceMortalCode: 'SPELL-PHARMAKA',
-            sourceMortalName: 'Pharmaka',
-            description: 'Rétromorphosez un mortel ennemi.',
-            maxTargets: 1,
-          };
-        } else {
-          toast.info('Aucun mortel ennemi ne peut être rétromorphosé');
-        }
+        // Target validation already done above — always set targeting
+        spellEffectToTrigger = {
+          effectId: crypto.randomUUID(),
+          type: 'retro_enemy_mortal',
+          sourcePlayerIndex: prev.activePlayerIndex,
+          sourceMortalCode: 'SPELL-PHARMAKA',
+          sourceMortalName: 'Pharmaka',
+          description: 'Rétromorphosez un mortel ennemi.',
+          maxTargets: 1,
+        };
       }
 
       return {
