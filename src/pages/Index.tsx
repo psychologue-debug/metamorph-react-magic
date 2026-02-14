@@ -44,17 +44,46 @@ const Index = () => {
     cancelEffect,
     cancelDiscard,
     handleTargetMortalClick,
+    healAllOwnMortals,
+    selectChoice,
   } = useGameLogic();
 
   const isMortalTargeting = pendingEffect && (
-    pendingEffect.type === 'enemy_mortal_incapacitate' || pendingEffect.type === 'enemy_mortal_remove'
+    pendingEffect.type === 'enemy_mortal_incapacitate' ||
+    pendingEffect.type === 'enemy_mortal_remove' ||
+    pendingEffect.type === 'mortal_heal'
   );
+
+  // Choice effect: no toast, rendered in JSX
+
+  // Handle auto-heal-all (MIN-09 second metamorphosis)
+  useEffect(() => {
+    if (!pendingEffect || pendingEffect.type !== 'mortal_heal') return;
+    if (!('autoHealAll' in pendingEffect) || !(pendingEffect as any).autoHealAll) return;
+    if (!gameState) return;
+    const player = gameState.players[pendingEffect.sourcePlayerIndex];
+    const incapMortals = player.mortals.filter(m => m.isMetamorphosed && m.status === 'incapacite');
+    if (incapMortals.length === 0) {
+      toast.info('Aucun mortel incapacité à guérir.');
+      cancelEffect();
+      return;
+    }
+    healAllOwnMortals(pendingEffect.sourcePlayerIndex);
+    cancelEffect();
+    toast.success(`${incapMortals.length} incapacité(s) levée(s) !`, {
+      style: { background: 'hsl(120 40% 20%)', border: '1px solid hsl(120 50% 40%)', color: 'white', fontSize: '16px' },
+    });
+  }, [pendingEffect, gameState, cancelEffect, healAllOwnMortals]);
 
   // Show targeting toast when mortal targeting is active
   useEffect(() => {
     if (!isMortalTargeting || !pendingEffect) return;
+    // Skip auto-heal-all
+    if ('autoHealAll' in pendingEffect && (pendingEffect as any).autoHealAll) return;
     const actionLabel = pendingEffect.type === 'enemy_mortal_remove'
       ? 'retirer du jeu'
+      : pendingEffect.type === 'mortal_heal'
+      ? 'guérir (lever l\'incapacité)'
       : 'incapaciter';
     toast.info(`${pendingEffect.sourceMortalName} : cliquez sur le mortel à ${actionLabel}.`, {
       duration: Infinity,
@@ -243,8 +272,30 @@ const Index = () => {
         />
       )}
 
-      {/* Targeting modal for ether effects only (not mortal targeting) */}
-      {pendingEffect && !isMortalTargeting && (
+      {/* Choice panel for multi-option effects */}
+      {pendingEffect && pendingEffect.type === 'choice' && pendingEffect.choices && (
+        <div className="fixed bottom-24 right-4 z-[99999] flex flex-col gap-2 p-4 rounded-xl border border-border/50"
+          style={{ background: 'hsl(270 30% 15% / 0.95)', backdropFilter: 'blur(8px)' }}>
+          <p className="text-white font-display text-sm mb-1">
+            {pendingEffect.sourceMortalName} : {pendingEffect.description}
+          </p>
+          {pendingEffect.choices.map((choice, idx) => (
+            <motion.button
+              key={idx}
+              className="px-4 py-2 rounded-lg text-sm font-display font-semibold text-white border border-ether/40 transition-all"
+              style={{ background: 'hsl(var(--ether) / 0.2)' }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => selectChoice(choice.effect)}
+            >
+              {choice.label}
+            </motion.button>
+          ))}
+        </div>
+      )}
+
+      {/* Targeting modal for ether effects only (not mortal targeting, not choice) */}
+      {pendingEffect && !isMortalTargeting && pendingEffect.type !== 'choice' && (
         <TargetingModal
           effect={pendingEffect}
           gameState={gameState}
