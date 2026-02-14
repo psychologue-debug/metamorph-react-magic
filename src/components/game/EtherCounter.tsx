@@ -41,7 +41,7 @@ const EtherCounter = ({ amount, size = 'md' }: EtherCounterProps) => {
 
     const timeout = setTimeout(() => {
       setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
-    }, 900);
+    }, 1600);
     return () => clearTimeout(timeout);
   }, [amount, dims.w]);
 
@@ -66,25 +66,25 @@ const EtherCounter = ({ amount, size = 'md' }: EtherCounterProps) => {
             className="absolute rounded-full pointer-events-none"
             style={{
               left: p.x,
-              width: size === 'sm' ? 6 : 10,
-              height: size === 'sm' ? 6 : 10,
+              width: size === 'sm' ? 10 : 16,
+              height: size === 'sm' ? 10 : 16,
               background: p.direction === 'up'
                 ? 'radial-gradient(circle, hsl(270 70% 70% / 0.8), hsl(270 50% 60% / 0))'
                 : 'radial-gradient(circle, hsl(0 70% 55% / 0.8), hsl(0 50% 45% / 0))',
             }}
             initial={{
-              opacity: 0.9,
+              opacity: 1,
               y: dims.h * 0.4,
-              scale: 0.5,
+              scale: 0.8,
             }}
             animate={{
               opacity: 0,
-              y: p.direction === 'up' ? -20 : dims.h + 15,
-              scale: p.direction === 'up' ? 2.5 : 2,
-              x: (Math.random() - 0.5) * 16,
+              y: p.direction === 'up' ? -40 : dims.h + 30,
+              scale: p.direction === 'up' ? 4 : 3.5,
+              x: (Math.random() - 0.5) * 24,
             }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
+            transition={{ duration: 1.5, ease: 'easeOut' }}
           />
         ))}
       </AnimatePresence>
@@ -123,9 +123,9 @@ const EtherCounter = ({ amount, size = 'md' }: EtherCounterProps) => {
         key={amount}
         className={`${dims.font} relative z-10 text-white font-bold`}
         style={{ marginTop: dims.top, textShadow: '0 0 8px hsl(270 80% 70% / 0.6)' }}
-        initial={{ scale: 1.4, opacity: 0.5 }}
+        initial={{ scale: 1.8, opacity: 0.3 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.3, ease: 'easeOut' }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
       >
         {amount}
       </motion.span>

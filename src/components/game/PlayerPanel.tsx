@@ -10,9 +10,10 @@ interface PlayerPanelProps {
   isActive: boolean;
   index: number;
   compact?: boolean;
+  onMortalClick?: (mortalId: string) => void;
 }
 
-const PlayerPanel = ({ player, gameState, isActive, index, compact = false }: PlayerPanelProps) => {
+const PlayerPanel = ({ player, gameState, isActive, index, compact = false, onMortalClick }: PlayerPanelProps) => {
   const divinity = DIVINITIES[player.divinity];
   // Always use compact tokens to fit 3 panels in width
   const tokenSize = compact ? 86 : 121;
@@ -80,7 +81,14 @@ const PlayerPanel = ({ player, gameState, isActive, index, compact = false }: Pl
         </div>
 
         {/* Mortal Grid */}
-        <MortalGrid mortals={player.mortals} owner={player} gameState={gameState} tokenSize={tokenSize} />
+        <MortalGrid
+          mortals={player.mortals}
+          owner={player}
+          gameState={gameState}
+          tokenSize={tokenSize}
+          targetingMode={!!onMortalClick}
+          onMortalClick={onMortalClick}
+        />
       </div>
     </motion.div>
   );

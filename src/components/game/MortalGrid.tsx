@@ -12,10 +12,11 @@ interface MortalGridProps {
   gameState?: GameState;
   tokenSize?: number;
   selectable?: boolean;
+  targetingMode?: boolean;
   onMortalClick?: (mortalId: string) => void;
 }
 
-const MortalGrid = ({ mortals, owner, gameState, tokenSize = 80, selectable = false, onMortalClick }: MortalGridProps) => {
+const MortalGrid = ({ mortals, owner, gameState, tokenSize = 80, selectable = false, targetingMode = false, onMortalClick }: MortalGridProps) => {
   const gap = tokenSize < 60 ? 4 : tokenSize < 100 ? 8 : 12;
 
   return (
@@ -31,7 +32,7 @@ const MortalGrid = ({ mortals, owner, gameState, tokenSize = 80, selectable = fa
           gameState={gameState}
           size={tokenSize}
           index={i}
-          selectable={selectable && !mortal.isMetamorphosed && mortal.status !== 'incapacite'}
+          selectable={targetingMode || (selectable && !mortal.isMetamorphosed && mortal.status !== 'incapacite')}
           onClick={onMortalClick}
         />
       ))}

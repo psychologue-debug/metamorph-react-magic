@@ -5,9 +5,10 @@ import CentralZone from './CentralZone';
 interface GameBoardProps {
   gameState: GameState;
   currentPlayerIndex: number;
+  onMortalClick?: (playerId: string, mortalId: string) => void;
 }
 
-const GameBoard = ({ gameState, currentPlayerIndex }: GameBoardProps) => {
+const GameBoard = ({ gameState, currentPlayerIndex, onMortalClick }: GameBoardProps) => {
   const opponents = gameState.players.
   map((player, index) => ({ player, index })).
   filter(({ index }) => index !== currentPlayerIndex);
@@ -24,7 +25,6 @@ const GameBoard = ({ gameState, currentPlayerIndex }: GameBoardProps) => {
           style={{
             background: `radial-gradient(circle, hsl(var(--ether) / 0.3) 0%, transparent 70%)`
           }} />
-
       </div>
 
       {/* Top-left info */}
@@ -39,12 +39,12 @@ const GameBoard = ({ gameState, currentPlayerIndex }: GameBoardProps) => {
           gameState={gameState}
           isActive={playerIndex === gameState.activePlayerIndex}
           index={playerIndex}
-          compact={compact} />
-
+          compact={compact}
+          onMortalClick={onMortalClick ? (mortalId: string) => onMortalClick(player.id, mortalId) : undefined}
+        />
         )}
       </div>
     </div>);
-
 };
 
 export default GameBoard;
