@@ -11,11 +11,7 @@ const GameLog = ({ entries }: GameLogProps) => {
   const [hovered, setHovered] = useState(false);
 
   return (
-    <div
-      className="fixed top-12 right-0 z-[9990] flex items-start"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
+    <div className="fixed top-12 right-0 z-[9990] flex items-start">
       {/* Toggle button — always visible */}
       <button
         className="flex items-center gap-1.5 px-3 py-2 rounded-l-lg font-display text-sm font-semibold transition-colors"
@@ -25,6 +21,8 @@ const GameLog = ({ entries }: GameLogProps) => {
           borderRight: 'none',
           color: 'hsl(var(--foreground))',
         }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
       >
         <ScrollText className="w-4 h-4 text-ether" />
         Chroniques
@@ -33,6 +31,8 @@ const GameLog = ({ entries }: GameLogProps) => {
       {/* Slide-in panel */}
       <motion.div
         className="w-72 max-h-[70vh] overflow-y-auto rounded-bl-lg"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         style={{
           background: 'hsl(var(--card) / 0.97)',
           backdropFilter: 'blur(12px)',
