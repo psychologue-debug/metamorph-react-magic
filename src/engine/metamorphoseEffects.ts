@@ -244,6 +244,68 @@ export function getMetamorphoseEffect(
         etherDestroy: 4,
       };
 
+    // MIN-10 (Statue de Aglaure): Incapacitate 1 enemy mortal (or 2 if not first metamorphosis this turn)
+    case 'MIN-10': {
+      const isNotFirst = player.metamorphosesThisTurn > 1; // Already incremented
+      const maxTargets = isNotFirst ? 2 : 1;
+      const hasValidTarget = gameState.players.some((p, i) =>
+        i !== playerIndex && p.mortals.some(m =>
+          canBeIncapacitated(m, p, gameState)
+        )
+      );
+      if (!hasValidTarget) {
+        return {
+          effectId: crypto.randomUUID(),
+          type: 'none',
+          sourcePlayerIndex: playerIndex,
+          sourceMortalCode: mortal.code,
+          sourceMortalName: mortal.nameVerso,
+          description: `Incapacitez ${maxTargets > 1 ? 'jusqu\'à 2 mortels ennemis' : 'un mortel ennemi'}.`,
+          maxTargets,
+          conditionNotMet: 'Aucune cible possible !',
+        };
+      }
+      return {
+        effectId: crypto.randomUUID(),
+        type: 'enemy_mortal_incapacitate',
+        sourcePlayerIndex: playerIndex,
+        sourceMortalCode: mortal.code,
+        sourceMortalName: mortal.nameVerso,
+        description: `Incapacitez ${maxTargets > 1 ? 'jusqu\'à 2 mortels ennemis' : 'un mortel ennemi'}.`,
+        maxTargets,
+      };
+    }
+
+    // DIA-09 (Pierres): Choose: incapacitate 1 mortal OR lift incapacitation OR destroy 4 ether
+    case 'DIA-09': {
+      // For now, default to incapacitate (choice UI would need a separate mechanism)
+      // We'll use incapacitate as the primary effect; choice will be handled later
+      const hasValidTarget = gameState.players.some(p =>
+        p.mortals.some(m => canBeIncapacitated(m, p, gameState))
+      );
+      if (!hasValidTarget) {
+        return {
+          effectId: crypto.randomUUID(),
+          type: 'none',
+          sourcePlayerIndex: playerIndex,
+          sourceMortalCode: mortal.code,
+          sourceMortalName: mortal.nameVerso,
+          description: 'Incapacitez un mortel.',
+          maxTargets: 1,
+          conditionNotMet: 'Aucune cible possible pour l\'incapacitation !',
+        };
+      }
+      return {
+        effectId: crypto.randomUUID(),
+        type: 'enemy_mortal_incapacitate',
+        sourcePlayerIndex: playerIndex,
+        sourceMortalCode: mortal.code,
+        sourceMortalName: mortal.nameVerso,
+        description: 'Choisissez : incapacitez un mortel (choix actif par défaut).',
+        maxTargets: 1,
+      };
+    }
+
     default:
       return null;
   }

@@ -87,7 +87,7 @@ function MortalToken({
   const tooltipName = mortal.isMetamorphosed ? mortal.nameVerso : mortal.nameVerso;
 
   return (
-    <div className="relative" ref={tokenRef} style={{ zIndex: hovered ? 9999 : 'auto' }}>
+    <div className="relative" ref={tokenRef} style={{ zIndex: hovered ? 99999 : 'auto' }}>
       <motion.div
         className={`
           rounded-full relative cursor-pointer transition-all duration-300 group overflow-hidden
@@ -186,8 +186,8 @@ function MortalToken({
 
       {/* Hover tooltip — card-shaped, positioned dynamically */}
       {showTooltip && (
-        <motion.div
-          className={`absolute left-1/2 -translate-x-1/2 z-[9999] pointer-events-none ${
+          <motion.div
+          className={`absolute left-1/2 -translate-x-1/2 z-[99999] pointer-events-none ${
             tooltipSide === 'top' ? 'bottom-full mb-3' : 'top-full mt-3'
           }`}
           initial={{ opacity: 0, y: tooltipSide === 'top' ? 5 : -5 }}
