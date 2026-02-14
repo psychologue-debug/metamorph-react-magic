@@ -153,8 +153,18 @@ function MortalToken({
 
         {/* Incapacitated overlay */}
         {isIncapacitated && !isRetired && (
-          <div className="absolute inset-0 rounded-full flex items-center justify-center bg-background/50">
-            <span className="text-2xl">⛓️</span>
+          <div className="absolute inset-0 rounded-full flex items-center justify-center bg-background/40">
+            <motion.div
+              className="w-full h-full rounded-full flex items-center justify-center"
+              style={{
+                background: 'radial-gradient(circle, hsl(0 0% 20% / 0.6) 30%, hsl(0 0% 10% / 0.3) 70%)',
+                boxShadow: 'inset 0 0 12px hsl(270 30% 15% / 0.5)',
+              }}
+              animate={{ opacity: [0.7, 0.9, 0.7] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <span className="text-lg font-display font-bold" style={{ color: 'hsl(270 40% 65%)' }}>💤</span>
+            </motion.div>
           </div>
         )}
 
