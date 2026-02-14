@@ -89,7 +89,7 @@ function ModalWrapper({ children }: { children: React.ReactNode }) {
   return (
     <AnimatePresence>
       <motion.div
-        className="fixed inset-0 z-[100] flex items-center justify-center"
+        className="fixed inset-0 z-[200] flex items-center justify-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
