@@ -1,15 +1,21 @@
-import { useState } from 'react';
-import { GameState, Player, Mortal } from '@/types/game';
+import { useState, useEffect } from 'react';
+import { GameState, Player, Mortal, SpellCard, DIVINITIES } from '@/types/game';
 import { PendingEffect } from '@/engine/metamorphoseEffects';
 import { canBeIncapacitated, canBeRemovedFromGame, isMortalInvulnerable } from '@/engine/mortalStatuses';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Target, X, Minus, Check } from 'lucide-react';
+import { Shield, Target, X, Minus, Check, Zap } from 'lucide-react';
 
 interface TargetingModalProps {
   effect: PendingEffect;
   gameState: GameState;
   onResolve: (result: TargetingResult) => void;
   onCancel?: () => void;
+  // New handlers for activation effects
+  onGodDiscard?: (targetPlayerId: string) => void;
+  onCardDiscard?: (cardIds: string[]) => void;
+  onPayDrawDiscard?: (discardCardIds: string[]) => void;
+  onInitiatePayDraw?: () => void;
+  onReactionDiscard?: (ownReactionId: string, enemyPlayerId: string, enemyReactionId: string) => void;
 }
 
 export interface TargetingResult {
@@ -24,7 +30,7 @@ export interface TargetingResult {
   etherStolen?: { playerId: string; amount: number }[];
 }
 
-const TargetingModal = ({ effect, gameState, onResolve, onCancel }: TargetingModalProps) => {
+const TargetingModal = ({ effect, gameState, onResolve, onCancel, onGodDiscard, onCardDiscard, onPayDrawDiscard, onInitiatePayDraw, onReactionDiscard }: TargetingModalProps) => {
   // No interaction needed
   if (effect.type === 'none') {
     return (
@@ -76,6 +82,51 @@ const TargetingModal = ({ effect, gameState, onResolve, onCancel }: TargetingMod
         effect={effect}
         gameState={gameState}
         onResolve={onResolve}
+      />
+    );
+  }
+
+  if (effect.type === 'select_god_discard_all' && onGodDiscard) {
+    return (
+      <GodSelectContent
+        effect={effect}
+        gameState={gameState}
+        onSelect={onGodDiscard}
+        onCancel={onCancel}
+      />
+    );
+  }
+
+  if (effect.type === 'discard_cards_then_effect' && onCardDiscard) {
+    return (
+      <CardDiscardContent
+        effect={effect}
+        gameState={gameState}
+        onConfirm={onCardDiscard}
+        onCancel={onCancel}
+      />
+    );
+  }
+
+  if (effect.type === 'pay_draw_discard' && onInitiatePayDraw && onPayDrawDiscard) {
+    return (
+      <PayDrawDiscardContent
+        effect={effect}
+        gameState={gameState}
+        onInitiate={onInitiatePayDraw}
+        onDiscard={onPayDrawDiscard}
+        onCancel={onCancel}
+      />
+    );
+  }
+
+  if (effect.type === 'discard_own_reaction_then_enemy' && onReactionDiscard) {
+    return (
+      <ReactionDiscardContent
+        effect={effect}
+        gameState={gameState}
+        onConfirm={onReactionDiscard}
+        onCancel={onCancel}
       />
     );
   }
@@ -469,6 +520,414 @@ function EtherStealContent({
                 etherStolen,
               });
             }}
+          >
+            Confirmer
+          </motion.button>
+        </div>
+      </div>
+    </ModalWrapper>
+  );
+}
+
+// === God Selection (BAC-01 Lycaon) ===
+function GodSelectContent({
+  effect,
+  gameState,
+  onSelect,
+  onCancel,
+}: {
+  effect: PendingEffect;
+  gameState: GameState;
+  onSelect: (playerId: string) => void;
+  onCancel?: () => void;
+}) {
+  const enemies = gameState.players.filter((_, i) => i !== effect.sourcePlayerIndex);
+
+  return (
+    <ModalWrapper>
+      <div>
+        <div className="flex items-center gap-3 mb-4">
+          <Target className="w-6 h-6 text-ether" />
+          <div>
+            <h2 className="font-display text-xl font-bold text-foreground">{effect.sourceMortalName}</h2>
+            <p className="text-muted-foreground text-sm">{effect.description}</p>
+          </div>
+        </div>
+
+        <div className="space-y-3 mb-6">
+          {enemies.map(enemy => {
+            const totalCards = enemy.hand.length + enemy.reactions.length;
+            const divinity = DIVINITIES[enemy.divinity];
+            return (
+              <motion.button
+                key={enemy.id}
+                className="w-full flex items-center gap-4 p-4 rounded-lg border border-border/50 transition-all"
+                style={{ background: 'hsl(var(--secondary) / 0.5)' }}
+                whileHover={{ scale: 1.02, borderColor: 'hsl(var(--ether) / 0.5)' }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => onSelect(enemy.id)}
+                disabled={totalCards === 0}
+              >
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center border-2"
+                  style={{ borderColor: `hsl(${divinity.color})`, background: `hsl(${divinity.color} / 0.2)` }}
+                >
+                  <span className="font-display text-base font-bold text-foreground">{enemy.avatar}</span>
+                </div>
+                <div className="flex-1 text-left">
+                  <span className="font-display font-semibold text-foreground">{enemy.name}</span>
+                  <span className="text-muted-foreground text-sm ml-2">
+                    ({enemy.hand.length} en main, {enemy.reactions.length} réaction(s))
+                  </span>
+                </div>
+                <span className="font-display text-lg font-bold text-foreground">{totalCards} cartes</span>
+              </motion.button>
+            );
+          })}
+        </div>
+
+        {onCancel && (
+          <div className="flex justify-end">
+            <button
+              className="px-5 py-2 rounded-lg font-display text-sm border border-border/50 text-muted-foreground"
+              style={{ background: 'hsl(var(--muted))' }}
+              onClick={onCancel}
+            >
+              Annuler
+            </button>
+          </div>
+        )}
+      </div>
+    </ModalWrapper>
+  );
+}
+
+// === Card Discard Selection (DIA-10, NEP-10) ===
+function CardDiscardContent({
+  effect,
+  gameState,
+  onConfirm,
+  onCancel,
+}: {
+  effect: PendingEffect;
+  gameState: GameState;
+  onConfirm: (cardIds: string[]) => void;
+  onCancel?: () => void;
+}) {
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const player = gameState.players[effect.sourcePlayerIndex];
+  const required = effect.cardsToDiscard || 0;
+  const includeReactions = effect.includeReactions ?? false;
+
+  const availableCards: (SpellCard & { source: 'hand' | 'reaction' })[] = [
+    ...player.hand.map(c => ({ ...c, source: 'hand' as const })),
+    ...(includeReactions ? player.reactions.map(c => ({ ...c, source: 'reaction' as const })) : []),
+  ];
+
+  const toggleCard = (cardId: string) => {
+    if (selectedIds.includes(cardId)) {
+      setSelectedIds(prev => prev.filter(id => id !== cardId));
+    } else if (selectedIds.length < required) {
+      setSelectedIds(prev => [...prev, cardId]);
+    }
+  };
+
+  return (
+    <ModalWrapper>
+      <div>
+        <div className="flex items-center gap-3 mb-4">
+          <Target className="w-6 h-6 text-ether" />
+          <div>
+            <h2 className="font-display text-xl font-bold text-foreground">{effect.sourceMortalName}</h2>
+            <p className="text-muted-foreground text-sm">{effect.description}</p>
+          </div>
+        </div>
+
+        <p className="text-sm font-display text-foreground mb-3">
+          Sélectionnez {required} carte(s) — sélectionné : <span className="text-ether font-bold">{selectedIds.length}/{required}</span>
+        </p>
+
+        <div className="flex flex-wrap gap-2 mb-6">
+          {availableCards.map(card => {
+            const selected = selectedIds.includes(card.id);
+            return (
+              <motion.button
+                key={card.id}
+                className={`relative p-3 rounded-lg border-2 transition-all text-left ${
+                  selected ? 'border-ether ring-2 ring-ether/30' : 'border-border/50 hover:border-ether/40'
+                }`}
+                style={{ background: selected ? 'hsl(var(--ether) / 0.1)' : 'hsl(var(--secondary) / 0.5)', minWidth: '140px' }}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => toggleCard(card.id)}
+              >
+                <div className="font-display text-sm font-bold text-foreground">{card.name}</div>
+                <div className="text-xs text-muted-foreground">{card.source === 'reaction' ? '(Réaction posée)' : '(Main)'}</div>
+                {selected && (
+                  <div className="absolute top-1 right-1">
+                    <Check className="w-4 h-4 text-ether" />
+                  </div>
+                )}
+              </motion.button>
+            );
+          })}
+        </div>
+
+        <div className="flex gap-3 justify-end">
+          {onCancel && (
+            <button
+              className="px-5 py-2 rounded-lg font-display text-sm border border-border/50 text-muted-foreground"
+              style={{ background: 'hsl(var(--muted))' }}
+              onClick={onCancel}
+            >
+              Annuler
+            </button>
+          )}
+          <motion.button
+            className="px-6 py-2 rounded-lg font-display font-semibold text-sm"
+            style={{
+              background: selectedIds.length === required
+                ? 'linear-gradient(135deg, hsl(var(--ether)), hsl(var(--ether-dim)))'
+                : 'hsl(var(--muted))',
+              color: selectedIds.length === required ? 'white' : 'hsl(var(--muted-foreground))',
+            }}
+            whileHover={selectedIds.length === required ? { scale: 1.05 } : {}}
+            onClick={() => selectedIds.length === required && onConfirm(selectedIds)}
+            disabled={selectedIds.length !== required}
+          >
+            Confirmer
+          </motion.button>
+        </div>
+      </div>
+    </ModalWrapper>
+  );
+}
+
+// === Pay/Draw/Discard (NEP-02, NEP-05) ===
+function PayDrawDiscardContent({
+  effect,
+  gameState,
+  onInitiate,
+  onDiscard,
+  onCancel,
+}: {
+  effect: PendingEffect;
+  gameState: GameState;
+  onInitiate: () => void;
+  onDiscard: (cardIds: string[]) => void;
+  onCancel?: () => void;
+}) {
+  const [phase, setPhase] = useState<'confirm' | 'discard'>('confirm');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const player = gameState.players[effect.sourcePlayerIndex];
+  const discardCount = effect.discardCards || 0;
+
+  // After initiating, switch to discard phase
+  useEffect(() => {
+    if (phase === 'discard') return;
+    // We start in confirm phase
+  }, [phase]);
+
+  if (phase === 'confirm') {
+    return (
+      <ModalWrapper>
+        <div className="text-center">
+          <div className="flex items-center gap-3 mb-4 justify-center">
+            <Zap className="w-6 h-6 text-ether" />
+            <h2 className="font-display text-xl font-bold text-foreground">{effect.sourceMortalName}</h2>
+          </div>
+          <p className="text-muted-foreground mb-6">{effect.description}</p>
+          <div className="flex gap-3 justify-center">
+            {onCancel && (
+              <button
+                className="px-5 py-2 rounded-lg font-display text-sm border border-border/50 text-muted-foreground"
+                style={{ background: 'hsl(var(--muted))' }}
+                onClick={onCancel}
+              >
+                Annuler
+              </button>
+            )}
+            <motion.button
+              className="px-6 py-2 rounded-lg font-display font-semibold text-sm"
+              style={{
+                background: 'linear-gradient(135deg, hsl(var(--ether)), hsl(var(--ether-dim)))',
+                color: 'white',
+              }}
+              whileHover={{ scale: 1.05 }}
+              onClick={() => {
+                onInitiate();
+                setPhase('discard');
+              }}
+            >
+              Payer {effect.etherCostToActivate} Éther et piocher {effect.drawCards} carte(s)
+            </motion.button>
+          </div>
+        </div>
+      </ModalWrapper>
+    );
+  }
+
+  // Discard phase
+  const toggleCard = (cardId: string) => {
+    if (selectedIds.includes(cardId)) {
+      setSelectedIds(prev => prev.filter(id => id !== cardId));
+    } else if (selectedIds.length < discardCount) {
+      setSelectedIds(prev => [...prev, cardId]);
+    }
+  };
+
+  return (
+    <ModalWrapper>
+      <div>
+        <div className="flex items-center gap-3 mb-4">
+          <Target className="w-6 h-6 text-ether" />
+          <div>
+            <h2 className="font-display text-xl font-bold text-foreground">{effect.sourceMortalName}</h2>
+            <p className="text-muted-foreground text-sm">Défaussez {discardCount} carte(s).</p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2 mb-6">
+          {player.hand.map(card => {
+            const selected = selectedIds.includes(card.id);
+            return (
+              <motion.button
+                key={card.id}
+                className={`p-3 rounded-lg border-2 transition-all text-left ${
+                  selected ? 'border-ether ring-2 ring-ether/30' : 'border-border/50 hover:border-ether/40'
+                }`}
+                style={{ background: selected ? 'hsl(var(--ether) / 0.1)' : 'hsl(var(--secondary) / 0.5)', minWidth: '140px' }}
+                whileHover={{ scale: 1.03 }}
+                onClick={() => toggleCard(card.id)}
+              >
+                <div className="font-display text-sm font-bold text-foreground">{card.name}</div>
+                <div className="text-xs text-muted-foreground">{card.description}</div>
+                {selected && <Check className="w-4 h-4 text-ether absolute top-1 right-1" />}
+              </motion.button>
+            );
+          })}
+        </div>
+
+        <div className="flex justify-end">
+          <motion.button
+            className="px-6 py-2 rounded-lg font-display font-semibold text-sm"
+            style={{
+              background: selectedIds.length === discardCount
+                ? 'linear-gradient(135deg, hsl(var(--ether)), hsl(var(--ether-dim)))'
+                : 'hsl(var(--muted))',
+              color: selectedIds.length === discardCount ? 'white' : 'hsl(var(--muted-foreground))',
+            }}
+            onClick={() => selectedIds.length === discardCount && onDiscard(selectedIds)}
+            disabled={selectedIds.length !== discardCount}
+          >
+            Confirmer la défausse
+          </motion.button>
+        </div>
+      </div>
+    </ModalWrapper>
+  );
+}
+
+// === Reaction Discard (NEP-06 Laurier) ===
+function ReactionDiscardContent({
+  effect,
+  gameState,
+  onConfirm,
+  onCancel,
+}: {
+  effect: PendingEffect;
+  gameState: GameState;
+  onConfirm: (ownReactionId: string, enemyPlayerId: string, enemyReactionId: string) => void;
+  onCancel?: () => void;
+}) {
+  const [ownReactionId, setOwnReactionId] = useState<string | null>(null);
+  const [enemyTarget, setEnemyTarget] = useState<{ playerId: string; reactionId: string } | null>(null);
+  const player = gameState.players[effect.sourcePlayerIndex];
+  const enemies = gameState.players.filter((_, i) => i !== effect.sourcePlayerIndex && gameState.players[i].reactions.length > 0);
+
+  return (
+    <ModalWrapper>
+      <div>
+        <div className="flex items-center gap-3 mb-4">
+          <Target className="w-6 h-6 text-ether" />
+          <div>
+            <h2 className="font-display text-xl font-bold text-foreground">{effect.sourceMortalName}</h2>
+            <p className="text-muted-foreground text-sm">{effect.description}</p>
+          </div>
+        </div>
+
+        {/* Step 1: Select own reaction */}
+        <p className="text-sm font-display text-foreground mb-2 font-semibold">1. Choisissez votre réaction à défausser :</p>
+        <div className="flex gap-2 mb-4">
+          {player.reactions.map(card => (
+            <motion.button
+              key={card.id}
+              className={`p-3 rounded-lg border-2 transition-all text-left ${
+                ownReactionId === card.id ? 'border-ether ring-2 ring-ether/30' : 'border-border/50 hover:border-ether/40'
+              }`}
+              style={{ background: ownReactionId === card.id ? 'hsl(var(--ether) / 0.1)' : 'hsl(var(--secondary) / 0.5)' }}
+              whileHover={{ scale: 1.03 }}
+              onClick={() => setOwnReactionId(card.id)}
+            >
+              <div className="font-display text-sm font-bold text-foreground">{card.name}</div>
+              <div className="text-xs text-muted-foreground">{card.description}</div>
+            </motion.button>
+          ))}
+        </div>
+
+        {/* Step 2: Select enemy reaction */}
+        <p className="text-sm font-display text-foreground mb-2 font-semibold">2. Choisissez la réaction ennemie à défausser :</p>
+        <div className="space-y-2 mb-6">
+          {enemies.map(enemy => {
+            const divinity = DIVINITIES[enemy.divinity];
+            return (
+              <div key={enemy.id}>
+                <span className="font-display text-sm text-muted-foreground">{enemy.name}</span>
+                <div className="flex gap-2 mt-1">
+                  {enemy.reactions.map((card, idx) => {
+                    const selected = enemyTarget?.playerId === enemy.id && enemyTarget?.reactionId === card.id;
+                    return (
+                      <motion.button
+                        key={card.id}
+                        className={`p-3 rounded-lg border-2 transition-all ${
+                          selected ? 'border-reaction ring-2 ring-reaction/30' : 'border-border/50 hover:border-reaction/40'
+                        }`}
+                        style={{ background: selected ? 'hsl(var(--reaction) / 0.1)' : 'hsl(var(--secondary) / 0.5)' }}
+                        whileHover={{ scale: 1.03 }}
+                        onClick={() => setEnemyTarget({ playerId: enemy.id, reactionId: card.id })}
+                      >
+                        <div className="font-display text-sm text-foreground">Réaction {idx + 1}</div>
+                        <div className="text-xs text-muted-foreground">(face cachée)</div>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="flex gap-3 justify-end">
+          {onCancel && (
+            <button
+              className="px-5 py-2 rounded-lg font-display text-sm border border-border/50 text-muted-foreground"
+              style={{ background: 'hsl(var(--muted))' }}
+              onClick={onCancel}
+            >
+              Annuler
+            </button>
+          )}
+          <motion.button
+            className="px-6 py-2 rounded-lg font-display font-semibold text-sm"
+            style={{
+              background: ownReactionId && enemyTarget
+                ? 'linear-gradient(135deg, hsl(var(--ether)), hsl(var(--ether-dim)))'
+                : 'hsl(var(--muted))',
+              color: ownReactionId && enemyTarget ? 'white' : 'hsl(var(--muted-foreground))',
+            }}
+            whileHover={ownReactionId && enemyTarget ? { scale: 1.05 } : {}}
+            onClick={() => ownReactionId && enemyTarget && onConfirm(ownReactionId, enemyTarget.playerId, enemyTarget.reactionId)}
+            disabled={!ownReactionId || !enemyTarget}
           >
             Confirmer
           </motion.button>

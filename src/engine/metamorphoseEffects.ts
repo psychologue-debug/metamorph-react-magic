@@ -14,6 +14,10 @@ export type EffectTargetType =
   | 'generate_destroy_ether'       // Generate X ether then click enemy reservoirs to destroy Y
   | 'steal_ether_each_god'         // Steal up to N ether from each enemy god
   | 'choice'                       // Player must choose between multiple sub-effects
+  | 'select_god_discard_all'       // Select a god who discards all cards
+  | 'discard_cards_then_effect'    // Discard N cards (hand+reactions) then chain effect
+  | 'pay_draw_discard'             // Pay ether, draw cards, discard cards
+  | 'discard_own_reaction_then_enemy' // Discard own reaction, then enemy discards one
   | 'none';                        // No targeting needed / no effect
 
 export interface PendingEffect {
@@ -37,6 +41,26 @@ export interface PendingEffect {
   choices?: { label: string; effect: PendingEffect }[];
   // Whether healing targets own mortals only
   healOwnOnly?: boolean;
+  // === Activation system fields ===
+  // Chain another effect after this one resolves
+  thenEffect?: PendingEffect;
+  // Pay ether when this effect activates
+  etherCostToActivate?: number;
+  // Filter for retro_own_mortal (e.g. 'animal')
+  filterType?: string;
+  // Generate ether after retro resolves
+  thenGenerate?: number;
+  // Draw cards after retro resolves
+  thenDraw?: number;
+  // For discard_cards_then_effect: how many cards to discard
+  cardsToDiscard?: number;
+  // Can discard from reactions too
+  includeReactions?: boolean;
+  // Also retro this mortal (by id) as part of effect
+  retroSelfMortalId?: string;
+  // For pay_draw_discard
+  drawCards?: number;
+  discardCards?: number;
 }
 
 /**

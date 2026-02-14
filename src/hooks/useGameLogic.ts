@@ -7,6 +7,7 @@ import { calculateCycleEtherGeneration } from '@/engine/etherGeneration';
 import { getMetamorphoseEffect, PendingEffect } from '@/engine/metamorphoseEffects';
 import { TargetingResult } from '@/components/game/TargetingModal';
 import { canBeIncapacitated as canBeIncapacitatedCheck, canBeRemovedFromGame as canBeRemovedFromGameCheck, canBeRetroMetamorphosed as canBeRetroCheck } from '@/engine/mortalStatuses';
+import { getActivatedEffect, hasActivatedEffect } from '@/engine/activatedEffects';
 
 export type InteractionMode = 'idle' | 'metamorphosing' | 'playing_spell' | 'activating_effect';
 
@@ -210,27 +211,91 @@ export function useGameLogic() {
   const handleMortalClick = useCallback((mortalId: string) => {
     if (interactionMode === 'activating_effect') {
       // Activation mode: trigger mortal's activated ability
-      setGameState((prev) => {
-        if (!prev) return prev;
-        const player = prev.players[prev.activePlayerIndex];
-        const mortal = player.mortals.find(m => m.id === mortalId);
-        if (!mortal) return prev;
-        if (!mortal.isMetamorphosed) {
-          toast.error('Ce mortel n\'est pas métamorphosé');
-          return prev;
-        }
-        if (mortal.status === 'incapacite') {
-          toast.error('Ce mortel est incapacité, il ne peut pas activer son effet');
-          return prev;
-        }
-        if (mortal.status === 'retired') {
-          toast.error('Ce mortel est retiré du jeu');
-          return prev;
-        }
-        // TODO: Check if this mortal has an activatable ability and trigger it
-        toast.info(`${mortal.nameVerso} n'a pas d'effet activable implémenté pour l'instant.`);
-        return prev;
-      });
+      if (!gameState) return;
+      const player = gameState.players[gameState.activePlayerIndex];
+      const mortal = player.mortals.find(m => m.id === mortalId);
+      if (!mortal) return;
+      if (!mortal.isMetamorphosed) {
+        toast.error('Ce mortel n\'est pas métamorphosé');
+        setInteractionMode('idle');
+        return;
+      }
+      if (mortal.status === 'incapacite') {
+        toast.error('Ce mortel est incapacité, il ne peut pas activer son effet');
+        setInteractionMode('idle');
+        return;
+      }
+      if (mortal.status === 'retired') {
+        toast.error('Ce mortel est retiré du jeu');
+        setInteractionMode('idle');
+        return;
+      }
+      if (!hasActivatedEffect(mortal)) {
+        toast.info(`${mortal.nameVerso} n'a pas d'effet activable.`);
+        setInteractionMode('idle');
+        return;
+      }
+
+      const result = getActivatedEffect(mortal, player, gameState);
+      if (!result) {
+        toast.info(`${mortal.nameVerso} n'a pas d'effet activable.`);
+        setInteractionMode('idle');
+        return;
+      }
+      if (result.type === 'error') {
+        toast.error(result.errorMessage || 'Impossible d\'activer cet effet');
+        setInteractionMode('idle');
+        return;
+      }
+
+      if (result.type === 'immediate') {
+        setGameState((prev) => {
+          if (!prev) return prev;
+          const pi = prev.activePlayerIndex;
+          const newState = result.applyState!(prev, pi);
+          return {
+            ...newState,
+            log: [
+              {
+                id: crypto.randomUUID(),
+                timestamp: Date.now(),
+                playerName: prev.players[pi].name,
+                action: 'Activation',
+                detail: result.logMessage || `a activé l'effet de ${mortal.nameVerso}`,
+              },
+              ...newState.log,
+            ],
+          };
+        });
+        toast.success(`Effet de ${mortal.nameVerso} activé !`, {
+          style: { background: 'hsl(30 50% 20%)', border: '1px solid hsl(30 60% 40%)', color: 'white', fontSize: '16px' },
+        });
+        setInteractionMode('idle');
+        return;
+      }
+
+      // Pending effect
+      if (result.preApplyState) {
+        setGameState((prev) => {
+          if (!prev) return prev;
+          const pi = prev.activePlayerIndex;
+          const newState = result.preApplyState!(prev, pi);
+          return {
+            ...newState,
+            log: result.preLogMessage ? [
+              {
+                id: crypto.randomUUID(),
+                timestamp: Date.now(),
+                playerName: prev.players[pi].name,
+                action: 'Activation',
+                detail: result.preLogMessage,
+              },
+              ...newState.log,
+            ] : newState.log,
+          };
+        });
+      }
+      setPendingEffect(result.effect!);
       setInteractionMode('idle');
       return;
     }
@@ -740,7 +805,12 @@ export function useGameLogic() {
         log: newLog,
       };
     });
-    setPendingEffect(null);
+    // Chain thenEffect if present
+    if (pendingEffect?.thenEffect) {
+      setPendingEffect(pendingEffect.thenEffect);
+    } else {
+      setPendingEffect(null);
+    }
   }, [pendingEffect]);
 
   const cancelEffect = useCallback(() => {
@@ -779,6 +849,14 @@ export function useGameLogic() {
           });
           return prev;
         }
+        // Check etherCostToActivate for heal (CER-07)
+        if (pendingEffect.etherCostToActivate) {
+          const src = prev.players[pendingEffect.sourcePlayerIndex];
+          if (src.ether < pendingEffect.etherCostToActivate) {
+            toast.error(`Pas assez d'Éther (${pendingEffect.etherCostToActivate} requis)`);
+            return prev;
+          }
+        }
       } else if (isRetroOwn) {
         const sourcePlayerId = prev.players[pendingEffect.sourcePlayerIndex]?.id;
         if (playerId !== sourcePlayerId) {
@@ -789,6 +867,13 @@ export function useGameLogic() {
         }
         if (!mortal.isMetamorphosed || !canBeRetroCheck(mortal, targetPlayer, prev)) {
           toast.error('Ce mortel ne peut pas être rétromorphosé', {
+            style: { background: 'hsl(0 70% 20%)', border: '1px solid hsl(0 70% 40%)', color: 'white', fontSize: '16px' },
+          });
+          return prev;
+        }
+        // Check filterType (e.g. 'animal' for APO-06)
+        if (pendingEffect.filterType && mortal.type !== pendingEffect.filterType) {
+          toast.error(`Ce mortel n'est pas de type ${pendingEffect.filterType}`, {
             style: { background: 'hsl(0 70% 20%)', border: '1px solid hsl(0 70% 40%)', color: 'white', fontSize: '16px' },
           });
           return prev;
@@ -843,7 +928,7 @@ export function useGameLogic() {
         actionDetail = `a levé l'incapacité de ${mortal.nameVerso || mortal.nameRecto} de ${targetPlayer.name}`;
       } else if (isRetroOwn || isRetroEnemy) {
         // Retrometamorphosis: flip back to recto
-        const updatedPlayers = prev.players.map(p => {
+        let updatedPlayers = prev.players.map(p => {
           if (p.id !== playerId) return p;
           return {
             ...p,
@@ -854,20 +939,53 @@ export function useGameLogic() {
           };
         });
 
-        toast.success(`${mortal.nameVerso || mortal.nameRecto} rétromorphosé !`, {
+        // Handle thenGenerate (e.g. APO-06: +6 ether after retro)
+        if (pendingEffect.thenGenerate) {
+          updatedPlayers = updatedPlayers.map((p, i) =>
+            i === pendingEffect.sourcePlayerIndex
+              ? { ...p, ether: p.ether + pendingEffect.thenGenerate! }
+              : p
+          );
+        }
+
+        // Handle thenDraw (e.g. APO-06: draw 1 card after retro)
+        let newDeck = [...prev.deck];
+        let newDiscardPile = [...prev.discardPile];
+        if (pendingEffect.thenDraw && pendingEffect.thenDraw > 0) {
+          const drawnCards: any[] = [];
+          for (let i = 0; i < pendingEffect.thenDraw; i++) {
+            if (newDeck.length === 0 && newDiscardPile.length > 0) {
+              newDeck = [...newDiscardPile].sort(() => Math.random() - 0.5);
+              newDiscardPile = [];
+            }
+            const card = newDeck.pop();
+            if (card) drawnCards.push(card);
+          }
+          if (drawnCards.length > 0) {
+            updatedPlayers = updatedPlayers.map((p, i) =>
+              i === pendingEffect.sourcePlayerIndex
+                ? { ...p, hand: [...p.hand, ...drawnCards] }
+                : p
+            );
+          }
+        }
+
+        toast.success(`${mortal.nameVerso || mortal.nameRecto} rétromorphosé !${pendingEffect.thenGenerate ? ` +${pendingEffect.thenGenerate} Éther` : ''}${pendingEffect.thenDraw ? ` +${pendingEffect.thenDraw} carte(s)` : ''}`, {
           style: { background: 'hsl(30 50% 20%)', border: '1px solid hsl(30 60% 40%)', color: 'white', fontSize: '16px' },
         });
 
         return {
           ...prev,
           players: updatedPlayers,
+          deck: newDeck,
+          discardPile: newDiscardPile,
           log: [
             {
               id: crypto.randomUUID(),
               timestamp: Date.now(),
               playerName: sourcePlayer?.name || 'Système',
               action: 'Rétromorphose',
-              detail: `a rétromorphosé ${mortal.nameVerso || mortal.nameRecto} de ${targetPlayer.name}`,
+              detail: `a rétromorphosé ${mortal.nameVerso || mortal.nameRecto} de ${targetPlayer.name}${pendingEffect.thenGenerate ? ` (+${pendingEffect.thenGenerate} Éther)` : ''}${pendingEffect.thenDraw ? ` (+${pendingEffect.thenDraw} carte)` : ''}`,
             },
             ...prev.log,
           ],
@@ -877,12 +995,20 @@ export function useGameLogic() {
         actionLabel = 'Retrait du jeu';
         actionDetail = `a retiré du jeu ${mortal.nameVerso || mortal.nameRecto} de ${targetPlayer.name}`;
       } else {
+        // Incapacitate — handle etherCostToActivate (CER-07)
+        if (pendingEffect.etherCostToActivate) {
+          const src = prev.players[pendingEffect.sourcePlayerIndex];
+          if (src.ether < pendingEffect.etherCostToActivate) {
+            toast.error(`Pas assez d'Éther (${pendingEffect.etherCostToActivate} requis)`);
+            return prev;
+          }
+        }
         newStatus = 'incapacite';
         actionLabel = 'Incapacitation';
         actionDetail = `a incapacité ${mortal.nameVerso || mortal.nameRecto} de ${targetPlayer.name}`;
       }
 
-      const updatedPlayers = prev.players.map(p => {
+      let updatedPlayers = prev.players.map(p => {
         if (p.id !== playerId) return p;
         return {
           ...p,
@@ -891,6 +1017,15 @@ export function useGameLogic() {
           ),
         };
       });
+
+      // Deduct etherCostToActivate if present (CER-07)
+      if (pendingEffect.etherCostToActivate) {
+        updatedPlayers = updatedPlayers.map((p, i) =>
+          i === pendingEffect.sourcePlayerIndex
+            ? { ...p, ether: p.ether - pendingEffect.etherCostToActivate! }
+            : p
+        );
+      }
 
       toast.success(
         isHeal ? `Incapacité de ${mortal.nameVerso || mortal.nameRecto} levée !`
@@ -920,6 +1055,9 @@ export function useGameLogic() {
       // Support multi-target: decrement maxTargets
       if (pendingEffect.maxTargets > 1) {
         setPendingEffect(prev => prev ? { ...prev, maxTargets: prev.maxTargets - 1, optional: true } : null);
+      } else if (pendingEffect.thenEffect) {
+        // Chain to next effect
+        setPendingEffect(pendingEffect.thenEffect);
       } else {
         setPendingEffect(null);
       }
@@ -968,6 +1106,221 @@ export function useGameLogic() {
     setPendingEffect(chosenEffect);
   }, []);
 
+  /** Resolve select_god_discard_all: a god discards all hand + reactions */
+  const resolveGodDiscard = useCallback((targetPlayerId: string) => {
+    if (!pendingEffect) return;
+    setGameState((prev) => {
+      if (!prev) return prev;
+      const targetPlayer = prev.players.find(p => p.id === targetPlayerId);
+      if (!targetPlayer) return prev;
+      const discardedCards = [...targetPlayer.hand, ...targetPlayer.reactions];
+      const updatedPlayers = prev.players.map(p => {
+        if (p.id !== targetPlayerId) return p;
+        return { ...p, hand: [], reactions: [] };
+      });
+      return {
+        ...prev,
+        players: updatedPlayers,
+        discardPile: [...discardedCards, ...prev.discardPile],
+        log: [{
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          playerName: prev.players[pendingEffect.sourcePlayerIndex]?.name || 'Système',
+          action: 'Défausse forcée',
+          detail: `${targetPlayer.name} a défaussé toutes ses cartes (${discardedCards.length})`,
+        }, ...prev.log],
+      };
+    });
+    setPendingEffect(pendingEffect.thenEffect || null);
+  }, [pendingEffect]);
+
+  /** Resolve discard_cards_then_effect: discard N cards, optionally retro self, then chain */
+  const resolveCardDiscard = useCallback((cardIds: string[]) => {
+    if (!pendingEffect) return;
+    setGameState((prev) => {
+      if (!prev) return prev;
+      const pi = pendingEffect.sourcePlayerIndex;
+      const player = prev.players[pi];
+
+      // Collect discarded cards from hand and reactions
+      const discardedFromHand = player.hand.filter(c => cardIds.includes(c.id));
+      const discardedFromReactions = player.reactions.filter(c => cardIds.includes(c.id));
+      const allDiscarded = [...discardedFromHand, ...discardedFromReactions];
+
+      let updatedPlayers = prev.players.map((p, i) => {
+        if (i !== pi) return p;
+        return {
+          ...p,
+          hand: p.hand.filter(c => !cardIds.includes(c.id)),
+          reactions: p.reactions.filter(c => !cardIds.includes(c.id)),
+        };
+      });
+
+      // Retro self if retroSelfMortalId is set (DIA-10)
+      if (pendingEffect.retroSelfMortalId) {
+        updatedPlayers = updatedPlayers.map((p, i) => {
+          if (i !== pi) return p;
+          return {
+            ...p,
+            mortals: p.mortals.map(m =>
+              m.id === pendingEffect.retroSelfMortalId
+                ? { ...m, isMetamorphosed: false, status: 'normal' as const }
+                : m
+            ),
+            metamorphosedCount: p.mortals.filter(m =>
+              m.id !== pendingEffect.retroSelfMortalId && m.isMetamorphosed
+            ).length,
+          };
+        });
+      }
+
+      return {
+        ...prev,
+        players: updatedPlayers,
+        discardPile: [...allDiscarded, ...prev.discardPile],
+        log: [{
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          playerName: player.name,
+          action: 'Activation',
+          detail: `a défaussé ${allDiscarded.length} carte(s)${pendingEffect.retroSelfMortalId ? ' et rétromorphosé un mortel' : ''}`,
+        }, ...prev.log],
+      };
+    });
+    // Chain thenEffect
+    if (pendingEffect.thenEffect) {
+      setPendingEffect(pendingEffect.thenEffect);
+    } else {
+      setPendingEffect(null);
+    }
+  }, [pendingEffect]);
+
+  /** Resolve pay_draw_discard: pay ether, draw cards, then discard */
+  const resolvePayDrawDiscard = useCallback((discardCardIds: string[]) => {
+    if (!pendingEffect) return;
+    setGameState((prev) => {
+      if (!prev) return prev;
+      const pi = pendingEffect.sourcePlayerIndex;
+      const player = prev.players[pi];
+
+      // Discard selected cards
+      const discardedCards = player.hand.filter(c => discardCardIds.includes(c.id));
+      const updatedPlayers = prev.players.map((p, i) => {
+        if (i !== pi) return p;
+        return {
+          ...p,
+          hand: p.hand.filter(c => !discardCardIds.includes(c.id)),
+        };
+      });
+
+      return {
+        ...prev,
+        players: updatedPlayers,
+        discardPile: [...discardedCards, ...prev.discardPile],
+        log: [{
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          playerName: player.name,
+          action: 'Défausse',
+          detail: `a défaussé ${discardedCards.length} carte(s)`,
+        }, ...prev.log],
+      };
+    });
+    // Chain thenEffect (e.g. heal for NEP-05)
+    if (pendingEffect.thenEffect) {
+      setPendingEffect(pendingEffect.thenEffect);
+    } else {
+      setPendingEffect(null);
+    }
+  }, [pendingEffect]);
+
+  /** Initiate pay_draw_discard: pay ether + draw cards, then switch to discard mode */
+  const initiatePayDraw = useCallback(() => {
+    if (!pendingEffect || pendingEffect.type !== 'pay_draw_discard') return;
+    setGameState((prev) => {
+      if (!prev) return prev;
+      const pi = pendingEffect.sourcePlayerIndex;
+      const etherCost = pendingEffect.etherCostToActivate || 0;
+      const drawCount = pendingEffect.drawCards || 0;
+
+      let newDeck = [...prev.deck];
+      let newDiscardPile = [...prev.discardPile];
+      const drawnCards: any[] = [];
+      for (let i = 0; i < drawCount; i++) {
+        if (newDeck.length === 0 && newDiscardPile.length > 0) {
+          newDeck = [...newDiscardPile].sort(() => Math.random() - 0.5);
+          newDiscardPile = [];
+        }
+        const card = newDeck.pop();
+        if (card) drawnCards.push(card);
+      }
+
+      const updatedPlayers = prev.players.map((p, i) => {
+        if (i !== pi) return p;
+        return {
+          ...p,
+          ether: p.ether - etherCost,
+          hand: [...p.hand, ...drawnCards],
+        };
+      });
+
+      return {
+        ...prev,
+        players: updatedPlayers,
+        deck: newDeck,
+        discardPile: newDiscardPile,
+        log: [{
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          playerName: prev.players[pi].name,
+          action: 'Activation',
+          detail: `a payé ${etherCost} Éther et pioché ${drawnCards.length} carte(s)`,
+        }, ...prev.log],
+      };
+    });
+    // Now we need to discard. Keep the same pendingEffect but it will be handled by the UI
+    // The UI will show a discard interface and call resolvePayDrawDiscard
+  }, [pendingEffect]);
+
+  /** Resolve discard_own_reaction_then_enemy */
+  const resolveReactionDiscard = useCallback((ownReactionId: string, enemyPlayerId: string, enemyReactionId: string) => {
+    if (!pendingEffect) return;
+    setGameState((prev) => {
+      if (!prev) return prev;
+      const pi = pendingEffect.sourcePlayerIndex;
+      const player = prev.players[pi];
+      const ownReaction = player.reactions.find(c => c.id === ownReactionId);
+      const enemyPlayer = prev.players.find(p => p.id === enemyPlayerId);
+      const enemyReaction = enemyPlayer?.reactions.find(c => c.id === enemyReactionId);
+
+      const discarded = [ownReaction, enemyReaction].filter(Boolean);
+
+      const updatedPlayers = prev.players.map(p => {
+        if (p.id === player.id) {
+          return { ...p, reactions: p.reactions.filter(c => c.id !== ownReactionId) };
+        }
+        if (p.id === enemyPlayerId) {
+          return { ...p, reactions: p.reactions.filter(c => c.id !== enemyReactionId) };
+        }
+        return p;
+      });
+
+      return {
+        ...prev,
+        players: updatedPlayers,
+        discardPile: [...(discarded as any[]), ...prev.discardPile],
+        log: [{
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          playerName: player.name,
+          action: 'Activation',
+          detail: `a défaussé une réaction et forcé ${enemyPlayer?.name} à défausser une réaction`,
+        }, ...prev.log],
+      };
+    });
+    setPendingEffect(null);
+  }, [pendingEffect]);
+
   return {
     gameState,
     currentPlayerIndex,
@@ -997,6 +1350,11 @@ export function useGameLogic() {
     handleTargetMortalClick,
     healAllOwnMortals,
     selectChoice,
+    resolveGodDiscard,
+    resolveCardDiscard,
+    resolvePayDrawDiscard,
+    initiatePayDraw,
+    resolveReactionDiscard,
   };
 }
 

@@ -47,6 +47,11 @@ const Index = () => {
     handleTargetMortalClick,
     healAllOwnMortals,
     selectChoice,
+    resolveGodDiscard,
+    resolveCardDiscard,
+    resolvePayDrawDiscard,
+    initiatePayDraw,
+    resolveReactionDiscard,
   } = useGameLogic();
 
   const isMortalTargeting = pendingEffect && (
@@ -55,6 +60,16 @@ const Index = () => {
     pendingEffect.type === 'mortal_heal' ||
     pendingEffect.type === 'retro_own_mortal' ||
     pendingEffect.type === 'retro_enemy_mortal'
+  );
+
+  const isModalEffect = pendingEffect && (
+    pendingEffect.type === 'generate_destroy_ether' ||
+    pendingEffect.type === 'steal_ether_each_god' ||
+    pendingEffect.type === 'none' ||
+    pendingEffect.type === 'select_god_discard_all' ||
+    pendingEffect.type === 'discard_cards_then_effect' ||
+    pendingEffect.type === 'pay_draw_discard' ||
+    pendingEffect.type === 'discard_own_reaction_then_enemy'
   );
 
   // Choice effect: no toast, rendered in JSX
@@ -301,13 +316,18 @@ const Index = () => {
         </div>
       )}
 
-      {/* Targeting modal for ether effects only (not mortal targeting, not choice) */}
-      {pendingEffect && !isMortalTargeting && pendingEffect.type !== 'choice' && (
+      {/* Targeting modal for non-mortal-targeting, non-choice effects */}
+      {pendingEffect && isModalEffect && pendingEffect.type !== 'choice' && (
         <TargetingModal
           effect={pendingEffect}
           gameState={gameState}
           onResolve={resolveEffect}
           onCancel={pendingEffect.optional ? cancelEffect : undefined}
+          onGodDiscard={resolveGodDiscard}
+          onCardDiscard={resolveCardDiscard}
+          onPayDrawDiscard={resolvePayDrawDiscard}
+          onInitiatePayDraw={initiatePayDraw}
+          onReactionDiscard={resolveReactionDiscard}
         />
       )}
     </div>
