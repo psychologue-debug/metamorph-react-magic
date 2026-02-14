@@ -6,6 +6,7 @@ import { getEffectiveMetamorphosisCost, getEffectiveCardCost } from '@/engine/co
 import { calculateCycleEtherGeneration } from '@/engine/etherGeneration';
 import { getMetamorphoseEffect, PendingEffect } from '@/engine/metamorphoseEffects';
 import { TargetingResult } from '@/components/game/TargetingModal';
+import { canBeIncapacitated as canBeIncapacitatedCheck, canBeRemovedFromGame as canBeRemovedFromGameCheck } from '@/engine/mortalStatuses';
 
 export type InteractionMode = 'idle' | 'metamorphosing' | 'playing_spell';
 
@@ -640,6 +641,91 @@ export function useGameLogic() {
     setPendingEffect(null);
   }, []);
 
+  const cancelDiscard = useCallback(() => {
+    setDiscardRequired(false);
+  }, []);
+
+  /** Handle mortal targeting clicks from the board (bubble mode) */
+  const handleTargetMortalClick = useCallback((playerId: string, mortalId: string) => {
+    if (!pendingEffect) return;
+    const isIncapacitate = pendingEffect.type === 'enemy_mortal_incapacitate';
+    const isRemove = pendingEffect.type === 'enemy_mortal_remove';
+    if (!isIncapacitate && !isRemove) return;
+
+    setGameState((prev) => {
+      if (!prev || !pendingEffect) return prev;
+      const targetPlayer = prev.players.find(p => p.id === playerId);
+      if (!targetPlayer) return prev;
+      const mortal = targetPlayer.mortals.find(m => m.id === mortalId);
+      if (!mortal) return prev;
+
+      // Validate target
+      if (isRemove) {
+        if (!mortal.isMetamorphosed) {
+          toast.error('Ce mortel n\'est pas encore métamorphosé', {
+            style: { background: 'hsl(0 70% 20%)', border: '1px solid hsl(0 70% 40%)', color: 'white', fontSize: '16px' },
+          });
+          return prev;
+        }
+        if (!canBeRemovedFromGameCheck(mortal, targetPlayer, prev)) {
+          toast.error('Ce mortel ne peut pas être retiré du jeu', {
+            style: { background: 'hsl(0 70% 20%)', border: '1px solid hsl(0 70% 40%)', color: 'white', fontSize: '16px' },
+          });
+          return prev;
+        }
+      }
+      if (isIncapacitate) {
+        if (!canBeIncapacitatedCheck(mortal, targetPlayer, prev)) {
+          toast.error('Ce mortel ne peut pas être incapacité', {
+            style: { background: 'hsl(0 70% 20%)', border: '1px solid hsl(0 70% 40%)', color: 'white', fontSize: '16px' },
+          });
+          return prev;
+        }
+      }
+
+      // Apply effect
+      const sourcePlayer = prev.players[pendingEffect.sourcePlayerIndex];
+      const newStatus = isRemove ? 'retired' as const : 'incapacite' as const;
+      const actionLabel = isRemove ? 'Retrait du jeu' : 'Incapacitation';
+      const actionDetail = isRemove
+        ? `a retiré du jeu ${mortal.nameVerso || mortal.nameRecto} de ${targetPlayer.name}`
+        : `a incapacité ${mortal.nameVerso || mortal.nameRecto} de ${targetPlayer.name}`;
+
+      const updatedPlayers = prev.players.map(p => {
+        if (p.id !== playerId) return p;
+        return {
+          ...p,
+          mortals: p.mortals.map(m =>
+            m.id === mortalId ? { ...m, status: newStatus } : m
+          ),
+        };
+      });
+
+      toast.success(isRemove
+        ? `${mortal.nameVerso || mortal.nameRecto} retiré du jeu !`
+        : `${mortal.nameVerso || mortal.nameRecto} incapacité !`, {
+        style: { background: 'hsl(270 40% 20%)', border: '1px solid hsl(270 50% 40%)', color: 'white', fontSize: '16px' },
+      });
+
+      return {
+        ...prev,
+        players: updatedPlayers,
+        log: [
+          {
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: sourcePlayer?.name || 'Système',
+            action: actionLabel,
+            detail: actionDetail,
+          },
+          ...prev.log,
+        ],
+      };
+    });
+
+    setPendingEffect(null);
+  }, [pendingEffect]);
+
   return {
     gameState,
     currentPlayerIndex,
@@ -664,6 +750,8 @@ export function useGameLogic() {
     handleToggleReactionWindow,
     resolveEffect,
     cancelEffect,
+    cancelDiscard,
+    handleTargetMortalClick,
   };
 }
 

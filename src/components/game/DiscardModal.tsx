@@ -7,9 +7,10 @@ interface DiscardModalProps {
   hand: SpellCard[];
   excessCount: number;
   onConfirm: (cardIds: string[]) => void;
+  onCancel: () => void;
 }
 
-const DiscardModal = ({ hand, excessCount, onConfirm }: DiscardModalProps) => {
+const DiscardModal = ({ hand, excessCount, onConfirm, onCancel }: DiscardModalProps) => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const toggle = (id: string) => {
@@ -54,7 +55,19 @@ const DiscardModal = ({ hand, excessCount, onConfirm }: DiscardModalProps) => {
               </div>
             ))}
           </div>
-          <div className="text-center">
+          <div className="flex justify-center gap-4">
+            <motion.button
+              className="px-6 py-3 rounded-xl font-display text-lg font-bold border border-border/50"
+              style={{
+                background: 'hsl(var(--muted))',
+                color: 'hsl(var(--foreground))',
+              }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onCancel}
+            >
+              Annuler
+            </motion.button>
             <motion.button
               className="px-8 py-3 rounded-xl font-display text-lg font-bold disabled:opacity-40"
               style={{

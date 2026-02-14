@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useGameLogic } from '@/hooks/useGameLogic';
+import { toast } from 'sonner';
 import GameBoard from '@/components/game/GameBoard';
 import CurrentPlayerHand from '@/components/game/CurrentPlayerHand';
 import ActionBar from '@/components/game/ActionBar';
@@ -41,7 +42,31 @@ const Index = () => {
     handleToggleReactionWindow,
     resolveEffect,
     cancelEffect,
+    cancelDiscard,
+    handleTargetMortalClick,
   } = useGameLogic();
+
+  const isMortalTargeting = pendingEffect && (
+    pendingEffect.type === 'enemy_mortal_incapacitate' || pendingEffect.type === 'enemy_mortal_remove'
+  );
+
+  // Show targeting toast when mortal targeting is active
+  useEffect(() => {
+    if (!isMortalTargeting || !pendingEffect) return;
+    const actionLabel = pendingEffect.type === 'enemy_mortal_remove'
+      ? 'retirer du jeu'
+      : 'incapaciter';
+    toast.info(`${pendingEffect.sourceMortalName} : cliquez sur le mortel à ${actionLabel}.`, {
+      duration: Infinity,
+      id: 'targeting-bubble',
+      style: { background: 'hsl(270 40% 20%)', border: '1px solid hsl(270 50% 40%)', color: 'white', fontSize: '16px' },
+      action: pendingEffect.optional ? {
+        label: 'Passer',
+        onClick: () => cancelEffect(),
+      } : undefined,
+    });
+    return () => { toast.dismiss('targeting-bubble'); };
+  }, [isMortalTargeting, pendingEffect, cancelEffect]);
 
   // God selection screen
   if (godSelectionCount !== null && (!gameStarted || !gameState)) {
@@ -134,6 +159,7 @@ const Index = () => {
     );
   }
 
+
   const currentPlayer = gameState.players[currentPlayerIndex];
 
   return (
@@ -152,7 +178,11 @@ const Index = () => {
       </header>
 
       <div className="flex-1 min-h-0 relative">
-        <GameBoard gameState={gameState} currentPlayerIndex={currentPlayerIndex} />
+        <GameBoard
+          gameState={gameState}
+          currentPlayerIndex={currentPlayerIndex}
+          onMortalClick={isMortalTargeting ? handleTargetMortalClick : undefined}
+        />
         <GameLog entries={gameState.log} />
       </div>
 
@@ -186,6 +216,7 @@ const Index = () => {
           hand={currentPlayer.hand}
           excessCount={currentPlayer.hand.length - 2}
           onConfirm={handleDiscard}
+          onCancel={cancelDiscard}
         />
       )}
 
@@ -201,8 +232,8 @@ const Index = () => {
         />
       )}
 
-      {/* Targeting modal for metamorphose effects */}
-      {pendingEffect && (
+      {/* Targeting modal for ether effects only (not mortal targeting) */}
+      {pendingEffect && !isMortalTargeting && (
         <TargetingModal
           effect={pendingEffect}
           gameState={gameState}
