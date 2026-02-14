@@ -222,7 +222,7 @@ const Index = () => {
       )}
 
       {/* Discard modal */}
-      {discardRequired && (
+      {discardRequired && currentPlayer.hand.length > 2 && (
         <DiscardModal
           hand={currentPlayer.hand}
           excessCount={currentPlayer.hand.length - 2}
