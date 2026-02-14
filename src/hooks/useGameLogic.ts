@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { GameState, Player, SpellCard, TurnPhase, DivinityId } from '@/types/game';
 import { createMockGameState } from '@/data/mockGame';
 import { toast } from 'sonner';
@@ -18,6 +18,7 @@ export function useGameLogic() {
   const [interactionMode, setInteractionMode] = useState<InteractionMode>('idle');
   const [winners, setWinners] = useState<Player[]>([]);
   const [discardRequired, setDiscardRequired] = useState(false);
+  const discardJustCompleted = useRef(false);
   const [pendingReactionCard, setPendingReactionCard] = useState<SpellCard | null>(null);
   const [pendingEffect, setPendingEffect] = useState<PendingEffect | null>(null);
 
@@ -67,8 +68,7 @@ export function useGameLogic() {
       };
     });
     setDiscardRequired(false);
-    // Auto-proceed with end turn after discarding
-    setTimeout(() => handleEndTurn(), 0);
+    discardJustCompleted.current = true;
   }, []);
 
   const handleEndTurn = useCallback(() => {
@@ -207,6 +207,14 @@ export function useGameLogic() {
     setInteractionMode('idle');
     setCurrentPlayerIndex(nextIdx);
   }, []);
+
+  // Auto-proceed with end turn after discard completes
+  useEffect(() => {
+    if (discardJustCompleted.current && !discardRequired) {
+      discardJustCompleted.current = false;
+      handleEndTurn();
+    }
+  }, [discardRequired, handleEndTurn]);
 
   const handleMortalClick = useCallback((mortalId: string) => {
     if (interactionMode === 'activating_effect') {
