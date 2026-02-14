@@ -15,9 +15,10 @@ interface CurrentPlayerHandProps {
   onMortalClick?: (mortalId: string) => void;
   onCardClick?: (cardId: string) => void;
   onDiscardReaction?: (cardId: string) => void;
+  onTargetMortalClick?: (mortalId: string) => void;
 }
 
-const CurrentPlayerHand = ({ player, gameState, interactionMode, onMortalClick, onCardClick, onDiscardReaction }: CurrentPlayerHandProps) => {
+const CurrentPlayerHand = ({ player, gameState, interactionMode, onMortalClick, onCardClick, onDiscardReaction, onTargetMortalClick }: CurrentPlayerHandProps) => {
   const divinity = DIVINITIES[player.divinity];
   const isMetaMode = interactionMode === 'metamorphosing';
   const isSpellMode = interactionMode === 'playing_spell';
@@ -68,8 +69,8 @@ const CurrentPlayerHand = ({ player, gameState, interactionMode, onMortalClick, 
             owner={player}
             gameState={gameState}
             tokenSize={40}
-            selectable={isMetaMode}
-            onMortalClick={isMetaMode ? onMortalClick : undefined}
+            selectable={isMetaMode || !!onTargetMortalClick}
+            onMortalClick={isMetaMode ? onMortalClick : onTargetMortalClick ? onTargetMortalClick : undefined}
           />
         </div>
 

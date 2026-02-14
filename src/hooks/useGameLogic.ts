@@ -6,7 +6,7 @@ import { getEffectiveMetamorphosisCost, getEffectiveCardCost } from '@/engine/co
 import { calculateCycleEtherGeneration } from '@/engine/etherGeneration';
 import { getMetamorphoseEffect, PendingEffect } from '@/engine/metamorphoseEffects';
 import { TargetingResult } from '@/components/game/TargetingModal';
-import { canBeIncapacitated as canBeIncapacitatedCheck, canBeRemovedFromGame as canBeRemovedFromGameCheck } from '@/engine/mortalStatuses';
+import { canBeIncapacitated as canBeIncapacitatedCheck, canBeRemovedFromGame as canBeRemovedFromGameCheck, canBeRetroMetamorphosed as canBeRetroCheck } from '@/engine/mortalStatuses';
 
 export type InteractionMode = 'idle' | 'metamorphosing' | 'playing_spell';
 
@@ -42,6 +42,10 @@ export function useGameLogic() {
     setGameStarted(false);
     setWinners([]);
     setDiscardRequired(false);
+    setInteractionMode('idle');
+    setPendingEffect(null);
+    setPendingReactionCard(null);
+    toast.dismiss();
   }, []);
 
   const handleDiscard = useCallback((cardIds: string[]) => {
@@ -372,6 +376,43 @@ export function useGameLogic() {
         } else {
           toast.info('Aucune cible valide pour Torpeur');
         }
+      } else if (card.name === 'Doute') {
+        const activePlayer = updatedPlayers[prev.activePlayerIndex];
+        const hasRetroTarget = activePlayer.mortals.some(m =>
+          m.isMetamorphosed && canBeRetroCheck(m, activePlayer, prev)
+        );
+        if (hasRetroTarget) {
+          spellEffectToTrigger = {
+            effectId: crypto.randomUUID(),
+            type: 'retro_own_mortal',
+            sourcePlayerIndex: prev.activePlayerIndex,
+            sourceMortalCode: 'SPELL-DOUTE',
+            sourceMortalName: 'Doute',
+            description: 'Rétromorphosez un de vos mortels.',
+            maxTargets: 1,
+          };
+        } else {
+          toast.info('Aucun de vos mortels ne peut être rétromorphosé');
+        }
+      } else if (card.name === 'Pharmaka') {
+        const hasRetroTarget = prev.players.some((p, idx) =>
+          idx !== prev.activePlayerIndex && p.mortals.some(m =>
+            m.isMetamorphosed && canBeRetroCheck(m, p, prev)
+          )
+        );
+        if (hasRetroTarget) {
+          spellEffectToTrigger = {
+            effectId: crypto.randomUUID(),
+            type: 'retro_enemy_mortal',
+            sourcePlayerIndex: prev.activePlayerIndex,
+            sourceMortalCode: 'SPELL-PHARMAKA',
+            sourceMortalName: 'Pharmaka',
+            description: 'Rétromorphosez un mortel ennemi.',
+            maxTargets: 1,
+          };
+        } else {
+          toast.info('Aucun mortel ennemi ne peut être rétromorphosé');
+        }
       }
 
       return {
@@ -676,7 +717,9 @@ export function useGameLogic() {
     const isIncapacitate = pendingEffect.type === 'enemy_mortal_incapacitate';
     const isRemove = pendingEffect.type === 'enemy_mortal_remove';
     const isHeal = pendingEffect.type === 'mortal_heal';
-    if (!isIncapacitate && !isRemove && !isHeal) return;
+    const isRetroOwn = pendingEffect.type === 'retro_own_mortal';
+    const isRetroEnemy = pendingEffect.type === 'retro_enemy_mortal';
+    if (!isIncapacitate && !isRemove && !isHeal && !isRetroOwn && !isRetroEnemy) return;
 
     // Track whether the click was valid so we only clear pendingEffect on success
     let targetValid = false;
@@ -692,6 +735,34 @@ export function useGameLogic() {
       if (isHeal) {
         if (!mortal.isMetamorphosed || mortal.status !== 'incapacite') {
           toast.error('Ce mortel n\'est pas incapacité', {
+            style: { background: 'hsl(0 70% 20%)', border: '1px solid hsl(0 70% 40%)', color: 'white', fontSize: '16px' },
+          });
+          return prev;
+        }
+      } else if (isRetroOwn) {
+        const sourcePlayerId = prev.players[pendingEffect.sourcePlayerIndex]?.id;
+        if (playerId !== sourcePlayerId) {
+          toast.error('Vous devez cibler un de vos propres mortels', {
+            style: { background: 'hsl(0 70% 20%)', border: '1px solid hsl(0 70% 40%)', color: 'white', fontSize: '16px' },
+          });
+          return prev;
+        }
+        if (!mortal.isMetamorphosed || !canBeRetroCheck(mortal, targetPlayer, prev)) {
+          toast.error('Ce mortel ne peut pas être rétromorphosé', {
+            style: { background: 'hsl(0 70% 20%)', border: '1px solid hsl(0 70% 40%)', color: 'white', fontSize: '16px' },
+          });
+          return prev;
+        }
+      } else if (isRetroEnemy) {
+        const sourcePlayerId = prev.players[pendingEffect.sourcePlayerIndex]?.id;
+        if (playerId === sourcePlayerId) {
+          toast.error('Vous devez cibler un mortel ennemi', {
+            style: { background: 'hsl(0 70% 20%)', border: '1px solid hsl(0 70% 40%)', color: 'white', fontSize: '16px' },
+          });
+          return prev;
+        }
+        if (!mortal.isMetamorphosed || !canBeRetroCheck(mortal, targetPlayer, prev)) {
+          toast.error('Ce mortel ne peut pas être rétromorphosé', {
             style: { background: 'hsl(0 70% 20%)', border: '1px solid hsl(0 70% 40%)', color: 'white', fontSize: '16px' },
           });
           return prev;
@@ -730,6 +801,37 @@ export function useGameLogic() {
         newStatus = 'normal';
         actionLabel = 'Guérison';
         actionDetail = `a levé l'incapacité de ${mortal.nameVerso || mortal.nameRecto} de ${targetPlayer.name}`;
+      } else if (isRetroOwn || isRetroEnemy) {
+        // Retrometamorphosis: flip back to recto
+        const updatedPlayers = prev.players.map(p => {
+          if (p.id !== playerId) return p;
+          return {
+            ...p,
+            mortals: p.mortals.map(m =>
+              m.id === mortalId ? { ...m, isMetamorphosed: false, status: 'normal' as const } : m
+            ),
+            metamorphosedCount: p.mortals.filter(m => m.id !== mortalId && m.isMetamorphosed).length,
+          };
+        });
+
+        toast.success(`${mortal.nameVerso || mortal.nameRecto} rétromorphosé !`, {
+          style: { background: 'hsl(30 50% 20%)', border: '1px solid hsl(30 60% 40%)', color: 'white', fontSize: '16px' },
+        });
+
+        return {
+          ...prev,
+          players: updatedPlayers,
+          log: [
+            {
+              id: crypto.randomUUID(),
+              timestamp: Date.now(),
+              playerName: sourcePlayer?.name || 'Système',
+              action: 'Rétromorphose',
+              detail: `a rétromorphosé ${mortal.nameVerso || mortal.nameRecto} de ${targetPlayer.name}`,
+            },
+            ...prev.log,
+          ],
+        };
       } else if (isRemove) {
         newStatus = 'retired';
         actionLabel = 'Retrait du jeu';

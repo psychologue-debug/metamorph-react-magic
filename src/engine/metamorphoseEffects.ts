@@ -9,6 +9,8 @@ export type EffectTargetType =
   | 'enemy_mortal_incapacitate'    // Select an enemy mortal to incapacitate
   | 'enemy_mortal_remove'          // Select an enemy metamorphosed mortal to remove from game
   | 'mortal_heal'                  // Select an incapacitated mortal to heal
+  | 'retro_own_mortal'             // Select one of your own metamorphosed mortals to retrometamorphose
+  | 'retro_enemy_mortal'           // Select an enemy metamorphosed mortal to retrometamorphose
   | 'generate_destroy_ether'       // Generate X ether then click enemy reservoirs to destroy Y
   | 'steal_ether_each_god'         // Steal up to N ether from each enemy god
   | 'choice'                       // Player must choose between multiple sub-effects
