@@ -675,7 +675,8 @@ export function useGameLogic() {
     if (!pendingEffect) return;
     const isIncapacitate = pendingEffect.type === 'enemy_mortal_incapacitate';
     const isRemove = pendingEffect.type === 'enemy_mortal_remove';
-    if (!isIncapacitate && !isRemove) return;
+    const isHeal = pendingEffect.type === 'mortal_heal';
+    if (!isIncapacitate && !isRemove && !isHeal) return;
 
     // Track whether the click was valid so we only clear pendingEffect on success
     let targetValid = false;
@@ -688,7 +689,14 @@ export function useGameLogic() {
       if (!mortal) return prev;
 
       // Validate target
-      if (isRemove) {
+      if (isHeal) {
+        if (!mortal.isMetamorphosed || mortal.status !== 'incapacite') {
+          toast.error('Ce mortel n\'est pas incapacité', {
+            style: { background: 'hsl(0 70% 20%)', border: '1px solid hsl(0 70% 40%)', color: 'white', fontSize: '16px' },
+          });
+          return prev;
+        }
+      } else if (isRemove) {
         if (!mortal.isMetamorphosed) {
           toast.error('Ce mortel n\'est pas encore métamorphosé', {
             style: { background: 'hsl(0 70% 20%)', border: '1px solid hsl(0 70% 40%)', color: 'white', fontSize: '16px' },
@@ -701,8 +709,7 @@ export function useGameLogic() {
           });
           return prev;
         }
-      }
-      if (isIncapacitate) {
+      } else if (isIncapacitate) {
         if (!canBeIncapacitatedCheck(mortal, targetPlayer, prev)) {
           toast.error('Ce mortel ne peut pas être incapacité', {
             style: { background: 'hsl(0 70% 20%)', border: '1px solid hsl(0 70% 40%)', color: 'white', fontSize: '16px' },
@@ -714,11 +721,24 @@ export function useGameLogic() {
       // Valid target — apply effect
       targetValid = true;
       const sourcePlayer = prev.players[pendingEffect.sourcePlayerIndex];
-      const newStatus = isRemove ? 'retired' as const : 'incapacite' as const;
-      const actionLabel = isRemove ? 'Retrait du jeu' : 'Incapacitation';
-      const actionDetail = isRemove
-        ? `a retiré du jeu ${mortal.nameVerso || mortal.nameRecto} de ${targetPlayer.name}`
-        : `a incapacité ${mortal.nameVerso || mortal.nameRecto} de ${targetPlayer.name}`;
+
+      let newStatus: 'incapacite' | 'retired' | 'normal';
+      let actionLabel: string;
+      let actionDetail: string;
+
+      if (isHeal) {
+        newStatus = 'normal';
+        actionLabel = 'Guérison';
+        actionDetail = `a levé l'incapacité de ${mortal.nameVerso || mortal.nameRecto} de ${targetPlayer.name}`;
+      } else if (isRemove) {
+        newStatus = 'retired';
+        actionLabel = 'Retrait du jeu';
+        actionDetail = `a retiré du jeu ${mortal.nameVerso || mortal.nameRecto} de ${targetPlayer.name}`;
+      } else {
+        newStatus = 'incapacite';
+        actionLabel = 'Incapacitation';
+        actionDetail = `a incapacité ${mortal.nameVerso || mortal.nameRecto} de ${targetPlayer.name}`;
+      }
 
       const updatedPlayers = prev.players.map(p => {
         if (p.id !== playerId) return p;
@@ -730,8 +750,9 @@ export function useGameLogic() {
         };
       });
 
-      toast.success(isRemove
-        ? `${mortal.nameVerso || mortal.nameRecto} retiré du jeu !`
+      toast.success(
+        isHeal ? `Incapacité de ${mortal.nameVerso || mortal.nameRecto} levée !`
+        : isRemove ? `${mortal.nameVerso || mortal.nameRecto} retiré du jeu !`
         : `${mortal.nameVerso || mortal.nameRecto} incapacité !`, {
         style: { background: 'hsl(270 40% 20%)', border: '1px solid hsl(270 50% 40%)', color: 'white', fontSize: '16px' },
       });
@@ -763,6 +784,48 @@ export function useGameLogic() {
     }
   }, [pendingEffect]);
 
+  /** Auto-heal all own incapacitated mortals (for MIN-09 2nd metamorphosis) */
+  const healAllOwnMortals = useCallback((playerIdx: number) => {
+    setGameState((prev) => {
+      if (!prev) return prev;
+      const player = prev.players[playerIdx];
+      const healed: string[] = [];
+      const updatedPlayers = prev.players.map((p, i) => {
+        if (i !== playerIdx) return p;
+        return {
+          ...p,
+          mortals: p.mortals.map(m => {
+            if (m.isMetamorphosed && m.status === 'incapacite') {
+              healed.push(m.nameVerso || m.nameRecto);
+              return { ...m, status: 'normal' as const };
+            }
+            return m;
+          }),
+        };
+      });
+      return {
+        ...prev,
+        players: updatedPlayers,
+        log: healed.length > 0 ? [
+          {
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: player.name,
+            action: 'Guérison totale',
+            detail: `a levé les incapacités de ${healed.join(', ')}`,
+          },
+          ...prev.log,
+        ] : prev.log,
+      };
+    });
+  }, []);
+
+  /** Select a choice from a choice effect */
+  const selectChoice = useCallback((chosenEffect: PendingEffect) => {
+    toast.dismiss('choice-bubble');
+    setPendingEffect(chosenEffect);
+  }, []);
+
   return {
     gameState,
     currentPlayerIndex,
@@ -789,6 +852,8 @@ export function useGameLogic() {
     cancelEffect,
     cancelDiscard,
     handleTargetMortalClick,
+    healAllOwnMortals,
+    selectChoice,
   };
 }
 

@@ -8,8 +8,10 @@ import { canBeIncapacitated, canBeRemovedFromGame } from './mortalStatuses';
 export type EffectTargetType =
   | 'enemy_mortal_incapacitate'    // Select an enemy mortal to incapacitate
   | 'enemy_mortal_remove'          // Select an enemy metamorphosed mortal to remove from game
+  | 'mortal_heal'                  // Select an incapacitated mortal to heal
   | 'generate_destroy_ether'       // Generate X ether then click enemy reservoirs to destroy Y
   | 'steal_ether_each_god'         // Steal up to N ether from each enemy god
+  | 'choice'                       // Player must choose between multiple sub-effects
   | 'none';                        // No targeting needed / no effect
 
 export interface PendingEffect {
@@ -29,6 +31,10 @@ export interface PendingEffect {
   optional?: boolean;
   // Condition description (shown when effect can't fire)
   conditionNotMet?: string;
+  // For choice effects: sub-options the player can pick
+  choices?: { label: string; effect: PendingEffect }[];
+  // Whether healing targets own mortals only
+  healOwnOnly?: boolean;
 }
 
 /**
@@ -99,6 +105,78 @@ export function getMetamorphoseEffect(
         sourceMortalName: mortal.nameVerso,
         description: 'Incapacitez un mortel ennemi.',
         maxTargets: 1,
+      };
+    }
+
+    // BAC-06 (Tournesol): If BAC-08 (Arbres) is metamorphosed, choose: incapacitate OR heal
+    case 'BAC-06': {
+      const arbresMetamorphosed = player.mortals.some(
+        m => m.code === 'BAC-08' && m.isMetamorphosed && m.status !== 'incapacite'
+      );
+      if (!arbresMetamorphosed) return null; // Condition not met
+
+      const hasIncapTarget = gameState.players.some(p =>
+        p.mortals.some(m => canBeIncapacitated(m, p, gameState))
+      );
+      const hasHealTarget = gameState.players.some(p =>
+        p.mortals.some(m => m.isMetamorphosed && m.status === 'incapacite')
+      );
+
+      if (!hasIncapTarget && !hasHealTarget) {
+        return {
+          effectId: crypto.randomUUID(),
+          type: 'none',
+          sourcePlayerIndex: playerIndex,
+          sourceMortalCode: mortal.code,
+          sourceMortalName: mortal.nameVerso,
+          description: 'Aucune cible possible.',
+          maxTargets: 1,
+          conditionNotMet: 'Aucune cible possible !',
+        };
+      }
+
+      const choices: PendingEffect['choices'] = [];
+      if (hasIncapTarget) {
+        choices.push({
+          label: 'Incapaciter un mortel',
+          effect: {
+            effectId: crypto.randomUUID(),
+            type: 'enemy_mortal_incapacitate',
+            sourcePlayerIndex: playerIndex,
+            sourceMortalCode: mortal.code,
+            sourceMortalName: mortal.nameVerso,
+            description: 'Cliquez sur le mortel à incapaciter.',
+            maxTargets: 1,
+          },
+        });
+      }
+      if (hasHealTarget) {
+        choices.push({
+          label: 'Lever une incapacité',
+          effect: {
+            effectId: crypto.randomUUID(),
+            type: 'mortal_heal',
+            sourcePlayerIndex: playerIndex,
+            sourceMortalCode: mortal.code,
+            sourceMortalName: mortal.nameVerso,
+            description: 'Cliquez sur le mortel dont vous voulez lever l\'incapacité.',
+            maxTargets: 1,
+          },
+        });
+      }
+
+      // If only one option, skip choice
+      if (choices.length === 1) return choices[0].effect;
+
+      return {
+        effectId: crypto.randomUUID(),
+        type: 'choice',
+        sourcePlayerIndex: playerIndex,
+        sourceMortalCode: mortal.code,
+        sourceMortalName: mortal.nameVerso,
+        description: 'Choisissez entre incapaciter un mortel ou lever une incapacité.',
+        maxTargets: 1,
+        choices,
       };
     }
 
@@ -276,33 +354,136 @@ export function getMetamorphoseEffect(
       };
     }
 
-    // DIA-09 (Pierres): Choose: incapacitate 1 mortal OR lift incapacitation OR destroy 4 ether
-    case 'DIA-09': {
-      // For now, default to incapacitate (choice UI would need a separate mechanism)
-      // We'll use incapacitate as the primary effect; choice will be handled later
-      const hasValidTarget = gameState.players.some(p =>
-        p.mortals.some(m => canBeIncapacitated(m, p, gameState))
+    // MIN-09 (Chouette de Minerve): Heal one incapacitated mortal (or all own if not first metamorphosis)
+    case 'MIN-09': {
+      const isNotFirst = player.metamorphosesThisTurn > 1;
+      if (isNotFirst) {
+        // Heal ALL own incapacitated mortals automatically
+        const hasOwnIncap = player.mortals.some(m => m.isMetamorphosed && m.status === 'incapacite');
+        if (!hasOwnIncap) {
+          // Still try to heal one anywhere
+          const hasAnyIncap = gameState.players.some(p =>
+            p.mortals.some(m => m.isMetamorphosed && m.status === 'incapacite')
+          );
+          if (!hasAnyIncap) {
+            return {
+              effectId: crypto.randomUUID(),
+              type: 'none',
+              sourcePlayerIndex: playerIndex,
+              sourceMortalCode: mortal.code,
+              sourceMortalName: mortal.nameVerso,
+              description: 'Levez toutes les incapacités de vos mortels.',
+              maxTargets: 0,
+              conditionNotMet: 'Aucun mortel incapacité !',
+            };
+          }
+        }
+        // Auto-heal all own mortals
+        return {
+          effectId: crypto.randomUUID(),
+          type: 'mortal_heal',
+          sourcePlayerIndex: playerIndex,
+          sourceMortalCode: mortal.code,
+          sourceMortalName: mortal.nameVerso,
+          description: 'Toutes les incapacités de vos mortels sont levées !',
+          maxTargets: 99, // All own
+          healOwnOnly: true,
+          autoHealAll: true,
+        } as PendingEffect & { autoHealAll: boolean };
+      }
+
+      // First metamorphosis: heal one mortal anywhere
+      const hasHealTarget = gameState.players.some(p =>
+        p.mortals.some(m => m.isMetamorphosed && m.status === 'incapacite')
       );
-      if (!hasValidTarget) {
+      if (!hasHealTarget) {
         return {
           effectId: crypto.randomUUID(),
           type: 'none',
           sourcePlayerIndex: playerIndex,
           sourceMortalCode: mortal.code,
           sourceMortalName: mortal.nameVerso,
-          description: 'Incapacitez un mortel.',
+          description: 'Levez une incapacité.',
           maxTargets: 1,
-          conditionNotMet: 'Aucune cible possible pour l\'incapacitation !',
+          conditionNotMet: 'Aucun mortel incapacité !',
         };
       }
       return {
         effectId: crypto.randomUUID(),
-        type: 'enemy_mortal_incapacitate',
+        type: 'mortal_heal',
         sourcePlayerIndex: playerIndex,
         sourceMortalCode: mortal.code,
         sourceMortalName: mortal.nameVerso,
-        description: 'Choisissez : incapacitez un mortel (choix actif par défaut).',
+        description: 'Cliquez sur le mortel dont vous voulez lever l\'incapacité.',
         maxTargets: 1,
+      };
+    }
+
+    // DIA-09 (Pierres): Choose: incapacitate 1 mortal OR lift incapacitation OR destroy 4 ether
+    case 'DIA-09': {
+      const hasIncapTarget = gameState.players.some(p =>
+        p.mortals.some(m => canBeIncapacitated(m, p, gameState))
+      );
+      const hasHealTarget = gameState.players.some(p =>
+        p.mortals.some(m => m.isMetamorphosed && m.status === 'incapacite')
+      );
+
+      const choices: PendingEffect['choices'] = [];
+      if (hasIncapTarget) {
+        choices.push({
+          label: 'Incapaciter un mortel',
+          effect: {
+            effectId: crypto.randomUUID(),
+            type: 'enemy_mortal_incapacitate',
+            sourcePlayerIndex: playerIndex,
+            sourceMortalCode: mortal.code,
+            sourceMortalName: mortal.nameVerso,
+            description: 'Cliquez sur le mortel à incapaciter.',
+            maxTargets: 1,
+          },
+        });
+      }
+      if (hasHealTarget) {
+        choices.push({
+          label: 'Lever une incapacité',
+          effect: {
+            effectId: crypto.randomUUID(),
+            type: 'mortal_heal',
+            sourcePlayerIndex: playerIndex,
+            sourceMortalCode: mortal.code,
+            sourceMortalName: mortal.nameVerso,
+            description: 'Cliquez sur le mortel dont vous voulez lever l\'incapacité.',
+            maxTargets: 1,
+          },
+        });
+      }
+      // Destroy 4 ether is always available (even if enemies have 0)
+      choices.push({
+        label: 'Détruire 4 Éther',
+        effect: {
+          effectId: crypto.randomUUID(),
+          type: 'generate_destroy_ether',
+          sourcePlayerIndex: playerIndex,
+          sourceMortalCode: mortal.code,
+          sourceMortalName: mortal.nameVerso,
+          description: 'Détruisez 4 Éther sur les réservoirs ennemis.',
+          maxTargets: 0,
+          etherGenerate: 0,
+          etherDestroy: 4,
+        },
+      });
+
+      if (choices.length === 1) return choices[0].effect;
+
+      return {
+        effectId: crypto.randomUUID(),
+        type: 'choice',
+        sourcePlayerIndex: playerIndex,
+        sourceMortalCode: mortal.code,
+        sourceMortalName: mortal.nameVerso,
+        description: 'Choisissez votre effet.',
+        maxTargets: 1,
+        choices,
       };
     }
 
