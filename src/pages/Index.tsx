@@ -51,7 +51,9 @@ const Index = () => {
   const isMortalTargeting = pendingEffect && (
     pendingEffect.type === 'enemy_mortal_incapacitate' ||
     pendingEffect.type === 'enemy_mortal_remove' ||
-    pendingEffect.type === 'mortal_heal'
+    pendingEffect.type === 'mortal_heal' ||
+    pendingEffect.type === 'retro_own_mortal' ||
+    pendingEffect.type === 'retro_enemy_mortal'
   );
 
   // Choice effect: no toast, rendered in JSX
@@ -84,6 +86,8 @@ const Index = () => {
       ? 'retirer du jeu'
       : pendingEffect.type === 'mortal_heal'
       ? 'guérir (lever l\'incapacité)'
+      : pendingEffect.type === 'retro_own_mortal' || pendingEffect.type === 'retro_enemy_mortal'
+      ? 'rétromorphoser'
       : 'incapaciter';
     toast.info(`${pendingEffect.sourceMortalName} : cliquez sur le mortel à ${actionLabel}.`, {
       duration: Infinity,
@@ -242,6 +246,7 @@ const Index = () => {
           onMortalClick={handleMortalClick}
           onCardClick={handleCardClick}
           onDiscardReaction={handleDiscardReaction}
+          onTargetMortalClick={isMortalTargeting ? (mortalId: string) => handleTargetMortalClick(currentPlayer.id, mortalId) : undefined}
         />
       </div>
 
