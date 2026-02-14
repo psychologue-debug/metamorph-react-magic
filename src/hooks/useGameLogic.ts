@@ -295,6 +295,8 @@ export function useGameLogic() {
   const handleCardClick = useCallback((cardId: string) => {
     if (interactionMode !== 'playing_spell') return;
 
+    let spellEffectToTrigger: PendingEffect | null = null;
+
     setGameState((prev) => {
       if (!prev) return prev;
       const player = prev.players[prev.activePlayerIndex];
@@ -351,6 +353,25 @@ export function useGameLogic() {
             ? { ...p, maxMetamorphosesThisTurn: p.maxMetamorphosesThisTurn + 1 }
             : p
         );
+      } else if (card.name === 'Torpeur') {
+        const hasValidTarget = prev.players.some((p, idx) =>
+          idx !== prev.activePlayerIndex && p.mortals.some(m =>
+            canBeIncapacitatedCheck(m, p, prev)
+          )
+        );
+        if (hasValidTarget) {
+          spellEffectToTrigger = {
+            effectId: crypto.randomUUID(),
+            type: 'enemy_mortal_incapacitate',
+            sourcePlayerIndex: prev.activePlayerIndex,
+            sourceMortalCode: 'SPELL-TORPEUR',
+            sourceMortalName: 'Torpeur',
+            description: 'Incapacitez un mortel ennemi.',
+            maxTargets: 1,
+          };
+        } else {
+          toast.info('Aucune cible valide pour Torpeur');
+        }
       }
 
       return {
@@ -371,6 +392,10 @@ export function useGameLogic() {
       };
     });
     setInteractionMode('idle');
+
+    if (spellEffectToTrigger) {
+      setPendingEffect(spellEffectToTrigger);
+    }
   }, [interactionMode]);
 
   const handleReactionPlay = useCallback(() => {
@@ -652,6 +677,9 @@ export function useGameLogic() {
     const isRemove = pendingEffect.type === 'enemy_mortal_remove';
     if (!isIncapacitate && !isRemove) return;
 
+    // Track whether the click was valid so we only clear pendingEffect on success
+    let targetValid = false;
+
     setGameState((prev) => {
       if (!prev || !pendingEffect) return prev;
       const targetPlayer = prev.players.find(p => p.id === playerId);
@@ -683,7 +711,8 @@ export function useGameLogic() {
         }
       }
 
-      // Apply effect
+      // Valid target — apply effect
+      targetValid = true;
       const sourcePlayer = prev.players[pendingEffect.sourcePlayerIndex];
       const newStatus = isRemove ? 'retired' as const : 'incapacite' as const;
       const actionLabel = isRemove ? 'Retrait du jeu' : 'Incapacitation';
@@ -723,7 +752,15 @@ export function useGameLogic() {
       };
     });
 
-    setPendingEffect(null);
+    // Only clear pending effect if the target was valid
+    if (targetValid) {
+      // Support multi-target: decrement maxTargets
+      if (pendingEffect.maxTargets > 1) {
+        setPendingEffect(prev => prev ? { ...prev, maxTargets: prev.maxTargets - 1, optional: true } : null);
+      } else {
+        setPendingEffect(null);
+      }
+    }
   }, [pendingEffect]);
 
   return {

@@ -172,8 +172,19 @@ const Index = () => {
           <Scroll className="w-5 h-5 text-ether" />
           <h1 className="font-display text-lg font-bold text-foreground tracking-wider">MÉTAMORPHOSES</h1>
         </div>
-        <div className="font-body text-base text-muted-foreground italic">
-          Cycle {gameState.turnCount} — {gameState.players.length} dieux — Mode test solo
+        <div className="flex items-center gap-4">
+          <span className="font-body text-base text-muted-foreground italic">
+            Cycle {gameState.turnCount} — {gameState.players.length} dieux — Mode test solo
+          </span>
+          <motion.button
+            className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-display font-semibold border border-destructive/40 text-destructive transition-all"
+            style={{ background: 'hsl(var(--destructive) / 0.1)' }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={resetGame}
+          >
+            Quitter la partie
+          </motion.button>
         </div>
       </header>
 
@@ -186,7 +197,7 @@ const Index = () => {
         <GameLog entries={gameState.log} />
       </div>
 
-      <div className="border-t border-border/30 px-3 py-1 space-y-1" style={{ background: `linear-gradient(180deg, hsl(var(--card) / 0.5), hsl(var(--background)))` }}>
+      <div className="border-t border-border/30 px-3 py-1 space-y-1 relative z-[100]" style={{ background: `linear-gradient(180deg, hsl(var(--card) / 0.5), hsl(var(--background)))` }}>
         <ActionBar
           gameState={gameState}
           interactionMode={interactionMode}
