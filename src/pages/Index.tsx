@@ -39,6 +39,7 @@ const Index = () => {
     cancelReactionDialog,
     toggleMetamorphoseMode,
     toggleSpellMode,
+    toggleActivateMode,
     handleToggleReactionWindow,
     resolveEffect,
     cancelEffect,
@@ -237,6 +238,7 @@ const Index = () => {
           onEndTurn={handleEndTurn}
           onToggleMetamorphose={toggleMetamorphoseMode}
           onToggleSpell={toggleSpellMode}
+          onToggleActivate={toggleActivateMode}
           onToggleReactionWindow={handleToggleReactionWindow}
         />
         <CurrentPlayerHand

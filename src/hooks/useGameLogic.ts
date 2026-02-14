@@ -8,7 +8,7 @@ import { getMetamorphoseEffect, PendingEffect } from '@/engine/metamorphoseEffec
 import { TargetingResult } from '@/components/game/TargetingModal';
 import { canBeIncapacitated as canBeIncapacitatedCheck, canBeRemovedFromGame as canBeRemovedFromGameCheck, canBeRetroMetamorphosed as canBeRetroCheck } from '@/engine/mortalStatuses';
 
-export type InteractionMode = 'idle' | 'metamorphosing' | 'playing_spell';
+export type InteractionMode = 'idle' | 'metamorphosing' | 'playing_spell' | 'activating_effect';
 
 export function useGameLogic() {
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -53,7 +53,6 @@ export function useGameLogic() {
       if (!prev) return prev;
       const updatedPlayers = prev.players.map((p, i) => {
         if (i !== prev.activePlayerIndex) return p;
-        const discarded = p.hand.filter((c) => cardIds.includes(c.id));
         return {
           ...p,
           hand: p.hand.filter((c) => !cardIds.includes(c.id)),
@@ -67,6 +66,8 @@ export function useGameLogic() {
       };
     });
     setDiscardRequired(false);
+    // Auto-proceed with end turn after discarding
+    setTimeout(() => handleEndTurn(), 0);
   }, []);
 
   const handleEndTurn = useCallback(() => {
@@ -207,6 +208,33 @@ export function useGameLogic() {
   }, []);
 
   const handleMortalClick = useCallback((mortalId: string) => {
+    if (interactionMode === 'activating_effect') {
+      // Activation mode: trigger mortal's activated ability
+      setGameState((prev) => {
+        if (!prev) return prev;
+        const player = prev.players[prev.activePlayerIndex];
+        const mortal = player.mortals.find(m => m.id === mortalId);
+        if (!mortal) return prev;
+        if (!mortal.isMetamorphosed) {
+          toast.error('Ce mortel n\'est pas métamorphosé');
+          return prev;
+        }
+        if (mortal.status === 'incapacite') {
+          toast.error('Ce mortel est incapacité, il ne peut pas activer son effet');
+          return prev;
+        }
+        if (mortal.status === 'retired') {
+          toast.error('Ce mortel est retiré du jeu');
+          return prev;
+        }
+        // TODO: Check if this mortal has an activatable ability and trigger it
+        toast.info(`${mortal.nameVerso} n'a pas d'effet activable implémenté pour l'instant.`);
+        return prev;
+      });
+      setInteractionMode('idle');
+      return;
+    }
+
     if (interactionMode !== 'metamorphosing') return;
 
     // We need to track if an effect should fire, outside setGameState
@@ -574,6 +602,10 @@ export function useGameLogic() {
 
   const toggleSpellMode = useCallback(() => {
     setInteractionMode((prev) => (prev === 'playing_spell' ? 'idle' : 'playing_spell'));
+  }, []);
+
+  const toggleActivateMode = useCallback(() => {
+    setInteractionMode((prev) => (prev === 'activating_effect' ? 'idle' : 'activating_effect'));
   }, []);
 
   const handleToggleReactionWindow = useCallback(() => {
@@ -957,6 +989,7 @@ export function useGameLogic() {
     handleDiscardReaction,
     toggleMetamorphoseMode,
     toggleSpellMode,
+    toggleActivateMode,
     handleToggleReactionWindow,
     resolveEffect,
     cancelEffect,

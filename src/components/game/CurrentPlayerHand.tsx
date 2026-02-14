@@ -22,6 +22,7 @@ const CurrentPlayerHand = ({ player, gameState, interactionMode, onMortalClick, 
   const divinity = DIVINITIES[player.divinity];
   const isMetaMode = interactionMode === 'metamorphosing';
   const isSpellMode = interactionMode === 'playing_spell';
+  const isActivateMode = interactionMode === 'activating_effect';
   const [reactionToManage, setReactionToManage] = useState<SpellCard | null>(null);
 
   return (
@@ -64,13 +65,16 @@ const CurrentPlayerHand = ({ player, gameState, interactionMode, onMortalClick, 
           {isMetaMode && (
             <div className="text-base text-divine font-display mb-1">🎯 Cliquez un mortel</div>
           )}
+          {isActivateMode && (
+            <div className="text-base font-display mb-1" style={{ color: 'hsl(30 80% 60%)' }}>⚡ Cliquez un mortel métamorphosé</div>
+          )}
           <MortalGrid
             mortals={player.mortals}
             owner={player}
             gameState={gameState}
             tokenSize={40}
-            selectable={isMetaMode || !!onTargetMortalClick}
-            onMortalClick={isMetaMode ? onMortalClick : onTargetMortalClick ? onTargetMortalClick : undefined}
+            selectable={isMetaMode || isActivateMode || !!onTargetMortalClick}
+            onMortalClick={isMetaMode ? onMortalClick : isActivateMode ? onMortalClick : onTargetMortalClick ? onTargetMortalClick : undefined}
           />
         </div>
 
