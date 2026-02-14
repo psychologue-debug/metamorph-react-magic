@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { GameState, Player, SpellCard, TurnPhase, DivinityId } from '@/types/game';
+import { GameState, Player, SpellCard, TurnPhase, DivinityId, ReactionTrigger, ReactionWindowState } from '@/types/game';
 import { createMockGameState } from '@/data/mockGame';
 import { toast } from 'sonner';
 import { getEffectiveMetamorphosisCost, getEffectiveCardCost } from '@/engine/costModifiers';
@@ -8,6 +8,7 @@ import { getMetamorphoseEffect, PendingEffect } from '@/engine/metamorphoseEffec
 import { TargetingResult } from '@/components/game/TargetingModal';
 import { canBeIncapacitated as canBeIncapacitatedCheck, canBeRemovedFromGame as canBeRemovedFromGameCheck, canBeRetroMetamorphosed as canBeRetroCheck } from '@/engine/mortalStatuses';
 import { getActivatedEffect, hasActivatedEffect } from '@/engine/activatedEffects';
+import { getEligibleReactors, resolveReaction } from '@/engine/reactionEngine';
 
 export type InteractionMode = 'idle' | 'metamorphosing' | 'playing_spell' | 'activating_effect';
 
@@ -21,6 +22,8 @@ export function useGameLogic() {
   const discardJustCompleted = useRef(false);
   const [pendingReactionCard, setPendingReactionCard] = useState<SpellCard | null>(null);
   const [pendingEffect, setPendingEffect] = useState<PendingEffect | null>(null);
+  const [reactionWindow, setReactionWindow] = useState<ReactionWindowState | null>(null);
+  const [storedMetamorphoseEffect, setStoredMetamorphoseEffect] = useState<PendingEffect | null>(null);
 
   const startGame = useCallback((playerCount: number, selectedGods?: DivinityId[], playerNames?: string[]) => {
     const state = createMockGameState(playerCount, selectedGods);
@@ -47,6 +50,8 @@ export function useGameLogic() {
     setInteractionMode('idle');
     setPendingEffect(null);
     setPendingReactionCard(null);
+    setReactionWindow(null);
+    setStoredMetamorphoseEffect(null);
     toast.dismiss();
   }, []);
 
@@ -129,6 +134,28 @@ export function useGameLogic() {
             log: newLog,
           };
         }
+
+        // Sursis auto-metamorphose (imparable)
+        updatedPlayers = updatedPlayers.map(p => {
+          const hasSursis = p.mortals.some(m => m.sursisTarget);
+          if (!hasSursis) return p;
+          const updatedMortals = p.mortals.map(m => {
+            if (!m.sursisTarget) return m;
+            newLog.unshift({
+              id: crypto.randomUUID(),
+              timestamp: Date.now(),
+              playerName: 'Système',
+              action: 'Sursis',
+              detail: `${m.nameRecto} de ${p.name} est automatiquement métamorphosé (Sursis)`,
+            });
+            return { ...m, isMetamorphosed: true, sursisTarget: false };
+          });
+          return {
+            ...p,
+            mortals: updatedMortals,
+            metamorphosedCount: updatedMortals.filter(m => m.isMetamorphosed).length,
+          };
+        });
 
         // Generate ether at start of new cycle using engine
         const genResult = calculateCycleEtherGeneration({
@@ -312,7 +339,9 @@ export function useGameLogic() {
 
     // We need to track if an effect should fire, outside setGameState
     let effectToTrigger: PendingEffect | null = null;
-
+    let metamorphoseCostPaid = 0;
+    let metamorphosedMortalId = '';
+    let sourcePlayerId = '';
     setGameState((prev) => {
       if (!prev) return prev;
       const player = prev.players[prev.activePlayerIndex];
@@ -378,16 +407,45 @@ export function useGameLogic() {
       };
 
       // Check for on-metamorphose effect
-      const metamorphosedMortal = updatedMortals.find(m => m.id === mortalId)!;
+      const metamorphosedMortal2 = updatedMortals.find(m => m.id === mortalId)!;
       const updatedPlayer = updatedPlayers[prev.activePlayerIndex];
-      effectToTrigger = getMetamorphoseEffect(metamorphosedMortal, updatedPlayer, newState);
+      effectToTrigger = getMetamorphoseEffect(metamorphosedMortal2, updatedPlayer, newState);
+      metamorphoseCostPaid = effectiveCost;
+      metamorphosedMortalId = mortalId;
+      sourcePlayerId = player.id;
 
       return newState;
     });
 
     setInteractionMode('idle');
 
-    // If there's a pending effect, show the targeting modal
+    // Check if any opponents can react to this metamorphose
+    if (gameState && sourcePlayerId) {
+      const trigger: ReactionTrigger = {
+        type: 'metamorphose',
+        sourcePlayerId,
+        targetMortalId: metamorphosedMortalId,
+        metamorphoseCost: metamorphoseCostPaid,
+      };
+      const reactors = getEligibleReactors(trigger, gameState);
+      if (reactors.length > 0) {
+        // Store the effect to apply after reactions resolve
+        if (effectToTrigger) {
+          setStoredMetamorphoseEffect(effectToTrigger);
+        }
+        setReactionWindow({
+          trigger,
+          reactorQueue: reactors,
+          currentReactorIndex: 0,
+          phase: 'waiting_ready',
+          responses: [],
+          timerStartedAt: Date.now(),
+        });
+        return;
+      }
+    }
+
+    // No reactions — apply effect immediately
     if (effectToTrigger) {
       if (effectToTrigger.conditionNotMet && effectToTrigger.type === 'none') {
         toast.info(effectToTrigger.conditionNotMet);
@@ -395,7 +453,7 @@ export function useGameLogic() {
         setPendingEffect(effectToTrigger);
       }
     }
-  }, [interactionMode]);
+  }, [interactionMode, gameState]);
 
   const handleCardClick = useCallback((cardId: string) => {
     if (interactionMode !== 'playing_spell') return;
@@ -459,9 +517,15 @@ export function useGameLogic() {
           toast.error('Aucun mortel ennemi ne peut être rétromorphosé');
           return prev;
         }
+      } else if (card.name === 'Éveil') {
+        const hasIncapTarget = player.mortals.some(m =>
+          m.isMetamorphosed && m.status === 'incapacite'
+        );
+        if (!hasIncapTarget) {
+          toast.error('Aucun de vos mortels n\'est incapacité');
+          return prev;
+        }
       }
-
-      // Sortilege → pay effective cost and resolve
       let updatedPlayers = prev.players.map((p, i) => {
         if (i !== prev.activePlayerIndex) return p;
         return {
@@ -521,6 +585,17 @@ export function useGameLogic() {
           sourceMortalName: 'Pharmaka',
           description: 'Rétromorphosez un mortel ennemi.',
           maxTargets: 1,
+        };
+      } else if (card.name === 'Éveil') {
+        spellEffectToTrigger = {
+          effectId: crypto.randomUUID(),
+          type: 'mortal_heal',
+          sourcePlayerIndex: prev.activePlayerIndex,
+          sourceMortalCode: 'SPELL-EVEIL',
+          sourceMortalName: 'Éveil',
+          description: 'Levez l\'incapacité d\'un de vos mortels.',
+          maxTargets: 1,
+          healOwnOnly: true,
         };
       }
 
@@ -1329,6 +1404,107 @@ export function useGameLogic() {
     setPendingEffect(null);
   }, [pendingEffect]);
 
+  // === Reaction Window Handlers ===
+  const handleReactionReady = useCallback((playerId: string) => {
+    setReactionWindow(prev => {
+      if (!prev) return prev;
+      return { ...prev, phase: 'asking', timerStartedAt: Date.now() };
+    });
+  }, []);
+
+  const handleReactionPass = useCallback((playerId: string) => {
+    setReactionWindow(prev => {
+      if (!prev) return prev;
+      const newResponses = [...prev.responses, { playerId, passed: true }];
+      const nextIdx = prev.currentReactorIndex + 1;
+      if (nextIdx >= prev.reactorQueue.length) {
+        // All reactors done — resolve
+        return { ...prev, responses: newResponses, phase: 'resolved' as const };
+      }
+      return {
+        ...prev,
+        responses: newResponses,
+        currentReactorIndex: nextIdx,
+        phase: 'waiting_ready' as const,
+        timerStartedAt: Date.now(),
+      };
+    });
+  }, []);
+
+  const handleReactionActivate = useCallback((playerId: string, cardId: string) => {
+    if (!gameState || !reactionWindow) return;
+    const player = gameState.players.find(p => p.id === playerId);
+    if (!player) return;
+    const card = player.reactions.find(c => c.id === cardId);
+    if (!card) return;
+
+    const { updatedState, blocksMetamorphoseEffect, cancelsMetamorphose, blocksSpellEffect, logMessage } =
+      resolveReaction(card, reactionWindow.trigger, player, gameState);
+
+    // Apply the resolution to game state
+    setGameState({
+      ...updatedState,
+      log: [{
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        playerName: player.name,
+        action: 'Réaction',
+        detail: logMessage,
+      }, ...updatedState.log],
+    });
+
+    // If Résistance or Sursis cancelled the metamorphose, clear stored effect
+    if (cancelsMetamorphose) {
+      setStoredMetamorphoseEffect(null);
+    }
+    // If Parade blocked the effect, clear stored effect
+    if (blocksMetamorphoseEffect) {
+      setStoredMetamorphoseEffect(null);
+    }
+
+    // Move to next reactor
+    setReactionWindow(prev => {
+      if (!prev) return prev;
+      const newResponses = [...prev.responses, { playerId, cardId, cardName: card.name, passed: false }];
+      const nextIdx = prev.currentReactorIndex + 1;
+      if (nextIdx >= prev.reactorQueue.length) {
+        return { ...prev, responses: newResponses, phase: 'resolved' as const };
+      }
+      return {
+        ...prev,
+        responses: newResponses,
+        currentReactorIndex: nextIdx,
+        phase: 'waiting_ready' as const,
+        timerStartedAt: Date.now(),
+      };
+    });
+  }, [gameState, reactionWindow]);
+
+  // When reaction window resolves, apply stored metamorphose effect
+  useEffect(() => {
+    if (!reactionWindow || reactionWindow.phase !== 'resolved') return;
+
+    // Check if any reaction cancelled or blocked the effect
+    const hasResistanceOrSursis = reactionWindow.responses.some(
+      r => !r.passed && (r.cardName === 'Résistance' || r.cardName === 'Sursis')
+    );
+    const hasParade = reactionWindow.responses.some(
+      r => !r.passed && r.cardName === 'Parade'
+    );
+
+    // Apply stored metamorphose effect if not blocked
+    if (storedMetamorphoseEffect && !hasResistanceOrSursis && !hasParade) {
+      if (storedMetamorphoseEffect.conditionNotMet && storedMetamorphoseEffect.type === 'none') {
+        toast.info(storedMetamorphoseEffect.conditionNotMet);
+      } else {
+        setPendingEffect(storedMetamorphoseEffect);
+      }
+    }
+
+    setStoredMetamorphoseEffect(null);
+    setReactionWindow(null);
+  }, [reactionWindow, storedMetamorphoseEffect]);
+
   return {
     gameState,
     currentPlayerIndex,
@@ -1338,6 +1514,7 @@ export function useGameLogic() {
     discardRequired,
     pendingReactionCard,
     pendingEffect,
+    reactionWindow,
     startGame,
     resetGame,
     handleEndTurn,
@@ -1363,6 +1540,9 @@ export function useGameLogic() {
     resolvePayDrawDiscard,
     initiatePayDraw,
     resolveReactionDiscard,
+    handleReactionReady,
+    handleReactionPass,
+    handleReactionActivate,
   };
 }
 

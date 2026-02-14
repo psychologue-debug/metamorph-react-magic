@@ -10,6 +10,7 @@ import DiscardModal from '@/components/game/DiscardModal';
 import ReactionDialog from '@/components/game/ReactionDialog';
 import GodSelectionScreen from '@/components/game/GodSelectionScreen';
 import TargetingModal from '@/components/game/TargetingModal';
+import ReactionWindow from '@/components/game/ReactionWindow';
 import { DivinityId } from '@/types/game';
 import { motion } from 'framer-motion';
 import { Scroll, Plus, LogIn } from 'lucide-react';
@@ -27,6 +28,7 @@ const Index = () => {
     discardRequired,
     pendingReactionCard,
     pendingEffect,
+    reactionWindow,
     startGame,
     resetGame,
     handleEndTurn,
@@ -52,6 +54,9 @@ const Index = () => {
     resolvePayDrawDiscard,
     initiatePayDraw,
     resolveReactionDiscard,
+    handleReactionReady,
+    handleReactionPass,
+    handleReactionActivate,
   } = useGameLogic();
 
   const isMortalTargeting = pendingEffect && (
@@ -254,7 +259,6 @@ const Index = () => {
           onToggleMetamorphose={toggleMetamorphoseMode}
           onToggleSpell={toggleSpellMode}
           onToggleActivate={toggleActivateMode}
-          onToggleReactionWindow={handleToggleReactionWindow}
         />
         <CurrentPlayerHand
           player={currentPlayer}
@@ -328,6 +332,17 @@ const Index = () => {
           onPayDrawDiscard={resolvePayDrawDiscard}
           onInitiatePayDraw={initiatePayDraw}
           onReactionDiscard={resolveReactionDiscard}
+        />
+      )}
+
+      {/* Reaction Window */}
+      {reactionWindow && reactionWindow.phase !== 'resolved' && (
+        <ReactionWindow
+          gameState={gameState}
+          reactionWindow={reactionWindow}
+          onPass={handleReactionPass}
+          onActivate={handleReactionActivate}
+          onReady={handleReactionReady}
         />
       )}
     </div>

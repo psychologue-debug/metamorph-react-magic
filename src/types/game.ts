@@ -14,6 +14,34 @@ export type MortalType = 'animal' | 'vegetal' | 'mineral';
 
 export type MortalStatus = 'normal' | 'incapacite' | 'retired';
 
+// === Reaction System ===
+export type ReactionTriggerType = 'metamorphose' | 'spell_effect' | 'mortal_effect';
+
+export interface ReactionTrigger {
+  type: ReactionTriggerType;
+  sourcePlayerId: string;
+  targetPlayerId?: string;
+  targetMortalId?: string;
+  cardName?: string;
+  metamorphoseCost?: number; // for Résistance refund
+}
+
+export interface ReactionWindowState {
+  trigger: ReactionTrigger;
+  reactorQueue: string[]; // player IDs who can react
+  currentReactorIndex: number;
+  phase: 'waiting_ready' | 'asking' | 'choosing' | 'resolved';
+  responses: ReactionResponse[];
+  timerStartedAt: number;
+}
+
+export interface ReactionResponse {
+  playerId: string;
+  cardId?: string; // which reaction card was played
+  cardName?: string;
+  passed: boolean;
+}
+
 // === Event System ===
 export type GameEventType =
   | 'ether_generated' | 'ether_destroyed' | 'ether_stolen'
@@ -55,6 +83,7 @@ export interface Mortal {
   position: number; // 0-9 in the 2x5 grid
   effectOnMetamorphose?: string; // Natural language description
   effectPermanent?: string; // Natural language description (column H)
+  sursisTarget?: boolean; // Flag for Sursis auto-metamorphose at cycle start
   imageRecto: string; // filename
   imageVerso: string; // filename
   comment?: string;
@@ -107,6 +136,9 @@ export interface GameState {
   discardPile: SpellCard[];
   deck: SpellCard[];
   log: GameLogEntry[];
+  // Reaction intervention system
+  reactionWindow?: ReactionWindowState | null;
+  pendingMetamorphoseEffect?: any; // Stored effect to apply after reaction resolution
 }
 
 export interface GameLogEntry {
