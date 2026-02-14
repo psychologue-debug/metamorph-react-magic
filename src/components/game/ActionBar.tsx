@@ -1,7 +1,7 @@
 import { GameState } from '@/types/game';
 import { InteractionMode } from '@/hooks/useGameLogic';
 import { motion } from 'framer-motion';
-import { SkipForward, Sparkles, RotateCcw, Hand, X } from 'lucide-react';
+import { SkipForward, Sparkles, RotateCcw, Hand, X, Flame } from 'lucide-react';
 
 interface ActionBarProps {
   gameState: GameState;
@@ -9,6 +9,7 @@ interface ActionBarProps {
   onEndTurn: () => void;
   onToggleMetamorphose: () => void;
   onToggleSpell: () => void;
+  onToggleActivate: () => void;
   onToggleReactionWindow: () => void;
 }
 
@@ -18,11 +19,13 @@ const ActionBar = ({
   onEndTurn,
   onToggleMetamorphose,
   onToggleSpell,
+  onToggleActivate,
   onToggleReactionWindow,
 }: ActionBarProps) => {
   const activePlayer = gameState.players[gameState.activePlayerIndex];
   const isMetaMode = interactionMode === 'metamorphosing';
   const isSpellMode = interactionMode === 'playing_spell';
+  const isActivateMode = interactionMode === 'activating_effect';
 
   return (
     <motion.div
@@ -45,7 +48,9 @@ const ActionBar = ({
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-base font-display font-semibold"
           style={{ background: 'hsl(var(--divine) / 0.15)', color: 'hsl(var(--divine))' }}
         >
-          {isMetaMode ? '🎯 Choisissez un mortel à métamorphoser' : '🃏 Choisissez un sort à jouer'}
+          {isMetaMode ? '🎯 Choisissez un mortel à métamorphoser'
+            : isActivateMode ? '⚡ Cliquez un mortel métamorphosé pour activer son effet'
+            : '🃏 Choisissez un sort à jouer'}
         </div>
       )}
 
@@ -79,6 +84,19 @@ const ActionBar = ({
       >
         {isSpellMode ? <X className="w-5 h-5 text-divine" /> : <Hand className="w-5 h-5 text-divine" />}
         {isSpellMode ? 'Annuler' : 'Jouer un Sort'}
+      </motion.button>
+
+      <motion.button
+        className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-base font-display font-semibold border border-amber-500/30 text-foreground transition-all ${
+          isActivateMode ? 'ring-2 ring-amber-500' : ''
+        }`}
+        style={{ background: isActivateMode ? 'hsl(30 60% 20% / 0.4)' : 'hsl(30 60% 20% / 0.15)' }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={onToggleActivate}
+      >
+        {isActivateMode ? <X className="w-5 h-5 text-amber-400" /> : <Flame className="w-5 h-5 text-amber-400" />}
+        {isActivateMode ? 'Annuler' : 'Activer un Effet'}
       </motion.button>
 
       <div className="flex-1" />
