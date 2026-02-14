@@ -1,7 +1,7 @@
 import { GameState } from '@/types/game';
 import { InteractionMode } from '@/hooks/useGameLogic';
 import { motion } from 'framer-motion';
-import { SkipForward, Sparkles, RotateCcw, Hand, X, Flame } from 'lucide-react';
+import { SkipForward, Sparkles, Hand, X, Flame } from 'lucide-react';
 
 interface ActionBarProps {
   gameState: GameState;
@@ -10,7 +10,6 @@ interface ActionBarProps {
   onToggleMetamorphose: () => void;
   onToggleSpell: () => void;
   onToggleActivate: () => void;
-  onToggleReactionWindow: () => void;
 }
 
 const ActionBar = ({
@@ -20,7 +19,6 @@ const ActionBar = ({
   onToggleMetamorphose,
   onToggleSpell,
   onToggleActivate,
-  onToggleReactionWindow,
 }: ActionBarProps) => {
   const activePlayer = gameState.players[gameState.activePlayerIndex];
   const isMetaMode = interactionMode === 'metamorphosing';
@@ -100,17 +98,6 @@ const ActionBar = ({
       </motion.button>
 
       <div className="flex-1" />
-
-      <motion.button
-        className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-base font-display border border-reaction/30 text-reaction transition-all"
-        style={{ background: 'hsl(var(--reaction) / 0.08)' }}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={onToggleReactionWindow}
-      >
-        <RotateCcw className="w-5 h-5" />
-        Réaction
-      </motion.button>
 
       <motion.button
         className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-base font-display font-semibold text-foreground transition-all border border-border/50"
