@@ -144,7 +144,7 @@ const CurrentPlayerHand = ({ player, gameState, interactionMode, onMortalClick, 
           <AnimatePresence>
             {reactionToManage && (
               <motion.div
-                className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 z-50 rounded-xl p-4 shadow-2xl"
+                className="absolute bottom-full right-0 mb-4 z-[99999] rounded-xl p-4 shadow-2xl"
                 style={{
                   background: 'hsl(var(--card))',
                   border: '1px solid hsl(var(--border))',
