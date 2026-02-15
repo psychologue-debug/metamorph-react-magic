@@ -77,6 +77,14 @@ export function useGameLogic() {
   }, []);
 
   const handleEndTurn = useCallback(() => {
+    // Force-clear all blocking states so "Fin de tour" always works
+    setPendingEffect(null);
+    setPendingReactionCard(null);
+    setStoredMetamorphoseEffect(null);
+    setReactionWindow(null);
+    setInteractionMode('idle');
+    toast.dismiss(); // dismiss any targeting/info toasts
+
     // Use functional state update to avoid stale closure bugs (fixes Sursaut)
     let shouldDiscard = false;
     let endTurnWinners: Player[] = [];
@@ -455,10 +463,12 @@ export function useGameLogic() {
     }
   }, [interactionMode, gameState]);
 
+  const spellEffectRef = useRef<PendingEffect | null>(null);
+
   const handleCardClick = useCallback((cardId: string) => {
     if (interactionMode !== 'playing_spell') return;
 
-    let spellEffectToTrigger: PendingEffect | null = null;
+    spellEffectRef.current = null;
 
     setGameState((prev) => {
       if (!prev) return prev;
@@ -555,7 +565,7 @@ export function useGameLogic() {
         );
       } else if (card.name === 'Torpeur') {
         // Target validation already done above — always set targeting
-        spellEffectToTrigger = {
+        spellEffectRef.current = {
           effectId: crypto.randomUUID(),
           type: 'enemy_mortal_incapacitate',
           sourcePlayerIndex: prev.activePlayerIndex,
@@ -566,7 +576,7 @@ export function useGameLogic() {
         };
       } else if (card.name === 'Doute') {
         // Target validation already done above — always set targeting
-        spellEffectToTrigger = {
+        spellEffectRef.current = {
           effectId: crypto.randomUUID(),
           type: 'retro_own_mortal',
           sourcePlayerIndex: prev.activePlayerIndex,
@@ -577,7 +587,7 @@ export function useGameLogic() {
         };
       } else if (card.name === 'Pharmaka') {
         // Target validation already done above — always set targeting
-        spellEffectToTrigger = {
+        spellEffectRef.current = {
           effectId: crypto.randomUUID(),
           type: 'retro_enemy_mortal',
           sourcePlayerIndex: prev.activePlayerIndex,
@@ -587,7 +597,7 @@ export function useGameLogic() {
           maxTargets: 1,
         };
       } else if (card.name === 'Éveil') {
-        spellEffectToTrigger = {
+        spellEffectRef.current = {
           effectId: crypto.randomUUID(),
           type: 'mortal_heal',
           sourcePlayerIndex: prev.activePlayerIndex,
@@ -618,8 +628,9 @@ export function useGameLogic() {
     });
     setInteractionMode('idle');
 
-    if (spellEffectToTrigger) {
-      setPendingEffect(spellEffectToTrigger);
+    if (spellEffectRef.current) {
+      setPendingEffect(spellEffectRef.current);
+      spellEffectRef.current = null;
     }
   }, [interactionMode]);
 
