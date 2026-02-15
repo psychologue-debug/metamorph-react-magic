@@ -61,6 +61,7 @@ export interface PendingEffect {
   // For pay_draw_discard
   drawCards?: number;
   discardCards?: number;
+  fromMetamorphose?: boolean;
 }
 
 /**

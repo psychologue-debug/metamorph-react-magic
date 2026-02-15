@@ -24,6 +24,7 @@ export interface ReactionTrigger {
   targetMortalId?: string;
   cardName?: string;
   metamorphoseCost?: number; // for Résistance refund
+  effectDescription?: string; // for reaction window description
 }
 
 export interface ReactionWindowState {

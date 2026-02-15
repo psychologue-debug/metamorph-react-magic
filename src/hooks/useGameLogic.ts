@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { GameState, Player, SpellCard, TurnPhase, DivinityId, ReactionTrigger, ReactionWindowState } from '@/types/game';
+import { GameState, Player, SpellCard, TurnPhase, DivinityId, Mortal, ReactionTrigger, ReactionWindowState } from '@/types/game';
 import { createMockGameState } from '@/data/mockGame';
 import { toast } from 'sonner';
 import { getEffectiveMetamorphosisCost, getEffectiveCardCost } from '@/engine/costModifiers';
@@ -25,6 +25,13 @@ export function useGameLogic() {
   const [pendingEffect, setPendingEffect] = useState<PendingEffect | null>(null);
   const [reactionWindow, setReactionWindow] = useState<ReactionWindowState | null>(null);
   const [storedMetamorphoseEffect, setStoredMetamorphoseEffect] = useState<PendingEffect | null>(null);
+  const metamorphoseReactionInfoRef = useRef<{ trigger: ReactionTrigger; reactors: string[] } | null>(null);
+  const savedMortalSnapshotRef = useRef<{ mortal: Mortal; playerId: string } | null>(null);
+  const [metamorphoseEffectUndo, setMetamorphoseEffectUndo] = useState<{
+    playerId: string;
+    mortalId: string;
+    mortalSnapshot: Mortal;
+  } | null>(null);
 
   const startGame = useCallback((playerCount: number, selectedGods?: DivinityId[], playerNames?: string[]) => {
     const state = createMockGameState(playerCount, selectedGods);
@@ -52,6 +59,9 @@ export function useGameLogic() {
     setPendingReactionCard(null);
     setReactionWindow(null);
     setStoredMetamorphoseEffect(null);
+    setMetamorphoseEffectUndo(null);
+    metamorphoseReactionInfoRef.current = null;
+    savedMortalSnapshotRef.current = null;
     toast.dismiss();
   }, []);
 
@@ -81,9 +91,12 @@ export function useGameLogic() {
     setPendingEffect(null);
     setPendingReactionCard(null);
     setStoredMetamorphoseEffect(null);
+    setMetamorphoseEffectUndo(null);
     setReactionWindow(null);
+    metamorphoseReactionInfoRef.current = null;
+    savedMortalSnapshotRef.current = null;
     setInteractionMode('idle');
-    toast.dismiss(); // dismiss any targeting/info toasts
+    toast.dismiss();
 
     // Use functional state update to avoid stale closure bugs (fixes Sursaut)
     let shouldDiscard = false;
@@ -434,10 +447,24 @@ export function useGameLogic() {
         sourcePlayerId,
         targetMortalId: metamorphosedMortalId,
         metamorphoseCost: metamorphoseCostPaid,
+        effectDescription: effectToTrigger?.description || undefined,
       };
       const reactors = getEligibleReactors(trigger, gameState);
       if (reactors.length > 0) {
-        // Store the effect to apply after reactions resolve
+        // Dynamic categorisation: effects targeting specific mortals need targeting FIRST
+        const needsMortalTargeting = effectToTrigger && [
+          'enemy_mortal_incapacitate', 'enemy_mortal_remove',
+          'mortal_heal', 'retro_own_mortal', 'retro_enemy_mortal',
+        ].includes(effectToTrigger.type);
+
+        if (needsMortalTargeting && effectToTrigger) {
+          // Targeted effect: player chooses target first, then reaction window opens
+          metamorphoseReactionInfoRef.current = { trigger, reactors };
+          setPendingEffect({ ...effectToTrigger, fromMetamorphose: true });
+          return;
+        }
+
+        // Non-targeted effect: reaction window opens first
         if (effectToTrigger) {
           setStoredMetamorphoseEffect(effectToTrigger);
         }
@@ -463,12 +490,8 @@ export function useGameLogic() {
     }
   }, [interactionMode, gameState]);
 
-  const spellEffectRef = useRef<PendingEffect | null>(null);
-
   const handleCardClick = useCallback((cardId: string) => {
     if (interactionMode !== 'playing_spell') return;
-
-    spellEffectRef.current = null;
 
     setGameState((prev) => {
       if (!prev) return prev;
@@ -564,8 +587,7 @@ export function useGameLogic() {
             : p
         );
       } else if (card.name === 'Torpeur') {
-        // Target validation already done above — always set targeting
-        spellEffectRef.current = {
+        setPendingEffect({
           effectId: crypto.randomUUID(),
           type: 'enemy_mortal_incapacitate',
           sourcePlayerIndex: prev.activePlayerIndex,
@@ -573,10 +595,9 @@ export function useGameLogic() {
           sourceMortalName: 'Torpeur',
           description: 'Incapacitez un mortel ennemi.',
           maxTargets: 1,
-        };
+        });
       } else if (card.name === 'Doute') {
-        // Target validation already done above — always set targeting
-        spellEffectRef.current = {
+        setPendingEffect({
           effectId: crypto.randomUUID(),
           type: 'retro_own_mortal',
           sourcePlayerIndex: prev.activePlayerIndex,
@@ -584,10 +605,9 @@ export function useGameLogic() {
           sourceMortalName: 'Doute',
           description: 'Rétromorphosez un de vos mortels.',
           maxTargets: 1,
-        };
+        });
       } else if (card.name === 'Pharmaka') {
-        // Target validation already done above — always set targeting
-        spellEffectRef.current = {
+        setPendingEffect({
           effectId: crypto.randomUUID(),
           type: 'retro_enemy_mortal',
           sourcePlayerIndex: prev.activePlayerIndex,
@@ -595,9 +615,9 @@ export function useGameLogic() {
           sourceMortalName: 'Pharmaka',
           description: 'Rétromorphosez un mortel ennemi.',
           maxTargets: 1,
-        };
+        });
       } else if (card.name === 'Éveil') {
-        spellEffectRef.current = {
+        setPendingEffect({
           effectId: crypto.randomUUID(),
           type: 'mortal_heal',
           sourcePlayerIndex: prev.activePlayerIndex,
@@ -606,7 +626,7 @@ export function useGameLogic() {
           description: 'Levez l\'incapacité d\'un de vos mortels.',
           maxTargets: 1,
           healOwnOnly: true,
-        };
+        });
       }
 
       return {
@@ -627,11 +647,6 @@ export function useGameLogic() {
       };
     });
     setInteractionMode('idle');
-
-    if (spellEffectRef.current) {
-      setPendingEffect(spellEffectRef.current);
-      spellEffectRef.current = null;
-    }
   }, [interactionMode]);
 
   const handleReactionPlay = useCallback(() => {
@@ -1010,6 +1025,10 @@ export function useGameLogic() {
 
       // Valid target — apply effect
       targetValid = true;
+      // Save snapshot for potential Parade undo (metamorphose effects)
+      if (pendingEffect.fromMetamorphose) {
+        savedMortalSnapshotRef.current = { mortal: { ...mortal }, playerId };
+      }
       const sourcePlayer = prev.players[pendingEffect.sourcePlayerIndex];
 
       let newStatus: 'incapacite' | 'retired' | 'normal';
@@ -1146,6 +1165,40 @@ export function useGameLogic() {
 
     // Only clear pending effect if the target was valid
     if (targetValid) {
+      // If this was a metamorphose effect, open reaction window now (after target chosen)
+      if (pendingEffect.fromMetamorphose && metamorphoseReactionInfoRef.current) {
+        const { trigger, reactors } = metamorphoseReactionInfoRef.current;
+        metamorphoseReactionInfoRef.current = null;
+        const snapshot = savedMortalSnapshotRef.current;
+        savedMortalSnapshotRef.current = null;
+        if (snapshot) {
+          setMetamorphoseEffectUndo({
+            playerId: snapshot.playerId,
+            mortalId: snapshot.mortal.id,
+            mortalSnapshot: snapshot.mortal,
+          });
+        }
+        const targetPlayer = gameState?.players.find(p => p.id === playerId);
+        const targetMortal = targetPlayer?.mortals.find(m => m.id === mortalId);
+        const actionLabel = pendingEffect.type === 'enemy_mortal_remove' ? 'retirer du jeu'
+          : pendingEffect.type === 'mortal_heal' ? 'lever l\'incapacité de'
+          : pendingEffect.type === 'retro_own_mortal' || pendingEffect.type === 'retro_enemy_mortal' ? 'rétromorphoser'
+          : 'incapaciter';
+        setReactionWindow({
+          trigger: {
+            ...trigger,
+            effectDescription: `${pendingEffect.sourceMortalName} va ${actionLabel} ${targetMortal?.nameVerso || targetMortal?.nameRecto || 'un mortel'} de ${targetPlayer?.name || 'un joueur'}`,
+          },
+          reactorQueue: reactors,
+          currentReactorIndex: 0,
+          phase: 'waiting_ready' as const,
+          responses: [],
+          timerStartedAt: Date.now(),
+        });
+        setPendingEffect(null);
+        return;
+      }
+
       // Support multi-target: decrement maxTargets
       if (pendingEffect.maxTargets > 1) {
         setPendingEffect(prev => prev ? { ...prev, maxTargets: prev.maxTargets - 1, optional: true } : null);
@@ -1156,7 +1209,7 @@ export function useGameLogic() {
         setPendingEffect(null);
       }
     }
-  }, [pendingEffect]);
+  }, [pendingEffect, gameState]);
 
   /** Auto-heal all own incapacitated mortals (for MIN-09 2nd metamorphosis) */
   const healAllOwnMortals = useCallback((playerIdx: number) => {
@@ -1495,7 +1548,6 @@ export function useGameLogic() {
   useEffect(() => {
     if (!reactionWindow || reactionWindow.phase !== 'resolved') return;
 
-    // Check if any reaction cancelled or blocked the effect
     const hasResistanceOrSursis = reactionWindow.responses.some(
       r => !r.passed && (r.cardName === 'Résistance' || r.cardName === 'Sursis')
     );
@@ -1503,7 +1555,37 @@ export function useGameLogic() {
       r => !r.passed && r.cardName === 'Parade'
     );
 
-    // Apply stored metamorphose effect if not blocked
+    // Undo targeted metamorphose effect if Parade was played
+    if (hasParade && metamorphoseEffectUndo) {
+      setGameState(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          players: prev.players.map(p => {
+            if (p.id !== metamorphoseEffectUndo.playerId) return p;
+            const restoredMortals = p.mortals.map(m =>
+              m.id === metamorphoseEffectUndo.mortalId
+                ? metamorphoseEffectUndo.mortalSnapshot
+                : m
+            );
+            return {
+              ...p,
+              mortals: restoredMortals,
+              metamorphosedCount: restoredMortals.filter(m => m.isMetamorphosed).length,
+            };
+          }),
+          log: [{
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: 'Système',
+            action: 'Parade',
+            detail: 'L\'effet de métamorphose a été annulé par Parade',
+          }, ...prev.log],
+        };
+      });
+    }
+
+    // Apply stored non-targeted metamorphose effect if not blocked
     if (storedMetamorphoseEffect && !hasResistanceOrSursis && !hasParade) {
       if (storedMetamorphoseEffect.conditionNotMet && storedMetamorphoseEffect.type === 'none') {
         toast.info(storedMetamorphoseEffect.conditionNotMet);
@@ -1512,9 +1594,10 @@ export function useGameLogic() {
       }
     }
 
+    setMetamorphoseEffectUndo(null);
     setStoredMetamorphoseEffect(null);
     setReactionWindow(null);
-  }, [reactionWindow, storedMetamorphoseEffect]);
+  }, [reactionWindow, storedMetamorphoseEffect, metamorphoseEffectUndo]);
 
   return {
     gameState,

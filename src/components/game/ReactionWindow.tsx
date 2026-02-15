@@ -33,7 +33,7 @@ const ReactionWindow = ({
 
   // Timer countdown
   useEffect(() => {
-    if (reactionWindow.phase !== 'asking' && reactionWindow.phase !== 'choosing') return;
+    if (choosing || (reactionWindow.phase !== 'asking' && reactionWindow.phase !== 'choosing')) return;
     setTimeLeft(REACTION_TIMER_SECONDS);
     const interval = setInterval(() => {
       setTimeLeft(prev => {
@@ -49,7 +49,7 @@ const ReactionWindow = ({
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [reactionWindow.currentReactorIndex, reactionWindow.phase, currentReactorId, onPass]);
+  }, [reactionWindow.currentReactorIndex, reactionWindow.phase, currentReactorId, onPass, choosing]);
 
   // Reset choosing state when reactor changes
   useEffect(() => {
@@ -83,7 +83,11 @@ const ReactionWindow = ({
     const source = gameState.players.find(p => p.id === reactionWindow.trigger.sourcePlayerId);
     if (reactionWindow.trigger.type === 'metamorphose') {
       const mortal = source?.mortals.find(m => m.id === reactionWindow.trigger.targetMortalId);
-      return `${source?.name} a métamorphosé ${mortal?.nameVerso || 'un mortel'}`;
+      let desc = `${source?.name} a métamorphosé ${mortal?.nameVerso || 'un mortel'}`;
+      if (reactionWindow.trigger.effectDescription) {
+        desc += `. ${reactionWindow.trigger.effectDescription}`;
+      }
+      return desc;
     }
     if (reactionWindow.trigger.cardName) {
       return `${source?.name} a joué ${reactionWindow.trigger.cardName}`;
