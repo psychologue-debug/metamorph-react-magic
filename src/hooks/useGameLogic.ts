@@ -14,7 +14,8 @@ export type InteractionMode = 'idle' | 'metamorphosing' | 'playing_spell' | 'act
 
 export function useGameLogic() {
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
+  // currentPlayerIndex is derived from gameState.activePlayerIndex to avoid desync
+  const currentPlayerIndex = gameState?.activePlayerIndex ?? 0;
   const [gameStarted, setGameStarted] = useState(false);
   const [interactionMode, setInteractionMode] = useState<InteractionMode>('idle');
   const [winners, setWinners] = useState<Player[]>([]);
@@ -35,7 +36,6 @@ export function useGameLogic() {
       });
     }
     setGameState(state);
-    setCurrentPlayerIndex(0);
     setGameStarted(true);
     setWinners([]);
     setDiscardRequired(false);
@@ -240,7 +240,7 @@ export function useGameLogic() {
       return;
     }
     setInteractionMode('idle');
-    setCurrentPlayerIndex(nextIdx);
+    // currentPlayerIndex is now derived from gameState.activePlayerIndex — no separate setState needed
   }, []);
 
   // Auto-proceed with end turn after discard completes
