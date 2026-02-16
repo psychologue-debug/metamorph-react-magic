@@ -84,13 +84,17 @@ const GodSelectionScreen = ({ playerCount, onStartGame, onBack }: GodSelectionSc
               >
                 {/* God avatar */}
                 <div
-                  className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-display font-bold text-white border-2"
+                  className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-display font-bold text-white border-2 overflow-hidden"
                   style={{
                     background: `linear-gradient(135deg, hsl(${god.color}), hsl(${god.color} / 0.6))`,
                     borderColor: isPicked ? 'transparent' : `hsl(${god.color})`,
                   }}
                 >
-                  {isPicked ? <Check className="w-7 h-7" /> : god.name.charAt(0)}
+                  {isPicked ? <Check className="w-7 h-7" /> : (
+                    god.image ? (
+                      <img src={god.image} alt={god.name} className="w-full h-full object-cover" />
+                    ) : god.name.charAt(0)
+                  )}
                 </div>
 
                 <span className="font-display text-sm font-bold text-white tracking-wide">{god.name}</span>
