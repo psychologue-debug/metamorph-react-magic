@@ -457,19 +457,27 @@ export function useGameLogic() {
           'mortal_heal', 'retro_own_mortal', 'retro_enemy_mortal',
         ].includes(effectToTrigger.type);
 
-        if (needsMortalTargeting && effectToTrigger) {
-          // Targeted effect: player chooses target first, then reaction window opens
-          metamorphoseReactionInfoRef.current = { trigger, reactors };
-          setPendingEffect({ ...effectToTrigger, fromMetamorphose: true });
-          return;
-        }
-
-        // Non-targeted effect: reaction window opens first
+        // For ALL metamorphose effects (targeted or not), open reaction window first
+        // This allows Résistance/Sursis to react to the metamorphose itself
         if (effectToTrigger) {
           setStoredMetamorphoseEffect(effectToTrigger);
         }
+        if (needsMortalTargeting) {
+          // Keep reaction info for phase 2 (Parade/Compassion after targeting)
+          metamorphoseReactionInfoRef.current = { trigger, reactors };
+        }
+
+        // Build description for reaction window
+        const metamorphosedMortalObj = gameState.players
+          .find(p => p.id === sourcePlayerId)?.mortals.find(m => m.id === metamorphosedMortalId);
+        const mortalDisplayName = metamorphosedMortalObj?.nameVerso || metamorphosedMortalObj?.nameRecto || 'un mortel';
+        const activePlayerName = gameState.players[gameState.activePlayerIndex]?.name || 'Un joueur';
+        const effectDesc = effectToTrigger
+          ? `${activePlayerName} vient de métamorphoser ${mortalDisplayName} (${effectToTrigger.description}). Voulez-vous réagir ?`
+          : `${activePlayerName} vient de métamorphoser ${mortalDisplayName}. Voulez-vous réagir ?`;
+
         setReactionWindow({
-          trigger,
+          trigger: { ...trigger, effectDescription: effectDesc },
           reactorQueue: reactors,
           currentReactorIndex: 0,
           phase: 'waiting_ready',
@@ -595,6 +603,18 @@ export function useGameLogic() {
           sourceMortalName: 'Torpeur',
           description: 'Incapacitez un mortel ennemi.',
           maxTargets: 1,
+        });
+      } else if (card.name === 'Catabolisme') {
+        setPendingEffect({
+          effectId: crypto.randomUUID(),
+          type: 'generate_destroy_ether',
+          sourcePlayerIndex: prev.activePlayerIndex,
+          sourceMortalCode: 'SPELL-CATABOLISME',
+          sourceMortalName: 'Catabolisme',
+          description: 'Détruisez jusqu\'à 5 Éther sur les réservoirs ennemis.',
+          maxTargets: 0,
+          etherGenerate: 0,
+          etherDestroy: 5,
         });
       } else if (card.name === 'Doute') {
         setPendingEffect({
@@ -1544,7 +1564,7 @@ export function useGameLogic() {
     });
   }, [gameState, reactionWindow]);
 
-  // When reaction window resolves, apply stored metamorphose effect
+  // When reaction window resolves, handle two-phase flow
   useEffect(() => {
     if (!reactionWindow || reactionWindow.phase !== 'resolved') return;
 
@@ -1555,48 +1575,81 @@ export function useGameLogic() {
       r => !r.passed && r.cardName === 'Parade'
     );
 
-    // Undo targeted metamorphose effect if Parade was played
-    if (hasParade && metamorphoseEffectUndo) {
-      setGameState(prev => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          players: prev.players.map(p => {
-            if (p.id !== metamorphoseEffectUndo.playerId) return p;
-            const restoredMortals = p.mortals.map(m =>
-              m.id === metamorphoseEffectUndo.mortalId
-                ? metamorphoseEffectUndo.mortalSnapshot
-                : m
-            );
-            return {
-              ...p,
-              mortals: restoredMortals,
-              metamorphosedCount: restoredMortals.filter(m => m.isMetamorphosed).length,
-            };
-          }),
-          log: [{
-            id: crypto.randomUUID(),
-            timestamp: Date.now(),
-            playerName: 'Système',
-            action: 'Parade',
-            detail: 'L\'effet de métamorphose a été annulé par Parade',
-          }, ...prev.log],
-        };
-      });
+    // === Phase 2: After targeting (metamorphoseEffectUndo is set) ===
+    if (metamorphoseEffectUndo) {
+      if (hasParade) {
+        // Undo the targeted effect
+        setGameState(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            players: prev.players.map(p => {
+              if (p.id !== metamorphoseEffectUndo.playerId) return p;
+              const restoredMortals = p.mortals.map(m =>
+                m.id === metamorphoseEffectUndo.mortalId
+                  ? metamorphoseEffectUndo.mortalSnapshot
+                  : m
+              );
+              return {
+                ...p,
+                mortals: restoredMortals,
+                metamorphosedCount: restoredMortals.filter(m => m.isMetamorphosed).length,
+              };
+            }),
+            log: [{
+              id: crypto.randomUUID(),
+              timestamp: Date.now(),
+              playerName: 'Système',
+              action: 'Parade',
+              detail: 'L\'effet de métamorphose a été annulé par Parade',
+            }, ...prev.log],
+          };
+        });
+      }
+      setMetamorphoseEffectUndo(null);
+      setStoredMetamorphoseEffect(null);
+      setReactionWindow(null);
+      metamorphoseReactionInfoRef.current = null;
+      return;
     }
 
-    // Apply stored non-targeted metamorphose effect if not blocked
-    if (storedMetamorphoseEffect && !hasResistanceOrSursis && !hasParade) {
-      if (storedMetamorphoseEffect.conditionNotMet && storedMetamorphoseEffect.type === 'none') {
-        toast.info(storedMetamorphoseEffect.conditionNotMet);
-      } else {
-        setPendingEffect(storedMetamorphoseEffect);
+    // === Phase 1: After metamorphose reaction ===
+    if (hasResistanceOrSursis) {
+      // Metamorphose cancelled — clear everything
+      setStoredMetamorphoseEffect(null);
+      setReactionWindow(null);
+      metamorphoseReactionInfoRef.current = null;
+      return;
+    }
+
+    // Metamorphose survived. Check if there's a stored effect to apply.
+    if (storedMetamorphoseEffect) {
+      const needsTargeting = [
+        'enemy_mortal_incapacitate', 'enemy_mortal_remove',
+        'mortal_heal', 'retro_own_mortal', 'retro_enemy_mortal',
+      ].includes(storedMetamorphoseEffect.type);
+
+      if (needsTargeting) {
+        // Phase 1 done → move to targeting. metamorphoseReactionInfoRef stays for phase 2.
+        setPendingEffect({ ...storedMetamorphoseEffect, fromMetamorphose: true });
+        setStoredMetamorphoseEffect(null);
+        setReactionWindow(null);
+        return;
+      }
+
+      // Non-targeted effect: check if Parade blocked it
+      if (!hasParade) {
+        if (storedMetamorphoseEffect.conditionNotMet && storedMetamorphoseEffect.type === 'none') {
+          toast.info(storedMetamorphoseEffect.conditionNotMet);
+        } else {
+          setPendingEffect(storedMetamorphoseEffect);
+        }
       }
     }
 
-    setMetamorphoseEffectUndo(null);
     setStoredMetamorphoseEffect(null);
     setReactionWindow(null);
+    metamorphoseReactionInfoRef.current = null;
   }, [reactionWindow, storedMetamorphoseEffect, metamorphoseEffectUndo]);
 
   return {

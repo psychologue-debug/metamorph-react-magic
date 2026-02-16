@@ -37,13 +37,17 @@ const PlayerPanel = ({ player, gameState, isActive, index, compact = false, onMo
         {/* Header row — compact */}
         <div className="flex items-center gap-2 mb-2">
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center border-2 shrink-0"
+            className="w-8 h-8 rounded-full flex items-center justify-center border-2 shrink-0 overflow-hidden"
             style={{
               borderColor: isActive ? 'hsl(var(--ether))' : 'hsl(var(--border) / 0.5)',
               background: `linear-gradient(135deg, hsl(${divinity.color} / 0.3), hsl(var(--card)))`,
             }}
           >
-            <span className="font-display font-bold text-foreground text-sm">{player.avatar}</span>
+            {divinity.image ? (
+              <img src={divinity.image} alt={divinity.name} className="w-full h-full object-cover" />
+            ) : (
+              <span className="font-display font-bold text-foreground text-sm">{player.avatar}</span>
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-display font-bold text-foreground truncate text-base">{player.name}</h3>

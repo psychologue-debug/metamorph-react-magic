@@ -151,14 +151,14 @@ export interface GameLogEntry {
 }
 
 // Divinity data
-export const DIVINITIES: Record<DivinityId, { name: string; title: string; color: string; power: string }> = {
-  apollon: { name: 'Apollon', title: 'Dieu du Soleil', color: '35 85% 55%', power: 'Lumière : Révèle toutes les cartes Réaction' },
-  venus: { name: 'Vénus', title: 'Déesse de l\'Amour', color: '330 60% 55%', power: 'Charme : Vole 1 carte à un adversaire' },
-  bacchus: { name: 'Bacchus', title: 'Dieu du Vin', color: '280 50% 45%', power: 'Ivresse : Mélange les mortels d\'un adversaire' },
-  minerve: { name: 'Minerve', title: 'Déesse de la Sagesse', color: '200 50% 50%', power: 'Stratégie : Piochez 2 cartes supplémentaires' },
-  diane: { name: 'Diane', title: 'Déesse de la Chasse', color: '160 40% 45%', power: 'Flèche : Cible 2 Mortels simultanément' },
-  neptune: { name: 'Neptune', title: 'Dieu des Mers', color: '195 70% 45%', power: 'Marée : Déplace un Mortel adverse' },
-  ceres: { name: 'Cérès', title: 'Déesse des Moissons', color: '80 50% 40%', power: 'Récolte : Génère 3 Éther supplémentaires' },
+export const DIVINITIES: Record<DivinityId, { name: string; title: string; color: string; power: string; image: string }> = {
+  apollon: { name: 'Apollon', title: 'Dieu du Soleil', color: '35 85% 55%', power: 'Lumière : Révèle toutes les cartes Réaction', image: '/gods/apollon.jpeg' },
+  venus: { name: 'Vénus', title: 'Déesse de l\'Amour', color: '330 60% 55%', power: 'Charme : Vole 1 carte à un adversaire', image: '/gods/venus.jpeg' },
+  bacchus: { name: 'Bacchus', title: 'Dieu du Vin', color: '280 50% 45%', power: 'Ivresse : Mélange les mortels d\'un adversaire', image: '/gods/bacchus.jpeg' },
+  minerve: { name: 'Minerve', title: 'Déesse de la Sagesse', color: '200 50% 50%', power: 'Stratégie : Piochez 2 cartes supplémentaires', image: '/gods/minerve.jpeg' },
+  diane: { name: 'Diane', title: 'Déesse de la Chasse', color: '160 40% 45%', power: 'Flèche : Cible 2 Mortels simultanément', image: '/gods/diane.jpeg' },
+  neptune: { name: 'Neptune', title: 'Dieu des Mers', color: '195 70% 45%', power: 'Marée : Déplace un Mortel adverse', image: '/gods/neptune.jpeg' },
+  ceres: { name: 'Cérès', title: 'Déesse des Moissons', color: '80 50% 40%', power: 'Récolte : Génère 3 Éther supplémentaires', image: '/gods/ceres.jpeg' },
 };
 
 export const PHASE_LABELS: Record<TurnPhase, string> = {
