@@ -10,12 +10,13 @@ interface TargetingModalProps {
   gameState: GameState;
   onResolve: (result: TargetingResult) => void;
   onCancel?: () => void;
-  // New handlers for activation effects
   onGodDiscard?: (targetPlayerId: string) => void;
   onCardDiscard?: (cardIds: string[]) => void;
   onPayDrawDiscard?: (discardCardIds: string[]) => void;
   onInitiatePayDraw?: () => void;
   onReactionDiscard?: (ownReactionId: string, enemyPlayerId: string, enemyReactionId: string) => void;
+  onGlane?: (cardId: string) => void;
+  onSelectGod?: (targetPlayerId: string) => void;
 }
 
 export interface TargetingResult {
@@ -30,7 +31,7 @@ export interface TargetingResult {
   etherStolen?: { playerId: string; amount: number }[];
 }
 
-const TargetingModal = ({ effect, gameState, onResolve, onCancel, onGodDiscard, onCardDiscard, onPayDrawDiscard, onInitiatePayDraw, onReactionDiscard }: TargetingModalProps) => {
+const TargetingModal = ({ effect, gameState, onResolve, onCancel, onGodDiscard, onCardDiscard, onPayDrawDiscard, onInitiatePayDraw, onReactionDiscard, onGlane, onSelectGod }: TargetingModalProps) => {
   // No interaction needed
   if (effect.type === 'none') {
     return (
@@ -126,6 +127,28 @@ const TargetingModal = ({ effect, gameState, onResolve, onCancel, onGodDiscard, 
         effect={effect}
         gameState={gameState}
         onConfirm={onReactionDiscard}
+        onCancel={onCancel}
+      />
+    );
+  }
+
+  if (effect.type === 'select_from_discard' && onGlane) {
+    return (
+      <SelectFromDiscardContent
+        effect={effect}
+        gameState={gameState}
+        onSelect={onGlane}
+        onCancel={onCancel}
+      />
+    );
+  }
+
+  if (effect.type === 'select_enemy_god' && onSelectGod) {
+    return (
+      <GodSelectContent
+        effect={effect}
+        gameState={gameState}
+        onSelect={onSelectGod}
         onCancel={onCancel}
       />
     );
@@ -566,21 +589,21 @@ function GodSelectContent({
                 whileHover={{ scale: 1.02, borderColor: 'hsl(var(--ether) / 0.5)' }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => onSelect(enemy.id)}
-                disabled={totalCards === 0}
               >
                 <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center border-2"
+                  className="w-10 h-10 rounded-full flex items-center justify-center border-2 overflow-hidden"
                   style={{ borderColor: `hsl(${divinity.color})`, background: `hsl(${divinity.color} / 0.2)` }}
                 >
-                  <span className="font-display text-base font-bold text-foreground">{enemy.avatar}</span>
+                  {divinity.image ? (
+                    <img src={divinity.image} alt={divinity.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="font-display text-base font-bold text-foreground">{enemy.avatar}</span>
+                  )}
                 </div>
                 <div className="flex-1 text-left">
                   <span className="font-display font-semibold text-foreground">{enemy.name}</span>
-                  <span className="text-muted-foreground text-sm ml-2">
-                    ({enemy.hand.length} en main, {enemy.reactions.length} réaction(s))
-                  </span>
+                  <span className="text-muted-foreground text-sm ml-2">({enemy.ether} Éther)</span>
                 </div>
-                <span className="font-display text-lg font-bold text-foreground">{totalCards} cartes</span>
               </motion.button>
             );
           })}
@@ -938,3 +961,89 @@ function ReactionDiscardContent({
 }
 
 export default TargetingModal;
+
+// === Select from discard pile (Glane) ===
+function SelectFromDiscardContent({
+  effect,
+  gameState,
+  onSelect,
+  onCancel,
+}: {
+  effect: PendingEffect;
+  gameState: GameState;
+  onSelect: (cardId: string) => void;
+  onCancel?: () => void;
+}) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  return (
+    <ModalWrapper>
+      <div>
+        <div className="flex items-center gap-3 mb-4">
+          <Target className="w-6 h-6 text-ether" />
+          <div>
+            <h2 className="font-display text-xl font-bold text-foreground">{effect.sourceMortalName}</h2>
+            <p className="text-muted-foreground text-sm">{effect.description}</p>
+          </div>
+        </div>
+
+        <p className="text-sm font-display text-foreground mb-3">
+          Cliquez sur la carte que vous voulez récupérer :
+        </p>
+
+        <div className="flex flex-wrap gap-2 mb-6 max-h-[50vh] overflow-y-auto">
+          {gameState.discardPile.map((card, i) => {
+            const selected = selectedId === card.id;
+            return (
+              <motion.button
+                key={`${card.id}-${i}`}
+                className={`p-3 rounded-lg border-2 transition-all text-left ${
+                  selected ? 'border-ether ring-2 ring-ether/30' : 'border-border/50 hover:border-ether/40'
+                }`}
+                style={{ background: selected ? 'hsl(var(--ether) / 0.1)' : 'hsl(var(--secondary) / 0.5)', minWidth: '140px' }}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => setSelectedId(card.id)}
+              >
+                <div className="font-display text-sm font-bold text-foreground">{card.name}</div>
+                <div className="text-xs text-muted-foreground">Coût: {card.cost} | {card.type === 'reaction' ? 'Réaction' : 'Sortilège'}</div>
+                <div className="text-xs text-muted-foreground mt-1">{card.description}</div>
+                {selected && (
+                  <div className="mt-1">
+                    <Check className="w-4 h-4 text-ether" />
+                  </div>
+                )}
+              </motion.button>
+            );
+          })}
+        </div>
+
+        <div className="flex gap-3 justify-end">
+          {onCancel && (
+            <button
+              className="px-5 py-2 rounded-lg font-display text-sm border border-border/50 text-muted-foreground"
+              style={{ background: 'hsl(var(--muted))' }}
+              onClick={onCancel}
+            >
+              Annuler
+            </button>
+          )}
+          <motion.button
+            className="px-6 py-2 rounded-lg font-display font-semibold text-sm"
+            style={{
+              background: selectedId
+                ? 'linear-gradient(135deg, hsl(var(--ether)), hsl(var(--ether-dim)))'
+                : 'hsl(var(--muted))',
+              color: selectedId ? 'white' : 'hsl(var(--muted-foreground))',
+            }}
+            whileHover={selectedId ? { scale: 1.05 } : {}}
+            onClick={() => selectedId && onSelect(selectedId)}
+            disabled={!selectedId}
+          >
+            Confirmer
+          </motion.button>
+        </div>
+      </div>
+    </ModalWrapper>
+  );
+}
