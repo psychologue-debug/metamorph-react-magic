@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useGameLogic } from '@/hooks/useGameLogic';
 import { toast } from 'sonner';
-import GameBoard from '@/components/game/GameBoard';
-import CurrentPlayerHand from '@/components/game/CurrentPlayerHand';
+import PlayerPanel from '@/components/game/PlayerPanel';
+import OwnPlayerBoard from '@/components/game/OwnPlayerBoard';
+import CentralZone from '@/components/game/CentralZone';
 import ActionBar from '@/components/game/ActionBar';
 import GameLog from '@/components/game/GameLog';
 import VictoryModal from '@/components/game/VictoryModal';
@@ -54,6 +55,8 @@ const Index = () => {
     resolvePayDrawDiscard,
     initiatePayDraw,
     resolveReactionDiscard,
+    resolveGlane,
+    resolveSelectGod,
     handleReactionReady,
     handleReactionPass,
     handleReactionActivate,
@@ -74,10 +77,10 @@ const Index = () => {
     pendingEffect.type === 'select_god_discard_all' ||
     pendingEffect.type === 'discard_cards_then_effect' ||
     pendingEffect.type === 'pay_draw_discard' ||
-    pendingEffect.type === 'discard_own_reaction_then_enemy'
+    pendingEffect.type === 'discard_own_reaction_then_enemy' ||
+    pendingEffect.type === 'select_from_discard' ||
+    pendingEffect.type === 'select_enemy_god'
   );
-
-  // Choice effect: no toast, rendered in JSX
 
   // Handle auto-heal-all (MIN-09 second metamorphosis)
   useEffect(() => {
@@ -101,7 +104,6 @@ const Index = () => {
   // Show targeting toast when mortal targeting is active
   useEffect(() => {
     if (!isMortalTargeting || !pendingEffect) return;
-    // Skip auto-heal-all
     if ('autoHealAll' in pendingEffect && (pendingEffect as any).autoHealAll) return;
     const actionLabel = pendingEffect.type === 'enemy_mortal_remove'
       ? 'retirer du jeu'
@@ -213,22 +215,35 @@ const Index = () => {
     );
   }
 
-
   const currentPlayer = gameState.players[currentPlayerIndex];
+  const isOwnTurn = currentPlayerIndex === gameState.activePlayerIndex;
+  const opponents = gameState.players
+    .map((player, index) => ({ player, index }))
+    .filter(({ index }) => index !== currentPlayerIndex);
+  const activeEnemy = !isOwnTurn
+    ? opponents.find(({ index }) => index === gameState.activePlayerIndex)
+    : null;
+  const otherEnemies = activeEnemy
+    ? opponents.filter(({ index }) => index !== gameState.activePlayerIndex)
+    : opponents;
 
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">
+      {/* Top bar */}
       <header
-        className="flex items-center justify-between px-4 py-1.5 border-b border-border/30"
+        className="flex items-center justify-between px-4 py-1.5 border-b border-border/30 shrink-0"
         style={{ background: `linear-gradient(90deg, hsl(var(--card)), hsl(var(--background)))` }}
       >
-        <div className="flex items-center gap-2">
-          <Scroll className="w-5 h-5 text-ether" />
-          <h1 className="font-display text-lg font-bold text-foreground tracking-wider">MÉTAMORPHOSES</h1>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Scroll className="w-5 h-5 text-ether" />
+            <h1 className="font-display text-lg font-bold text-foreground tracking-wider">MÉTAMORPHOSES</h1>
+          </div>
+          <CentralZone gameState={gameState} />
         </div>
         <div className="flex items-center gap-4">
           <span className="font-body text-base text-muted-foreground italic">
-            Cycle {gameState.turnCount} — {gameState.players.length} dieux — Mode test solo
+            Cycle {gameState.turnCount} — {gameState.players.length} dieux
           </span>
           <motion.button
             className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-display font-semibold border border-destructive/40 text-destructive transition-all"
@@ -237,44 +252,100 @@ const Index = () => {
             whileTap={{ scale: 0.95 }}
             onClick={resetGame}
           >
-            Quitter la partie
+            Quitter
           </motion.button>
         </div>
       </header>
 
-      <div className="flex-1 min-h-0 relative">
-        <GameBoard
-          gameState={gameState}
-          currentPlayerIndex={currentPlayerIndex}
-          onMortalClick={isMortalTargeting ? handleTargetMortalClick : undefined}
-        />
-        <GameLog entries={gameState.log} />
-      </div>
+      {/* Main split layout */}
+      <div className="flex-1 flex min-h-0">
+        {/* LEFT: Own board */}
+        <div
+          className="w-1/2 flex flex-col border-r"
+          style={{
+            borderColor: 'hsl(var(--border) / 0.3)',
+            background: 'linear-gradient(180deg, hsl(40 15% 92% / 0.08) 0%, hsl(var(--background)) 100%)',
+          }}
+        >
+          <OwnPlayerBoard
+            player={currentPlayer}
+            gameState={gameState}
+            interactionMode={interactionMode}
+            onMortalClick={handleMortalClick}
+            onCardClick={handleCardClick}
+            onDiscardReaction={handleDiscardReaction}
+            onTargetMortalClick={isMortalTargeting ? (mortalId: string) => handleTargetMortalClick(currentPlayer.id, mortalId) : undefined}
+          />
 
-      <div className="border-t border-border/30 px-3 py-1 space-y-1 relative z-[100]" style={{ background: `linear-gradient(180deg, hsl(var(--card) / 0.5), hsl(var(--background)))` }}>
-        <ActionBar
-          gameState={gameState}
-          interactionMode={interactionMode}
-          onEndTurn={handleEndTurn}
-          onToggleMetamorphose={toggleMetamorphoseMode}
-          onToggleSpell={toggleSpellMode}
-          onToggleActivate={toggleActivateMode}
-        />
-        <CurrentPlayerHand
-          player={currentPlayer}
-          gameState={gameState}
-          interactionMode={interactionMode}
-          onMortalClick={handleMortalClick}
-          onCardClick={handleCardClick}
-          onDiscardReaction={handleDiscardReaction}
-          onTargetMortalClick={isMortalTargeting ? (mortalId: string) => handleTargetMortalClick(currentPlayer.id, mortalId) : undefined}
-        />
+          {/* Action bar at bottom-left */}
+          <div className="px-3 py-2 border-t shrink-0" style={{ borderColor: 'hsl(var(--border) / 0.3)' }}>
+            <ActionBar
+              gameState={gameState}
+              interactionMode={interactionMode}
+              onEndTurn={handleEndTurn}
+              onToggleMetamorphose={toggleMetamorphoseMode}
+              onToggleSpell={toggleSpellMode}
+              onToggleActivate={toggleActivateMode}
+            />
+          </div>
+        </div>
+
+        {/* RIGHT: Opponents */}
+        <div className="w-1/2 flex flex-col min-h-0 relative">
+          <GameLog entries={gameState.log} />
+
+          {isOwnTurn || !activeEnemy ? (
+            /* Our turn: all enemies share space equally */
+            <div className="flex-1 flex flex-wrap gap-2 p-2 overflow-auto content-start">
+              {opponents.map(({ player, index: playerIndex }) => (
+                <PlayerPanel
+                  key={player.id}
+                  player={player}
+                  gameState={gameState}
+                  isActive={playerIndex === gameState.activePlayerIndex}
+                  index={playerIndex}
+                  compact={opponents.length >= 3}
+                  onMortalClick={isMortalTargeting ? (mortalId: string) => handleTargetMortalClick(player.id, mortalId) : undefined}
+                />
+              ))}
+            </div>
+          ) : (
+            /* Enemy turn: active enemy expanded + others compact at bottom */
+            <div className="flex-1 flex flex-col min-h-0">
+              {/* Active enemy — expanded */}
+              <div className="flex-1 p-2 overflow-auto">
+                <PlayerPanel
+                  key={activeEnemy.player.id}
+                  player={activeEnemy.player}
+                  gameState={gameState}
+                  isActive={true}
+                  index={activeEnemy.index}
+                  compact={false}
+                  onMortalClick={isMortalTargeting ? (mortalId: string) => handleTargetMortalClick(activeEnemy.player.id, mortalId) : undefined}
+                />
+              </div>
+
+              {/* Other enemies — compact at bottom */}
+              {otherEnemies.length > 0 && (
+                <div className="flex flex-wrap gap-2 p-2 border-t shrink-0" style={{ borderColor: 'hsl(var(--border) / 0.3)' }}>
+                  {otherEnemies.map(({ player, index: playerIndex }) => (
+                    <OpponentMini
+                      key={player.id}
+                      player={player}
+                      gameState={gameState}
+                      playerIndex={playerIndex}
+                      onMortalClick={isMortalTargeting ? (mortalId: string) => handleTargetMortalClick(player.id, mortalId) : undefined}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Victory modal */}
-      {winners.length > 0 && (
-        <VictoryModal winners={winners} onClose={resetGame} />
-      )}
+      {winners.length > 0 && <VictoryModal winners={winners} onClose={resetGame} />}
 
       {/* Discard modal */}
       {discardRequired && currentPlayer.hand.length > 2 && (
@@ -298,7 +369,7 @@ const Index = () => {
         />
       )}
 
-      {/* Choice panel for multi-option effects */}
+      {/* Choice panel */}
       {pendingEffect && pendingEffect.type === 'choice' && pendingEffect.choices && (
         <div className="fixed bottom-24 right-4 z-[99999] flex flex-col gap-2 p-4 rounded-xl border border-border/50"
           style={{ background: 'hsl(270 30% 15% / 0.95)', backdropFilter: 'blur(8px)' }}>
@@ -320,7 +391,7 @@ const Index = () => {
         </div>
       )}
 
-      {/* Targeting modal for non-mortal-targeting, non-choice effects */}
+      {/* Targeting modal */}
       {pendingEffect && isModalEffect && pendingEffect.type !== 'choice' && (
         <TargetingModal
           effect={pendingEffect}
@@ -332,6 +403,8 @@ const Index = () => {
           onPayDrawDiscard={resolvePayDrawDiscard}
           onInitiatePayDraw={initiatePayDraw}
           onReactionDiscard={resolveReactionDiscard}
+          onGlane={resolveGlane}
+          onSelectGod={resolveSelectGod}
         />
       )}
 
@@ -348,5 +421,93 @@ const Index = () => {
     </div>
   );
 };
+
+// === Compact opponent mini-panel (expandable on hover) ===
+import { Player as PlayerType, GameState as GameStateType, DIVINITIES as DIV } from '@/types/game';
+import EtherCounter from '@/components/game/EtherCounter';
+import MortalGrid from '@/components/game/MortalGrid';
+import { RefreshCw, Shield } from 'lucide-react';
+
+function OpponentMini({
+  player,
+  gameState,
+  playerIndex,
+  onMortalClick,
+}: {
+  player: PlayerType;
+  gameState: GameStateType;
+  playerIndex: number;
+  onMortalClick?: (mortalId: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const divinity = DIV[player.divinity];
+
+  return (
+    <motion.div
+      className="relative rounded-lg overflow-hidden border border-border/30 transition-all"
+      style={{
+        background: `linear-gradient(135deg, hsl(var(--card) / 0.95), hsl(var(--secondary) / 0.9))`,
+        flex: expanded ? '1 1 100%' : '1 1 30%',
+        minWidth: expanded ? '100%' : '140px',
+        maxWidth: expanded ? '100%' : '200px',
+      }}
+      onMouseEnter={() => setExpanded(true)}
+      onMouseLeave={() => setExpanded(false)}
+      layout
+    >
+      {/* Compact view */}
+      <div className="flex items-center gap-2 p-2">
+        <div
+          className="w-6 h-6 rounded-full overflow-hidden border shrink-0"
+          style={{ borderColor: `hsl(${divinity.color})` }}
+        >
+          {divinity.image ? (
+            <img src={divinity.image} alt={divinity.name} className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-xs font-bold">{player.avatar}</span>
+          )}
+        </div>
+        <span className="font-display text-sm font-bold text-foreground truncate">{player.name}</span>
+        <span className="text-xs text-ether font-bold ml-auto">{player.ether}⚡</span>
+        <span className="text-xs text-muted-foreground">{player.metamorphosedCount}/10</span>
+      </div>
+
+      {/* Expanded view */}
+      {expanded && (
+        <motion.div
+          className="p-2 pt-0"
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+        >
+          <div className="flex items-center gap-2 mb-2 text-xs">
+            <div className="flex items-center gap-1">
+              {[0, 1].map((slot) => (
+                <div
+                  key={slot}
+                  className="w-4 h-6 rounded-sm border"
+                  style={
+                    slot < player.reactions.length
+                      ? { background: 'linear-gradient(135deg, hsl(var(--reaction)), hsl(var(--reaction) / 0.7))', border: '1px solid hsl(var(--reaction) / 0.8)' }
+                      : { background: 'hsl(var(--secondary) / 0.4)', border: '1px dashed hsl(var(--reaction) / 0.3)' }
+                  }
+                />
+              ))}
+            </div>
+            <span className="text-muted-foreground">{player.hand.length} cartes</span>
+          </div>
+          <MortalGrid
+            mortals={player.mortals}
+            owner={player}
+            gameState={gameState}
+            tokenSize={48}
+            targetingMode={!!onMortalClick}
+            onMortalClick={onMortalClick}
+          />
+        </motion.div>
+      )}
+    </motion.div>
+  );
+}
 
 export default Index;

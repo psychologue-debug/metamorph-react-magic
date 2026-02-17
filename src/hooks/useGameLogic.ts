@@ -566,6 +566,21 @@ export function useGameLogic() {
           toast.error('Aucun de vos mortels n\'est incapacité');
           return prev;
         }
+      } else if (card.name === 'Glane') {
+        if (prev.discardPile.length === 0) {
+          toast.error('La défausse est vide');
+          return prev;
+        }
+      } else if (card.name === 'Katadesmos') {
+        if (prev.players.length <= 1) {
+          toast.error('Aucun dieu ennemi à cibler');
+          return prev;
+        }
+      } else if (card.name === 'Sommeil') {
+        if (prev.players.length <= 1) {
+          toast.error('Aucun dieu ennemi à cibler');
+          return prev;
+        }
       }
       let updatedPlayers = prev.players.map((p, i) => {
         if (i !== prev.activePlayerIndex) return p;
@@ -647,6 +662,108 @@ export function useGameLogic() {
           maxTargets: 1,
           healOwnOnly: true,
         });
+      } else if (card.name === 'Glane') {
+        setPendingEffect({
+          effectId: crypto.randomUUID(),
+          type: 'select_from_discard',
+          sourcePlayerIndex: prev.activePlayerIndex,
+          sourceMortalCode: 'SPELL-GLANE',
+          sourceMortalName: 'Glane',
+          description: 'Prenez une carte de la défausse et mettez-la dans votre main.',
+          maxTargets: 1,
+        });
+      } else if (card.name === 'Katadesmos') {
+        setPendingEffect({
+          effectId: crypto.randomUUID(),
+          type: 'select_enemy_god',
+          sourcePlayerIndex: prev.activePlayerIndex,
+          sourceMortalCode: 'SPELL-KATADESMOS',
+          sourceMortalName: 'Katadesmos',
+          description: 'Le dieu ennemi désigné ne pourra en aucune façon métamorphoser ses mortels jusqu\'à la fin de son prochain tour.',
+          maxTargets: 1,
+        });
+      } else if (card.name === 'Sommeil') {
+        setPendingEffect({
+          effectId: crypto.randomUUID(),
+          type: 'select_enemy_god',
+          sourcePlayerIndex: prev.activePlayerIndex,
+          sourceMortalCode: 'SPELL-SOMMEIL',
+          sourceMortalName: 'Sommeil',
+          description: 'Le dieu ennemi désigné sautera son prochain tour.',
+          maxTargets: 1,
+        });
+      } else if (card.name === 'Manne') {
+        setPendingEffect({
+          effectId: crypto.randomUUID(),
+          type: 'pay_draw_discard',
+          sourcePlayerIndex: prev.activePlayerIndex,
+          sourceMortalCode: 'SPELL-MANNE',
+          sourceMortalName: 'Manne',
+          description: 'Piochez 4 cartes et défaussez-en 2.',
+          maxTargets: 0,
+          etherCostToActivate: 0,
+          drawCards: 4,
+          discardCards: 2,
+          includeReactions: true,
+        });
+      } else if (card.name === 'Turbulence') {
+        const allReactions = prev.players.flatMap(p => p.reactions);
+        updatedPlayers = updatedPlayers.map(p => ({ ...p, reactions: [] }));
+        return {
+          ...prev,
+          players: updatedPlayers,
+          reactionsBlocked,
+          discardPile: [card, ...allReactions, ...prev.discardPile],
+          log: [{
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: player.name,
+            action: 'Sort joué',
+            detail: `a joué Turbulence (coût: ${effectiveCardCost} Éther) — Toutes les réactions posées ont été défaussées (${allReactions.length} cartes)`,
+          }, ...prev.log],
+        };
+      } else if (card.name === 'Métabolisme') {
+        const newDiscard = [...prev.discardPile];
+        const anaIdx = newDiscard.findIndex(c => c.name === 'Anabolisme');
+        const cataIdx = newDiscard.findIndex(c => c.name === 'Catabolisme');
+        if (anaIdx === -1 || cataIdx === -1) return prev;
+        const toRemove = [anaIdx, cataIdx].sort((a, b) => b - a);
+        const taken: SpellCard[] = [];
+        for (const idx of toRemove) {
+          taken.push(newDiscard.splice(idx, 1)[0]);
+        }
+        updatedPlayers = updatedPlayers.map((p, i) =>
+          i === prev.activePlayerIndex ? { ...p, hand: [...p.hand, ...taken] } : p
+        );
+        return {
+          ...prev,
+          players: updatedPlayers,
+          reactionsBlocked,
+          discardPile: [card, ...newDiscard],
+          log: [{
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: player.name,
+            action: 'Sort joué',
+            detail: `a joué Métabolisme (coût: ${effectiveCardCost} Éther) — A récupéré un Anabolisme et un Catabolisme de la défausse`,
+          }, ...prev.log],
+        };
+      } else if (card.name === 'Éon') {
+        const newCycleStart = (prev.activePlayerIndex + 1) % prev.players.length;
+        return {
+          ...prev,
+          players: updatedPlayers,
+          reactionsBlocked,
+          cycleStartPlayerIndex: newCycleStart,
+          discardPile: [card, ...prev.discardPile],
+          log: [{
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: player.name,
+            action: 'Sort joué',
+            detail: `a joué Éon (coût: ${effectiveCardCost} Éther) — Le cycle se terminera désormais à la fin du tour de ${player.name}`,
+          }, ...prev.log],
+        };
       }
 
       return {
@@ -1488,6 +1605,80 @@ export function useGameLogic() {
     setPendingEffect(null);
   }, [pendingEffect]);
 
+  // === Glane: take a card from discard pile ===
+  const resolveGlane = useCallback((cardId: string) => {
+    if (!pendingEffect) return;
+    setGameState(prev => {
+      if (!prev) return prev;
+      const pi = pendingEffect.sourcePlayerIndex;
+      const cardIdx = prev.discardPile.findIndex(c => c.id === cardId);
+      if (cardIdx === -1) return prev;
+      const card = prev.discardPile[cardIdx];
+      const newDiscard = prev.discardPile.filter((_, i) => i !== cardIdx);
+      const updatedPlayers = prev.players.map((p, i) =>
+        i === pi ? { ...p, hand: [...p.hand, card] } : p
+      );
+      return {
+        ...prev,
+        players: updatedPlayers,
+        discardPile: newDiscard,
+        log: [{
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          playerName: prev.players[pi].name,
+          action: 'Glane',
+          detail: `a récupéré ${card.name} de la défausse`,
+        }, ...prev.log],
+      };
+    });
+    setPendingEffect(null);
+  }, [pendingEffect]);
+
+  // === Select enemy god (Katadesmos / Sommeil) ===
+  const resolveSelectGod = useCallback((targetPlayerId: string) => {
+    if (!pendingEffect) return;
+    setGameState(prev => {
+      if (!prev) return prev;
+      const targetPlayer = prev.players.find(p => p.id === targetPlayerId);
+      const sourceName = prev.players[pendingEffect.sourcePlayerIndex]?.name || 'Système';
+
+      if (pendingEffect.sourceMortalCode === 'SPELL-KATADESMOS') {
+        const updatedPlayers = prev.players.map(p =>
+          p.id === targetPlayerId ? { ...p, cannotMetamorphose: true } : p
+        );
+        return {
+          ...prev,
+          players: updatedPlayers,
+          log: [{
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: sourceName,
+            action: 'Katadesmos',
+            detail: `a maudit ${targetPlayer?.name} — Métamorphose interdite jusqu'à la fin de son prochain tour`,
+          }, ...prev.log],
+        };
+      }
+      if (pendingEffect.sourceMortalCode === 'SPELL-SOMMEIL') {
+        const updatedPlayers = prev.players.map(p =>
+          p.id === targetPlayerId ? { ...p, skipNextTurn: true } : p
+        );
+        return {
+          ...prev,
+          players: updatedPlayers,
+          log: [{
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: sourceName,
+            action: 'Sommeil',
+            detail: `a endormi ${targetPlayer?.name} — Tour sauté`,
+          }, ...prev.log],
+        };
+      }
+      return prev;
+    });
+    setPendingEffect(null);
+  }, [pendingEffect]);
+
   // === Reaction Window Handlers ===
   const handleReactionReady = useCallback((playerId: string) => {
     setReactionWindow(prev => {
@@ -1687,6 +1878,8 @@ export function useGameLogic() {
     resolvePayDrawDiscard,
     initiatePayDraw,
     resolveReactionDiscard,
+    resolveGlane,
+    resolveSelectGod,
     handleReactionReady,
     handleReactionPass,
     handleReactionActivate,

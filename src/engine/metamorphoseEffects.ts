@@ -18,6 +18,8 @@ export type EffectTargetType =
   | 'discard_cards_then_effect'    // Discard N cards (hand+reactions) then chain effect
   | 'pay_draw_discard'             // Pay ether, draw cards, discard cards
   | 'discard_own_reaction_then_enemy' // Discard own reaction, then enemy discards one
+  | 'select_from_discard'          // Select a card from the discard pile
+  | 'select_enemy_god'             // Select an enemy god for a targeted effect
   | 'none';                        // No targeting needed / no effect
 
 export interface PendingEffect {

@@ -35,23 +35,6 @@ const ActionBar = ({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
     >
-      {/* Turn info */}
-      <div className="flex items-center gap-2 pr-3 border-r border-border/50">
-        <span className="text-base font-display text-muted-foreground uppercase tracking-wider">Tour de</span>
-        <span className="text-lg font-display font-bold text-foreground">{activePlayer.name}</span>
-      </div>
-
-      {/* Mode indicator */}
-      {interactionMode !== 'idle' && (
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-base font-display font-semibold"
-          style={{ background: 'hsl(var(--divine) / 0.15)', color: 'hsl(var(--divine))' }}
-        >
-          {isMetaMode ? '🎯 Choisissez un mortel à métamorphoser'
-            : isActivateMode ? '⚡ Cliquez un mortel métamorphosé pour activer son effet'
-            : '🃏 Choisissez un sort à jouer'}
-        </div>
-      )}
-
       {/* Action buttons */}
       <motion.button
         className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-base font-display font-semibold transition-all ${

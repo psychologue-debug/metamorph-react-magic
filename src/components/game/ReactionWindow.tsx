@@ -78,16 +78,15 @@ const ReactionWindow = ({
 
   if (!currentReactor) return null;
 
-  // Trigger description
+  // Trigger description — use effectDescription directly when available to avoid duplication
   const triggerDesc = (() => {
+    if (reactionWindow.trigger.effectDescription) {
+      return reactionWindow.trigger.effectDescription;
+    }
     const source = gameState.players.find(p => p.id === reactionWindow.trigger.sourcePlayerId);
     if (reactionWindow.trigger.type === 'metamorphose') {
       const mortal = source?.mortals.find(m => m.id === reactionWindow.trigger.targetMortalId);
-      let desc = `${source?.name} a métamorphosé ${mortal?.nameVerso || 'un mortel'}`;
-      if (reactionWindow.trigger.effectDescription) {
-        desc += `. ${reactionWindow.trigger.effectDescription}`;
-      }
-      return desc;
+      return `${source?.name} a métamorphosé ${mortal?.nameVerso || 'un mortel'}`;
     }
     if (reactionWindow.trigger.cardName) {
       return `${source?.name} a joué ${reactionWindow.trigger.cardName}`;
