@@ -126,6 +126,7 @@ export function useGameLogic() {
             metamorphosesThisTurn: 0,
             maxMetamorphosesThisTurn: 1,
             cannotMetamorphose: false,
+            skipNextTurn: false,
           };
         }
         return p;
@@ -507,10 +508,21 @@ export function useGameLogic() {
       const card = player.hand.find((c) => c.id === cardId);
       if (!card) return prev;
 
-      // If it's a reaction card, show dialog instead of directly placing
+      // Reaction cards are placed face down directly
       if (card.type === 'reaction') {
-        setPendingReactionCard(card);
-        return prev;
+        if (player.reactions.length >= 2) {
+          toast.error('Maximum 2 réactions posées');
+          return prev;
+        }
+        const updPlayers = prev.players.map((pp, ii) => {
+          if (ii !== prev.activePlayerIndex) return pp;
+          return { ...pp, hand: pp.hand.filter(c => c.id !== cardId), reactions: [...pp.reactions, card] };
+        });
+        return {
+          ...prev,
+          players: updPlayers,
+          log: [{ id: crypto.randomUUID(), timestamp: Date.now(), playerName: player.name, action: 'Réaction posée', detail: `a posé une réaction face cachée` }, ...prev.log],
+        };
       }
 
       // Check cost (with modifiers)
@@ -1634,7 +1646,7 @@ export function useGameLogic() {
     setPendingEffect(null);
   }, [pendingEffect]);
 
-  // === Select enemy god (Katadesmos / Sommeil) ===
+  // === Select enemy god (Katadesmos / Sommeil / Mortal effects) ===
   const resolveSelectGod = useCallback((targetPlayerId: string) => {
     if (!pendingEffect) return;
     setGameState(prev => {
@@ -1671,6 +1683,50 @@ export function useGameLogic() {
             playerName: sourceName,
             action: 'Sommeil',
             detail: `a endormi ${targetPlayer?.name} — Tour sauté`,
+          }, ...prev.log],
+        };
+      }
+      // APO-01 (Mydas Âne) / CER-09 (Pivert): target god can't draw
+      if (pendingEffect.sourceMortalCode === 'APO-01' || pendingEffect.sourceMortalCode === 'CER-09') {
+        const updatedPlayers = prev.players.map(p =>
+          p.id === targetPlayerId ? { ...p, cannotDraw: true } : p
+        );
+        return {
+          ...prev,
+          players: updatedPlayers,
+          log: [{
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: sourceName,
+            action: pendingEffect.sourceMortalName,
+            detail: `${targetPlayer?.name} ne pourra pas piocher lors de son prochain tour`,
+          }, ...prev.log],
+        };
+      }
+      // DIA-03 (Atalante/Lion): target god loses 2 ether + discards 2 cards
+      if (pendingEffect.sourceMortalCode === 'DIA-03') {
+        const tp = prev.players.find(p => p.id === targetPlayerId);
+        if (!tp) return prev;
+        const discardCount = Math.min(2, tp.hand.length);
+        const discardedCards = discardCount > 0 ? tp.hand.slice(-discardCount) : [];
+        const updatedPlayers = prev.players.map(p => {
+          if (p.id !== targetPlayerId) return p;
+          return {
+            ...p,
+            ether: Math.max(0, p.ether - 2),
+            hand: discardCount > 0 ? p.hand.slice(0, -discardCount) : p.hand,
+          };
+        });
+        return {
+          ...prev,
+          players: updatedPlayers,
+          discardPile: [...discardedCards, ...prev.discardPile],
+          log: [{
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: sourceName,
+            action: pendingEffect.sourceMortalName,
+            detail: `${tp.name} perd 2 Éther et défausse ${discardedCards.length} carte(s)`,
           }, ...prev.log],
         };
       }

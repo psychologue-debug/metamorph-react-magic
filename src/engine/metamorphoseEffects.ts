@@ -516,6 +516,151 @@ export function getMetamorphoseEffect(
       };
     }
 
+    // APO-01 (Mydas Âne): Target god can't draw next turn
+    case 'APO-01':
+      return {
+        effectId: crypto.randomUUID(),
+        type: 'select_enemy_god',
+        sourcePlayerIndex: playerIndex,
+        sourceMortalCode: mortal.code,
+        sourceMortalName: mortal.nameVerso,
+        description: 'Le dieu ennemi désigné ne pourra en aucune façon piocher lors de son prochain tour.',
+        maxTargets: 1,
+      };
+
+    // APO-02 (Memnonides): Discard up to 2 cards to incapacitate up to 2 enemy mortals
+    case 'APO-02': {
+      const hasCards = player.hand.length + player.reactions.length > 0;
+      const hasIncapTarget = gameState.players.some((p, i) =>
+        i !== playerIndex && p.mortals.some(m => canBeIncapacitated(m, p, gameState))
+      );
+      if (!hasCards || !hasIncapTarget) {
+        return {
+          effectId: crypto.randomUUID(),
+          type: 'none',
+          sourcePlayerIndex: playerIndex,
+          sourceMortalCode: mortal.code,
+          sourceMortalName: mortal.nameVerso,
+          description: 'Défaussez jusqu\'à 2 cartes pour incapaciter jusqu\'à 2 mortels ennemis.',
+          maxTargets: 0,
+          conditionNotMet: !hasCards ? 'Aucune carte à défausser !' : 'Aucune cible possible !',
+          optional: true,
+        };
+      }
+      const maxDiscard = Math.min(2, player.hand.length + player.reactions.length);
+      const choices: PendingEffect['choices'] = [];
+      choices.push({
+        label: 'Ne rien défausser',
+        effect: { effectId: crypto.randomUUID(), type: 'none', sourcePlayerIndex: playerIndex, sourceMortalCode: mortal.code, sourceMortalName: mortal.nameVerso, description: 'Pas d\'effet.', maxTargets: 0 },
+      });
+      if (maxDiscard >= 1) {
+        choices.push({
+          label: 'Défausser 1 → Incapaciter 1',
+          effect: { effectId: crypto.randomUUID(), type: 'discard_cards_then_effect', sourcePlayerIndex: playerIndex, sourceMortalCode: mortal.code, sourceMortalName: mortal.nameVerso, description: 'Défaussez 1 carte.', maxTargets: 0, cardsToDiscard: 1, includeReactions: true, thenEffect: { effectId: crypto.randomUUID(), type: 'enemy_mortal_incapacitate', sourcePlayerIndex: playerIndex, sourceMortalCode: mortal.code, sourceMortalName: mortal.nameVerso, description: 'Incapacitez 1 mortel ennemi.', maxTargets: 1 } },
+        });
+      }
+      if (maxDiscard >= 2) {
+        choices.push({
+          label: 'Défausser 2 → Incapaciter 2',
+          effect: { effectId: crypto.randomUUID(), type: 'discard_cards_then_effect', sourcePlayerIndex: playerIndex, sourceMortalCode: mortal.code, sourceMortalName: mortal.nameVerso, description: 'Défaussez 2 cartes.', maxTargets: 0, cardsToDiscard: 2, includeReactions: true, thenEffect: { effectId: crypto.randomUUID(), type: 'enemy_mortal_incapacitate', sourcePlayerIndex: playerIndex, sourceMortalCode: mortal.code, sourceMortalName: mortal.nameVerso, description: 'Incapacitez jusqu\'à 2 mortels ennemis.', maxTargets: 2, optional: true } },
+        });
+      }
+      return { effectId: crypto.randomUUID(), type: 'choice', sourcePlayerIndex: playerIndex, sourceMortalCode: mortal.code, sourceMortalName: mortal.nameVerso, description: 'Défaussez jusqu\'à 2 cartes pour incapaciter autant de mortels ennemis.', maxTargets: 0, choices, optional: true };
+    }
+
+    // BAC-02 (Dauphins): TODO - Extra metamorphose at +6 cost (needs custom mechanic)
+
+    // CER-03 (Hiboux): Draw 2, discard 1
+    case 'CER-03':
+      return {
+        effectId: crypto.randomUUID(),
+        type: 'pay_draw_discard',
+        sourcePlayerIndex: playerIndex,
+        sourceMortalCode: mortal.code,
+        sourceMortalName: mortal.nameVerso,
+        description: 'Piochez 2 cartes puis défaussez 1 carte.',
+        maxTargets: 0,
+        drawCards: 2,
+        discardCards: 1,
+      };
+
+    // CER-09 (Pivert): Target god can't draw
+    case 'CER-09':
+      return {
+        effectId: crypto.randomUUID(),
+        type: 'select_enemy_god',
+        sourcePlayerIndex: playerIndex,
+        sourceMortalCode: mortal.code,
+        sourceMortalName: mortal.nameVerso,
+        description: 'Le dieu ennemi désigné ne piochera pas au début de son prochain tour.',
+        maxTargets: 1,
+      };
+
+    // DIA-03 (Atalante/Lion): Target god discards 2 cards + loses 2 ether
+    case 'DIA-03':
+      return {
+        effectId: crypto.randomUUID(),
+        type: 'select_enemy_god',
+        sourcePlayerIndex: playerIndex,
+        sourceMortalCode: mortal.code,
+        sourceMortalName: mortal.nameVerso,
+        description: 'Un dieu ennemi défausse 2 cartes et perd 2 Éther.',
+        maxTargets: 1,
+      };
+
+    // DIA-06 (Hermaphrodite): TODO - Play spell at -10 cost (needs custom spell mode)
+
+    // CER-05 (Monstre de Gila): TODO - Pay multiple of 3 (needs custom counter UI)
+
+    // BAC-03 (Mouettes): TODO - Steal 3 ether total + steal card (needs custom steal mechanic)
+
+    // MIN-01 (Grenouilles): All enemies discard 1 (or 2 if not first + gain ether)
+    case 'MIN-01': {
+      const isNotFirst = player.metamorphosesThisTurn > 1;
+      const cardsPerEnemy = isNotFirst ? 2 : 1;
+      return {
+        effectId: crypto.randomUUID(),
+        type: 'none',
+        sourcePlayerIndex: playerIndex,
+        sourceMortalCode: mortal.code,
+        sourceMortalName: mortal.nameVerso,
+        description: isNotFirst
+          ? 'Chaque dieu ennemi se défausse de 2 cartes. Vous gagnez autant d\'Éther que de cartes défaussées.'
+          : 'Chaque dieu ennemi se défausse d\'une carte.',
+        maxTargets: 0,
+      };
+    }
+
+    // MIN-08 (Ours): If not first metamorphose this turn, remove a metamorphosed mortal from game
+    case 'MIN-08': {
+      const isNotFirst8 = player.metamorphosesThisTurn > 1;
+      if (!isNotFirst8) return null;
+      const hasRemoveTarget8 = gameState.players.some(p =>
+        p.mortals.some(m => m.isMetamorphosed && canBeRemovedFromGame(m, p, gameState))
+      );
+      if (!hasRemoveTarget8) {
+        return {
+          effectId: crypto.randomUUID(),
+          type: 'none',
+          sourcePlayerIndex: playerIndex,
+          sourceMortalCode: mortal.code,
+          sourceMortalName: mortal.nameVerso,
+          description: 'Retirez du jeu un mortel métamorphosé.',
+          maxTargets: 1,
+          conditionNotMet: 'Aucune cible possible !',
+        };
+      }
+      return {
+        effectId: crypto.randomUUID(),
+        type: 'enemy_mortal_remove',
+        sourcePlayerIndex: playerIndex,
+        sourceMortalCode: mortal.code,
+        sourceMortalName: mortal.nameVerso,
+        description: 'Retirez du jeu un mortel métamorphosé.',
+        maxTargets: 1,
+      };
+    }
+
     default:
       return null;
   }

@@ -24,6 +24,7 @@ const ActionBar = ({
   const isMetaMode = interactionMode === 'metamorphosing';
   const isSpellMode = interactionMode === 'playing_spell';
   const isActivateMode = interactionMode === 'activating_effect';
+  const isSleeping = activePlayer.skipNextTurn;
 
   return (
     <motion.div
@@ -35,20 +36,25 @@ const ActionBar = ({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
     >
-      {/* Action buttons */}
+      {isSleeping && (
+        <div className="flex items-center gap-2 px-4 py-2 rounded-lg text-base font-display font-bold" style={{ background: 'hsl(260 40% 20%)', color: 'hsl(260 70% 80%)', border: '1px solid hsl(260 50% 40%)' }}>
+          💤 Tour sauté (Sommeil)
+        </div>
+      )}
+
       <motion.button
         className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-base font-display font-semibold transition-all ${
           isMetaMode ? 'ring-2 ring-ether' : ''
-        }`}
+        } ${isSleeping ? 'opacity-30 pointer-events-none' : ''}`}
         style={{
           background: isMetaMode
             ? `linear-gradient(135deg, hsl(var(--ether)), hsl(var(--ether-dim)))`
             : `linear-gradient(135deg, hsl(var(--ether) / 0.8), hsl(var(--ether-dim) / 0.8))`,
           color: 'hsl(var(--primary-foreground))',
         }}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={onToggleMetamorphose}
+        whileHover={isSleeping ? {} : { scale: 1.05 }}
+        whileTap={isSleeping ? {} : { scale: 0.95 }}
+        onClick={isSleeping ? undefined : onToggleMetamorphose}
       >
         {isMetaMode ? <X className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
         {isMetaMode ? 'Annuler' : 'Métamorphoser'}
@@ -57,11 +63,11 @@ const ActionBar = ({
       <motion.button
         className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-base font-display font-semibold border border-divine/30 text-foreground transition-all ${
           isSpellMode ? 'ring-2 ring-divine' : ''
-        }`}
+        } ${isSleeping ? 'opacity-30 pointer-events-none' : ''}`}
         style={{ background: isSpellMode ? 'hsl(var(--divine) / 0.2)' : 'hsl(var(--divine) / 0.1)' }}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={onToggleSpell}
+        whileHover={isSleeping ? {} : { scale: 1.05 }}
+        whileTap={isSleeping ? {} : { scale: 0.95 }}
+        onClick={isSleeping ? undefined : onToggleSpell}
       >
         {isSpellMode ? <X className="w-5 h-5 text-divine" /> : <Hand className="w-5 h-5 text-divine" />}
         {isSpellMode ? 'Annuler' : 'Jouer un Sort'}
@@ -70,11 +76,11 @@ const ActionBar = ({
       <motion.button
         className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-base font-display font-semibold border border-amber-500/30 text-foreground transition-all ${
           isActivateMode ? 'ring-2 ring-amber-500' : ''
-        }`}
+        } ${isSleeping ? 'opacity-30 pointer-events-none' : ''}`}
         style={{ background: isActivateMode ? 'hsl(30 60% 20% / 0.4)' : 'hsl(30 60% 20% / 0.15)' }}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={onToggleActivate}
+        whileHover={isSleeping ? {} : { scale: 1.05 }}
+        whileTap={isSleeping ? {} : { scale: 0.95 }}
+        onClick={isSleeping ? undefined : onToggleActivate}
       >
         {isActivateMode ? <X className="w-5 h-5 text-amber-400" /> : <Flame className="w-5 h-5 text-amber-400" />}
         {isActivateMode ? 'Annuler' : 'Activer un Effet'}
