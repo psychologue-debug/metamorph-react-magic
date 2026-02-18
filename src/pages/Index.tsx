@@ -8,7 +8,7 @@ import ActionBar from '@/components/game/ActionBar';
 import GameLog from '@/components/game/GameLog';
 import VictoryModal from '@/components/game/VictoryModal';
 import DiscardModal from '@/components/game/DiscardModal';
-import ReactionDialog from '@/components/game/ReactionDialog';
+// ReactionDialog removed — reactions are now placed face down directly
 import GodSelectionScreen from '@/components/game/GodSelectionScreen';
 import TargetingModal from '@/components/game/TargetingModal';
 import ReactionWindow from '@/components/game/ReactionWindow';
@@ -357,17 +357,7 @@ const Index = () => {
         />
       )}
 
-      {/* Reaction dialog */}
-      {pendingReactionCard && (
-        <ReactionDialog
-          card={pendingReactionCard}
-          player={currentPlayer}
-          gameState={gameState}
-          onPlay={handleReactionPlay}
-          onPlaceFaceDown={handleReactionPlaceFaceDown}
-          onCancel={cancelReactionDialog}
-        />
-      )}
+      {/* Reaction dialog removed — reactions auto-place face down */}
 
       {/* Choice panel */}
       {pendingEffect && pendingEffect.type === 'choice' && pendingEffect.choices && (
