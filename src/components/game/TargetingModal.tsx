@@ -411,16 +411,21 @@ function EtherDestroyContent({
           ))}
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex items-center justify-end gap-3">
+          {remaining > 0 && (
+            <span className="text-sm text-muted-foreground font-display">
+              Encore {remaining} à répartir
+            </span>
+          )}
           <motion.button
             className="px-6 py-2 rounded-lg font-display font-semibold text-sm"
             style={{
-              background: remaining === 0
+              background: totalDestroyed > 0
                 ? 'linear-gradient(135deg, hsl(var(--ether)), hsl(var(--ether-dim)))'
                 : 'hsl(var(--muted))',
-              color: remaining === 0 ? 'white' : 'hsl(var(--muted-foreground))',
+              color: totalDestroyed > 0 ? 'white' : 'hsl(var(--muted-foreground))',
             }}
-            whileHover={remaining === 0 ? { scale: 1.05 } : {}}
+            whileHover={totalDestroyed > 0 ? { scale: 1.05 } : {}}
             onClick={() => {
               const etherDestroyed = Object.entries(destroyed)
                 .filter(([_, amount]) => amount > 0)
@@ -432,9 +437,8 @@ function EtherDestroyContent({
                 etherDestroyed,
               });
             }}
-            disabled={remaining > 0}
           >
-            {remaining === 0 ? 'Confirmer' : `Encore ${remaining} à répartir`}
+            Détruire{totalDestroyed > 0 ? ` (${totalDestroyed})` : ''}
           </motion.button>
         </div>
       </div>
