@@ -1352,6 +1352,9 @@ export function useGameLogic() {
         setReactionWindow({
           trigger: {
             ...trigger,
+            type: 'mortal_effect',
+            targetPlayerId: playerId,
+            targetMortalId: mortalId,
             effectDescription: `${pendingEffect.sourceMortalName} va ${actionLabel} ${targetMortal?.nameVerso || targetMortal?.nameRecto || 'un mortel'} de ${targetPlayer?.name || 'un joueur'}`,
           },
           reactorQueue: reactors,
