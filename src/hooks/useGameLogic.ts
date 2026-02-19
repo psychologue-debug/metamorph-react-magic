@@ -265,6 +265,22 @@ export function useGameLogic() {
     }
   }, [discardRequired, handleEndTurn]);
 
+  // === Sommeil auto-skip: when active player has skipNextTurn, auto-end after delay ===
+  useEffect(() => {
+    if (!gameState) return;
+    const activePlayer = gameState.players[gameState.activePlayerIndex];
+    if (!activePlayer?.skipNextTurn) return;
+    // Don't auto-skip if there's a pending discard (hand > 2)
+    if (activePlayer.hand.length > 2) {
+      setDiscardRequired(true);
+      return;
+    }
+    const timer = setTimeout(() => {
+      handleEndTurn();
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [gameState?.activePlayerIndex, gameState?.players[gameState?.activePlayerIndex ?? 0]?.skipNextTurn, handleEndTurn]);
+
   const handleMortalClick = useCallback((mortalId: string) => {
     if (interactionMode === 'activating_effect') {
       // Activation mode: trigger mortal's activated ability
@@ -1898,6 +1914,68 @@ export function useGameLogic() {
     setReactionWindow(null);
     metamorphoseReactionInfoRef.current = null;
   }, [reactionWindow, storedMetamorphoseEffect, metamorphoseEffectUndo]);
+
+  // === MIN-01 (Grenouilles) auto-discard: when effect fires as 'none', apply forced discard ===
+  useEffect(() => {
+    if (!pendingEffect || pendingEffect.sourceMortalCode !== 'MIN-01' || pendingEffect.type !== 'none') return;
+    if (!gameState) return;
+
+    const pi = pendingEffect.sourcePlayerIndex;
+    const player = gameState.players[pi];
+    const isNotFirst = player.metamorphosesThisTurn > 1;
+    const cardsPerEnemy = isNotFirst ? 2 : 1;
+
+    setGameState(prev => {
+      if (!prev) return prev;
+      let totalDiscarded = 0;
+      const newLog = [...prev.log];
+      const allDiscarded: SpellCard[] = [];
+
+      const updatedPlayers = prev.players.map((p, i) => {
+        if (i === pi) return p; // Skip source player
+        const discardCount = Math.min(cardsPerEnemy, p.hand.length);
+        if (discardCount === 0) return p;
+        const discardedCards = p.hand.slice(-discardCount);
+        allDiscarded.push(...discardedCards);
+        totalDiscarded += discardCount;
+        newLog.unshift({
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          playerName: p.name,
+          action: 'Défausse forcée',
+          detail: `a défaussé ${discardCount} carte(s) (Grenouilles)`,
+        });
+        return { ...p, hand: p.hand.slice(0, -discardCount) };
+      });
+
+      // If isNotFirst, source gains ether equal to total discarded
+      let finalPlayers = updatedPlayers;
+      if (isNotFirst && totalDiscarded > 0) {
+        finalPlayers = updatedPlayers.map((p, i) =>
+          i === pi ? { ...p, ether: p.ether + totalDiscarded } : p
+        );
+        newLog.unshift({
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          playerName: prev.players[pi].name,
+          action: 'Grenouilles',
+          detail: `a gagné ${totalDiscarded} Éther (autant que de cartes défaussées)`,
+        });
+      }
+
+      return {
+        ...prev,
+        players: finalPlayers,
+        discardPile: [...allDiscarded, ...prev.discardPile],
+        log: newLog,
+      };
+    });
+
+    setPendingEffect(null);
+    toast.success(`Grenouilles : chaque ennemi défausse ${cardsPerEnemy} carte(s)${isNotFirst ? ' + Éther gagné' : ''}`, {
+      style: { background: 'hsl(200 40% 20%)', border: '1px solid hsl(200 50% 40%)', color: 'white', fontSize: '16px' },
+    });
+  }, [pendingEffect, gameState]);
 
   return {
     gameState,
