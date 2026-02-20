@@ -76,7 +76,7 @@ export function calculateCycleEtherGeneration(
         // CER-02 (Bêtes sauvages): 1 per own Animal non-incapacitated
         if (mortal.code === 'CER-02') {
           const animalCount = player.mortals.filter(
-            m => m.type === 'animal' && m.status !== 'incapacite' && m.id !== mortal.id
+            m => m.type === 'animal' && m.isMetamorphosed && m.status !== 'incapacite' && m.id !== mortal.id
           ).length;
           production = animalCount; // Replaces base production
           if (animalCount > 0) {
@@ -153,7 +153,7 @@ export function getEffectiveEtherProduction(
   // CER-02 (Bêtes sauvages): 1 per own Animal non-incapacitated
   if (mortal.code === 'CER-02') {
     production = owner.mortals.filter(
-      m => m.type === 'animal' && m.status !== 'incapacite' && m.id !== mortal.id
+      m => m.type === 'animal' && m.isMetamorphosed && m.status !== 'incapacite' && m.id !== mortal.id
     ).length;
   }
 
