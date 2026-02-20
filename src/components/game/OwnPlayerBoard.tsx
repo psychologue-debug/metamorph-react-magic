@@ -95,13 +95,36 @@ const OwnPlayerBoard = ({
               {player.hand.map((card) => {
                 const playable = isSpellMode ? canPlayCard(card, player, gameState) : true;
                 return (
-                  <div key={card.id} className={`transition-all ${isSpellMode && !playable ? 'opacity-40' : ''} ${isSpellMode && playable ? 'ring-1 ring-divine/50 rounded-lg' : ''}`}>
+                  <div key={card.id} className={`relative group transition-all ${isSpellMode && !playable ? 'opacity-40' : ''} ${isSpellMode && playable ? 'ring-1 ring-divine/50 rounded-lg' : ''}`}>
                     <GameCard
                       card={card}
                       effectiveCost={getEffectiveCardCost(card, player)}
                       small
                       onClick={isSpellMode ? () => onCardClick?.(card.id) : undefined}
                     />
+                    {/* Large tooltip on hover */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-[9999] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                      <div
+                        className="rounded-xl px-4 py-3 shadow-2xl whitespace-normal"
+                        style={{
+                          minWidth: '220px',
+                          maxWidth: '280px',
+                          background: 'hsl(var(--card))',
+                          border: `1px solid hsl(var(--${card.type === 'reaction' ? 'reaction' : 'divine'}) / 0.5)`,
+                          boxShadow: `0 0 20px hsl(var(--${card.type === 'reaction' ? 'reaction' : 'divine'}) / 0.2)`,
+                        }}
+                      >
+                        <div className="font-display text-base font-bold text-foreground mb-1">{card.name}</div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-sm font-display text-ether font-bold">{getEffectiveCardCost(card, player)} Éther</span>
+                          <span className="text-xs text-muted-foreground uppercase">{card.type === 'reaction' ? 'Réaction' : 'Sortilège'}</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{card.description}</p>
+                        {card.activationCondition && (
+                          <p className="text-xs mt-1 italic" style={{ color: 'hsl(30 80% 60%)' }}>Condition : {card.activationCondition}</p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 );
               })}
