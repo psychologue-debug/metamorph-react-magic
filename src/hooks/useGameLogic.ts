@@ -9,6 +9,7 @@ import { TargetingResult } from '@/components/game/TargetingModal';
 import { canBeIncapacitated as canBeIncapacitatedCheck, canBeRemovedFromGame as canBeRemovedFromGameCheck, canBeRetroMetamorphosed as canBeRetroCheck } from '@/engine/mortalStatuses';
 import { getActivatedEffect, hasActivatedEffect } from '@/engine/activatedEffects';
 import { getEligibleReactors, resolveReaction } from '@/engine/reactionEngine';
+import { onMortalMetamorphosed, onMortalIncapacitated, onEtherDestroyed, onReactionPlayed, applyTriggeredResult } from '@/engine/triggeredEffects';
 
 export type InteractionMode = 'idle' | 'metamorphosing' | 'playing_spell' | 'activating_effect';
 
@@ -27,6 +28,7 @@ export function useGameLogic() {
   const [storedMetamorphoseEffect, setStoredMetamorphoseEffect] = useState<PendingEffect | null>(null);
   const metamorphoseReactionInfoRef = useRef<{ trigger: ReactionTrigger; reactors: string[] } | null>(null);
   const savedMortalSnapshotRef = useRef<{ mortal: Mortal; playerId: string } | null>(null);
+  const prevGameStateRef = useRef<GameState | null>(null);
   const [metamorphoseEffectUndo, setMetamorphoseEffectUndo] = useState<{
     playerId: string;
     mortalId: string;
@@ -1079,6 +1081,18 @@ export function useGameLogic() {
         log: newLog,
       };
     });
+
+    // Triggered effects: ether destroyed (DIA-05 Mouettes)
+    if (result.etherDestroyed && result.etherDestroyed.some(e => e.amount > 0)) {
+      setGameState(gs => {
+        if (!gs) return gs;
+        const trigResult = onEtherDestroyed(gs.players);
+        if (trigResult.etherChanges.length === 0) return gs;
+        const applied = applyTriggeredResult(gs, trigResult);
+        return { ...gs, players: applied.players, log: [...applied.logs, ...gs.log] };
+      });
+    }
+
     // Chain thenEffect if present
     if (pendingEffect?.thenEffect) {
       setPendingEffect(pendingEffect.thenEffect);
@@ -1190,8 +1204,8 @@ export function useGameLogic() {
 
       // Valid target — apply effect
       targetValid = true;
-      // Save snapshot for potential Parade undo (metamorphose effects)
-      if (pendingEffect.fromMetamorphose) {
+      // Save snapshot for potential Compassion/Parade undo
+      if (isIncapacitate || isRemove || isRetroEnemy) {
         savedMortalSnapshotRef.current = { mortal: { ...mortal }, playerId };
       }
       const sourcePlayer = prev.players[pendingEffect.sourcePlayerIndex];
@@ -1330,41 +1344,58 @@ export function useGameLogic() {
 
     // Only clear pending effect if the target was valid
     if (targetValid) {
-      // If this was a metamorphose effect, open reaction window now (after target chosen)
-      if (pendingEffect.fromMetamorphose && metamorphoseReactionInfoRef.current) {
-        const { trigger, reactors } = metamorphoseReactionInfoRef.current;
-        metamorphoseReactionInfoRef.current = null;
-        const snapshot = savedMortalSnapshotRef.current;
-        savedMortalSnapshotRef.current = null;
-        if (snapshot) {
-          setMetamorphoseEffectUndo({
-            playerId: snapshot.playerId,
-            mortalId: snapshot.mortal.id,
-            mortalSnapshot: snapshot.mortal,
+      // Check if Compassion/Parade reaction window should open for hostile targeting
+      const isHostileEnemyEffect = (isIncapacitate || isRemove || isRetroEnemy);
+      const srcPlayerId = gameState?.players[pendingEffect.sourcePlayerIndex]?.id;
+      const isEnemyAction = srcPlayerId !== playerId;
+
+      if (isHostileEnemyEffect && isEnemyAction && gameState) {
+        const triggerType = pendingEffect.fromMetamorphose ? 'mortal_effect'
+          : pendingEffect.sourceMortalCode?.startsWith('SPELL-') ? 'spell_effect'
+          : 'mortal_effect';
+        const baseTrigger = pendingEffect.fromMetamorphose && metamorphoseReactionInfoRef.current
+          ? metamorphoseReactionInfoRef.current.trigger
+          : { type: triggerType as any, sourcePlayerId: srcPlayerId! };
+
+        const trigger: ReactionTrigger = {
+          ...baseTrigger,
+          type: triggerType as any,
+          targetPlayerId: playerId,
+          targetMortalId: mortalId,
+        };
+
+        const reactors = getEligibleReactors(trigger, gameState);
+        if (reactors.length > 0) {
+          metamorphoseReactionInfoRef.current = null;
+          const snapshot = savedMortalSnapshotRef.current;
+          savedMortalSnapshotRef.current = null;
+          if (snapshot) {
+            setMetamorphoseEffectUndo({
+              playerId: snapshot.playerId,
+              mortalId: snapshot.mortal.id,
+              mortalSnapshot: snapshot.mortal,
+            });
+          }
+          const targetPlayer = gameState.players.find(p => p.id === playerId);
+          const targetMortal = targetPlayer?.mortals.find(m => m.id === mortalId);
+          const actionLabel = pendingEffect.type === 'enemy_mortal_remove' ? 'retirer du jeu'
+            : pendingEffect.type === 'mortal_heal' ? 'lever l\'incapacité de'
+            : pendingEffect.type === 'retro_own_mortal' || pendingEffect.type === 'retro_enemy_mortal' ? 'rétromorphoser'
+            : 'incapaciter';
+          setReactionWindow({
+            trigger: {
+              ...trigger,
+              effectDescription: `${pendingEffect.sourceMortalName} va ${actionLabel} ${targetMortal?.nameVerso || targetMortal?.nameRecto || 'un mortel'} de ${targetPlayer?.name || 'un joueur'}`,
+            },
+            reactorQueue: reactors,
+            currentReactorIndex: 0,
+            phase: 'waiting_ready' as const,
+            responses: [],
+            timerStartedAt: Date.now(),
           });
+          setPendingEffect(null);
+          return;
         }
-        const targetPlayer = gameState?.players.find(p => p.id === playerId);
-        const targetMortal = targetPlayer?.mortals.find(m => m.id === mortalId);
-        const actionLabel = pendingEffect.type === 'enemy_mortal_remove' ? 'retirer du jeu'
-          : pendingEffect.type === 'mortal_heal' ? 'lever l\'incapacité de'
-          : pendingEffect.type === 'retro_own_mortal' || pendingEffect.type === 'retro_enemy_mortal' ? 'rétromorphoser'
-          : 'incapaciter';
-        setReactionWindow({
-          trigger: {
-            ...trigger,
-            type: 'mortal_effect',
-            targetPlayerId: playerId,
-            targetMortalId: mortalId,
-            effectDescription: `${pendingEffect.sourceMortalName} va ${actionLabel} ${targetMortal?.nameVerso || targetMortal?.nameRecto || 'un mortel'} de ${targetPlayer?.name || 'un joueur'}`,
-          },
-          reactorQueue: reactors,
-          currentReactorIndex: 0,
-          phase: 'waiting_ready' as const,
-          responses: [],
-          timerStartedAt: Date.now(),
-        });
-        setPendingEffect(null);
-        return;
       }
 
       // Support multi-target: decrement maxTargets
@@ -1803,6 +1834,15 @@ export function useGameLogic() {
       }, ...updatedState.log],
     });
 
+    // Triggered effects: reaction played (MIN-07 Araignée)
+    setGameState(gs => {
+      if (!gs) return gs;
+      const trigResult = onReactionPlayed(gs.players);
+      if (trigResult.etherChanges.length === 0) return gs;
+      const applied = applyTriggeredResult(gs, trigResult);
+      return { ...gs, players: applied.players, log: [...applied.logs, ...gs.log] };
+    });
+
     // If Résistance or Sursis cancelled the metamorphose, clear stored effect
     if (cancelsMetamorphose) {
       setStoredMetamorphoseEffect(null);
@@ -1843,8 +1883,12 @@ export function useGameLogic() {
 
     // === Phase 2: After targeting (metamorphoseEffectUndo is set) ===
     if (metamorphoseEffectUndo) {
-      if (hasParade) {
+      const hasCompassion = reactionWindow.responses.some(
+        r => !r.passed && r.cardName === 'Compassion'
+      );
+      if (hasParade || hasCompassion) {
         // Undo the targeted effect
+        const reactionName = hasCompassion ? 'Compassion' : 'Parade';
         setGameState(prev => {
           if (!prev) return prev;
           return {
@@ -1866,8 +1910,8 @@ export function useGameLogic() {
               id: crypto.randomUUID(),
               timestamp: Date.now(),
               playerName: 'Système',
-              action: 'Parade',
-              detail: 'L\'effet de métamorphose a été annulé par Parade',
+              action: reactionName,
+              detail: `L'effet a été annulé par ${reactionName}`,
             }, ...prev.log],
           };
         });
@@ -1917,6 +1961,53 @@ export function useGameLogic() {
     setReactionWindow(null);
     metamorphoseReactionInfoRef.current = null;
   }, [reactionWindow, storedMetamorphoseEffect, metamorphoseEffectUndo]);
+
+  // === Triggered passive effects: detect state changes and apply ===
+  useEffect(() => {
+    // Don't apply triggered effects while a reaction window is pending
+    if (reactionWindow) return;
+    if (!gameState || !prevGameStateRef.current) {
+      prevGameStateRef.current = gameState;
+      return;
+    }
+    const prev = prevGameStateRef.current;
+    prevGameStateRef.current = gameState;
+
+    for (let i = 0; i < gameState.players.length; i++) {
+      const oldP = prev.players[i];
+      const newP = gameState.players[i];
+      if (!oldP || !newP) continue;
+      for (let j = 0; j < newP.mortals.length; j++) {
+        const oldM = oldP.mortals[j];
+        const newM = newP.mortals[j];
+        if (!oldM || !newM) continue;
+
+        // New metamorphose detected
+        if (!oldM.isMetamorphosed && newM.isMetamorphosed) {
+          const trigResult = onMortalMetamorphosed(gameState.players, newM.code, newM.type, i);
+          if (trigResult.etherChanges.length > 0 || trigResult.drawCards.length > 0) {
+            setGameState(gs => {
+              if (!gs) return gs;
+              const applied = applyTriggeredResult(gs, trigResult);
+              return { ...gs, players: applied.players, deck: applied.deck, discardPile: applied.discardPile, log: [...applied.logs, ...gs.log] };
+            });
+          }
+        }
+
+        // New incapacitation detected
+        if (oldM.status !== 'incapacite' && newM.status === 'incapacite') {
+          const trigResult = onMortalIncapacitated(gameState.players);
+          if (trigResult.etherChanges.length > 0) {
+            setGameState(gs => {
+              if (!gs) return gs;
+              const applied = applyTriggeredResult(gs, trigResult);
+              return { ...gs, players: applied.players, log: [...applied.logs, ...gs.log] };
+            });
+          }
+        }
+      }
+    }
+  }, [gameState, reactionWindow]);
 
   // === MIN-01 (Grenouilles) auto-discard: when effect fires as 'none', apply forced discard ===
   useEffect(() => {
