@@ -9,7 +9,7 @@ import { TargetingResult } from '@/components/game/TargetingModal';
 import { canBeIncapacitated as canBeIncapacitatedCheck, canBeRemovedFromGame as canBeRemovedFromGameCheck, canBeRetroMetamorphosed as canBeRetroCheck } from '@/engine/mortalStatuses';
 import { getActivatedEffect, hasActivatedEffect } from '@/engine/activatedEffects';
 import { getEligibleReactors, resolveReaction } from '@/engine/reactionEngine';
-import { onMortalMetamorphosed, onMortalIncapacitated, onEtherDestroyed, onReactionPlayed, applyTriggeredResult } from '@/engine/triggeredEffects';
+import { onMortalMetamorphosed, onMortalIncapacitated, onEtherDestroyed, onReactionPlayed, onMortalRetroMetamorphosed, onForcedDiscard, onOutOfCycleEtherGenerated, onOutOfPhaseCardDrawn, onMortalEffectGeneratedEther, applyTriggeredResult } from '@/engine/triggeredEffects';
 
 export type InteractionMode = 'idle' | 'metamorphosing' | 'playing_spell' | 'activating_effect';
 
@@ -519,6 +519,7 @@ export function useGameLogic() {
 
   const handleCardClick = useCallback((cardId: string) => {
     if (interactionMode !== 'playing_spell') return;
+    let spellGeneratedEtherForPlayer = -1;
 
     setGameState((prev) => {
       if (!prev) return prev;
@@ -627,10 +628,12 @@ export function useGameLogic() {
         updatedPlayers = updatedPlayers.map((p, i) =>
           i === prev.activePlayerIndex ? { ...p, ether: p.ether + 1 } : p
         );
+        spellGeneratedEtherForPlayer = prev.activePlayerIndex;
       } else if (card.name === 'Sursaut') {
         updatedPlayers = updatedPlayers.map((p, i) =>
           i === prev.activePlayerIndex ? { ...p, ether: p.ether + 20, sursautActive: true } : p
         );
+        spellGeneratedEtherForPlayer = prev.activePlayerIndex;
       } else if (card.name === 'Règne') {
         reactionsBlocked = true;
       } else if (card.name === 'Rage') {
@@ -813,6 +816,16 @@ export function useGameLogic() {
         ],
       };
     });
+    // Triggered: APO-05 (Source d'eau) for spells that generate ether
+    if (spellGeneratedEtherForPlayer >= 0) {
+      setGameState(gs => {
+        if (!gs) return gs;
+        const trigResult = onOutOfCycleEtherGenerated(gs.players, spellGeneratedEtherForPlayer);
+        if (trigResult.etherChanges.length === 0) return gs;
+        const applied = applyTriggeredResult(gs, trigResult);
+        return { ...gs, players: applied.players, log: [...applied.logs, ...gs.log] };
+      });
+    }
     setInteractionMode('idle');
   }, [interactionMode]);
 
@@ -1082,6 +1095,33 @@ export function useGameLogic() {
       };
     });
 
+    // Triggered: APO-05/MIN-04 for ether generated/stolen via mortal effects
+    if (pendingEffect) {
+      const sourceMortalCode = pendingEffect.sourceMortalCode || '';
+      const hasEtherGen = pendingEffect.etherGenerate && pendingEffect.etherGenerate > 0;
+      const hasEtherSteal = result.etherStolen && result.etherStolen.length > 0;
+      if (hasEtherGen || hasEtherSteal) {
+        setGameState(gs => {
+          if (!gs) return gs;
+          const pi = pendingEffect.sourcePlayerIndex;
+          let finalState = gs;
+          const apo05Result = onOutOfCycleEtherGenerated(finalState.players, pi, sourceMortalCode.startsWith('SPELL-') ? undefined : sourceMortalCode);
+          if (apo05Result.etherChanges.length > 0) {
+            const applied = applyTriggeredResult(finalState, apo05Result);
+            finalState = { ...finalState, players: applied.players, log: [...applied.logs, ...finalState.log] };
+          }
+          if (!sourceMortalCode.startsWith('SPELL-')) {
+            const min04Result = onMortalEffectGeneratedEther(finalState.players, pi, sourceMortalCode);
+            if (min04Result.etherChanges.length > 0) {
+              const applied = applyTriggeredResult(finalState, min04Result);
+              finalState = { ...finalState, players: applied.players, log: [...applied.logs, ...finalState.log] };
+            }
+          }
+          return finalState === gs ? gs : finalState;
+        });
+      }
+    }
+
     // Triggered effects: ether destroyed (DIA-05 Mouettes)
     if (result.etherDestroyed && result.etherDestroyed.some(e => e.amount > 0)) {
       setGameState(gs => {
@@ -1089,7 +1129,21 @@ export function useGameLogic() {
         const trigResult = onEtherDestroyed(gs.players);
         if (trigResult.etherChanges.length === 0) return gs;
         const applied = applyTriggeredResult(gs, trigResult);
-        return { ...gs, players: applied.players, log: [...applied.logs, ...gs.log] };
+        let finalState = { ...gs, players: applied.players, log: [...applied.logs, ...gs.log] };
+        // Chain APO-05/MIN-04 for DIA-05 ether
+        for (const change of trigResult.etherChanges) {
+          const apo05Result = onOutOfCycleEtherGenerated(finalState.players, change.playerIndex, 'DIA-05');
+          if (apo05Result.etherChanges.length > 0) {
+            const apo05Applied = applyTriggeredResult(finalState, apo05Result);
+            finalState = { ...finalState, players: apo05Applied.players, log: [...apo05Applied.logs, ...finalState.log] };
+          }
+          const min04Result = onMortalEffectGeneratedEther(finalState.players, change.playerIndex, 'DIA-05');
+          if (min04Result.etherChanges.length > 0) {
+            const min04Applied = applyTriggeredResult(finalState, min04Result);
+            finalState = { ...finalState, players: min04Applied.players, log: [...min04Applied.logs, ...finalState.log] };
+          }
+        }
+        return finalState;
       });
     }
 
@@ -1477,6 +1531,16 @@ export function useGameLogic() {
         }, ...prev.log],
       };
     });
+    // Triggered: forced discard (VEN-05 Fontaine, NEP-01 Banc de poissons)
+    setGameState(gs => {
+      if (!gs) return gs;
+      const tgtIdx = gs.players.findIndex(p => p.id === targetPlayerId);
+      if (tgtIdx < 0) return gs;
+      const trigResult = onForcedDiscard(gs.players, tgtIdx, true);
+      if (trigResult.etherChanges.length === 0) return gs;
+      const applied = applyTriggeredResult(gs, trigResult);
+      return { ...gs, players: applied.players, log: [...applied.logs, ...gs.log] };
+    });
     setPendingEffect(pendingEffect.thenEffect || null);
   }, [pendingEffect]);
 
@@ -1623,6 +1687,14 @@ export function useGameLogic() {
           detail: `a payé ${etherCost} Éther et pioché ${drawnCards.length} carte(s)`,
         }, ...prev.log],
       };
+    });
+    // Triggered: NEP-08 (Aigle) — draw outside draw phase
+    setGameState(gs => {
+      if (!gs) return gs;
+      const trigResult = onOutOfPhaseCardDrawn(gs.players, pendingEffect.sourcePlayerIndex);
+      if (trigResult.etherChanges.length === 0) return gs;
+      const applied = applyTriggeredResult(gs, trigResult);
+      return { ...gs, players: applied.players, log: [...applied.logs, ...gs.log] };
     });
     // Now we need to discard. Keep the same pendingEffect but it will be handled by the UI
     // The UI will show a discard interface and call resolvePayDrawDiscard
@@ -1840,7 +1912,21 @@ export function useGameLogic() {
       const trigResult = onReactionPlayed(gs.players);
       if (trigResult.etherChanges.length === 0) return gs;
       const applied = applyTriggeredResult(gs, trigResult);
-      return { ...gs, players: applied.players, log: [...applied.logs, ...gs.log] };
+      let finalState = { ...gs, players: applied.players, log: [...applied.logs, ...gs.log] };
+      // Chain APO-05/MIN-04 for MIN-07 ether
+      for (const change of trigResult.etherChanges) {
+        const apo05Result = onOutOfCycleEtherGenerated(finalState.players, change.playerIndex, 'MIN-07');
+        if (apo05Result.etherChanges.length > 0) {
+          const apo05Applied = applyTriggeredResult(finalState, apo05Result);
+          finalState = { ...finalState, players: apo05Applied.players, log: [...apo05Applied.logs, ...finalState.log] };
+        }
+        const min04Result = onMortalEffectGeneratedEther(finalState.players, change.playerIndex, 'MIN-07');
+        if (min04Result.etherChanges.length > 0) {
+          const min04Applied = applyTriggeredResult(finalState, min04Result);
+          finalState = { ...finalState, players: min04Applied.players, log: [...min04Applied.logs, ...finalState.log] };
+        }
+      }
+      return finalState;
     });
 
     // If Résistance or Sursis cancelled the metamorphose, clear stored effect
@@ -1989,7 +2075,29 @@ export function useGameLogic() {
             setGameState(gs => {
               if (!gs) return gs;
               const applied = applyTriggeredResult(gs, trigResult);
-              return { ...gs, players: applied.players, deck: applied.deck, discardPile: applied.discardPile, log: [...applied.logs, ...gs.log] };
+              let finalState = { ...gs, players: applied.players, deck: applied.deck, discardPile: applied.discardPile, log: [...applied.logs, ...gs.log] };
+              // Chain APO-05 and MIN-04 for each ether change from mortal effects
+              for (const change of trigResult.etherChanges) {
+                const apo05Result = onOutOfCycleEtherGenerated(finalState.players, change.playerIndex);
+                if (apo05Result.etherChanges.length > 0) {
+                  const apo05Applied = applyTriggeredResult(finalState, apo05Result);
+                  finalState = { ...finalState, players: apo05Applied.players, log: [...apo05Applied.logs, ...finalState.log] };
+                }
+                const min04Result = onMortalEffectGeneratedEther(finalState.players, change.playerIndex, newM.code);
+                if (min04Result.etherChanges.length > 0) {
+                  const min04Applied = applyTriggeredResult(finalState, min04Result);
+                  finalState = { ...finalState, players: min04Applied.players, log: [...min04Applied.logs, ...finalState.log] };
+                }
+              }
+              // Chain NEP-08 for draws from mortal effects (e.g. NEP-03)
+              for (const draw of trigResult.drawCards) {
+                const nep08Result = onOutOfPhaseCardDrawn(finalState.players, draw.playerIndex);
+                if (nep08Result.etherChanges.length > 0) {
+                  const nep08Applied = applyTriggeredResult(finalState, nep08Result);
+                  finalState = { ...finalState, players: nep08Applied.players, log: [...nep08Applied.logs, ...finalState.log] };
+                }
+              }
+              return finalState;
             });
           }
         }
@@ -2001,7 +2109,47 @@ export function useGameLogic() {
             setGameState(gs => {
               if (!gs) return gs;
               const applied = applyTriggeredResult(gs, trigResult);
-              return { ...gs, players: applied.players, log: [...applied.logs, ...gs.log] };
+              let finalState = { ...gs, players: applied.players, log: [...applied.logs, ...gs.log] };
+              // Chain APO-05 for ether from mortal effects
+              for (const change of trigResult.etherChanges) {
+                const apo05Result = onOutOfCycleEtherGenerated(finalState.players, change.playerIndex, 'VEN-02');
+                if (apo05Result.etherChanges.length > 0) {
+                  const apo05Applied = applyTriggeredResult(finalState, apo05Result);
+                  finalState = { ...finalState, players: apo05Applied.players, log: [...apo05Applied.logs, ...finalState.log] };
+                }
+                const min04Result = onMortalEffectGeneratedEther(finalState.players, change.playerIndex, 'VEN-02');
+                if (min04Result.etherChanges.length > 0) {
+                  const min04Applied = applyTriggeredResult(finalState, min04Result);
+                  finalState = { ...finalState, players: min04Applied.players, log: [...min04Applied.logs, ...finalState.log] };
+                }
+              }
+              return finalState;
+            });
+          }
+        }
+
+        // Retro-metamorphosis detected (CER-06 Myrmidons)
+        if (oldM.isMetamorphosed && !newM.isMetamorphosed) {
+          const trigResult = onMortalRetroMetamorphosed(gameState.players);
+          if (trigResult.etherChanges.length > 0) {
+            setGameState(gs => {
+              if (!gs) return gs;
+              const applied = applyTriggeredResult(gs, trigResult);
+              let finalState = { ...gs, players: applied.players, log: [...applied.logs, ...gs.log] };
+              // Chain APO-05/MIN-04
+              for (const change of trigResult.etherChanges) {
+                const apo05Result = onOutOfCycleEtherGenerated(finalState.players, change.playerIndex, 'CER-06');
+                if (apo05Result.etherChanges.length > 0) {
+                  const apo05Applied = applyTriggeredResult(finalState, apo05Result);
+                  finalState = { ...finalState, players: apo05Applied.players, log: [...apo05Applied.logs, ...finalState.log] };
+                }
+                const min04Result = onMortalEffectGeneratedEther(finalState.players, change.playerIndex, 'CER-06');
+                if (min04Result.etherChanges.length > 0) {
+                  const min04Applied = applyTriggeredResult(finalState, min04Result);
+                  finalState = { ...finalState, players: min04Applied.players, log: [...min04Applied.logs, ...finalState.log] };
+                }
+              }
+              return finalState;
             });
           }
         }
@@ -2063,6 +2211,21 @@ export function useGameLogic() {
         discardPile: [...allDiscarded, ...prev.discardPile],
         log: newLog,
       };
+    });
+
+    // Triggered effects: forced discard (VEN-05 Fontaine, NEP-01 Banc de poissons)
+    setGameState(gs => {
+      if (!gs) return gs;
+      let finalState = gs;
+      for (let idx = 0; idx < gs.players.length; idx++) {
+        if (idx === pi) continue;
+        const trigResult = onForcedDiscard(finalState.players, idx, true);
+        if (trigResult.etherChanges.length > 0) {
+          const applied = applyTriggeredResult(finalState, trigResult);
+          finalState = { ...finalState, players: applied.players, log: [...applied.logs, ...finalState.log] };
+        }
+      }
+      return finalState === gs ? gs : finalState;
     });
 
     setPendingEffect(null);
