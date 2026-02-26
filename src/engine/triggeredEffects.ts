@@ -116,6 +116,118 @@ export function onReactionPlayed(players: Player[]): TriggeredResult {
   return result;
 }
 
+/** Triggered when a mortal is retro-metamorphosed */
+export function onMortalRetroMetamorphosed(players: Player[]): TriggeredResult {
+  const result: TriggeredResult = { etherChanges: [], drawCards: [] };
+
+  // CER-06 (Myrmidons): +2 ether when a mortal is retro-metamorphosed
+  const cer06 = findActiveEffect(players, 'CER-06');
+  if (cer06) {
+    result.etherChanges.push({
+      playerIndex: cer06.playerIndex, amount: 2,
+      reason: 'mortel rétromorphosé', mortalName: cer06.mortalName,
+    });
+  }
+
+  return result;
+}
+
+/** Triggered when a player is forced to discard by an effect */
+export function onForcedDiscard(
+  players: Player[],
+  targetPlayerIndex: number,
+  sourceIsEnemy: boolean
+): TriggeredResult {
+  const result: TriggeredResult = { etherChanges: [], drawCards: [] };
+
+  // VEN-05 (Fontaine): +1 ether when an ENEMY effect forces you to discard
+  if (sourceIsEnemy) {
+    const ven05 = findActiveEffect(players, 'VEN-05');
+    if (ven05 && ven05.playerIndex === targetPlayerIndex) {
+      result.etherChanges.push({
+        playerIndex: ven05.playerIndex, amount: 1,
+        reason: 'défausse forcée par un ennemi', mortalName: ven05.mortalName,
+      });
+    }
+  }
+
+  // NEP-01 (Banc de poissons): +1 ether when a mortal effect or card forces you to discard
+  const nep01 = findActiveEffect(players, 'NEP-01');
+  if (nep01 && nep01.playerIndex === targetPlayerIndex) {
+    result.etherChanges.push({
+      playerIndex: nep01.playerIndex, amount: 1,
+      reason: 'défausse forcée', mortalName: nep01.mortalName,
+    });
+  }
+
+  return result;
+}
+
+/** Triggered when ether is generated outside of normal cycle start */
+export function onOutOfCycleEtherGenerated(
+  players: Player[],
+  beneficiaryPlayerIndex: number,
+  sourceMortalCode?: string
+): TriggeredResult {
+  const result: TriggeredResult = { etherChanges: [], drawCards: [] };
+
+  // APO-05 (Source d'eau): +1 ether when ether is generated outside cycle
+  // Does not trigger on itself to avoid infinite loops
+  if (sourceMortalCode === 'APO-05') return result;
+
+  const apo05 = findActiveEffect(players, 'APO-05');
+  if (apo05 && apo05.playerIndex === beneficiaryPlayerIndex) {
+    result.etherChanges.push({
+      playerIndex: apo05.playerIndex, amount: 1,
+      reason: 'Éther généré hors cycle', mortalName: apo05.mortalName,
+    });
+  }
+
+  return result;
+}
+
+/** Triggered when cards are drawn outside the draw phase */
+export function onOutOfPhaseCardDrawn(
+  players: Player[],
+  drawerPlayerIndex: number
+): TriggeredResult {
+  const result: TriggeredResult = { etherChanges: [], drawCards: [] };
+
+  // NEP-08 (Aigle): +1 ether when drawing outside draw phase
+  const nep08 = findActiveEffect(players, 'NEP-08');
+  if (nep08 && nep08.playerIndex === drawerPlayerIndex) {
+    result.etherChanges.push({
+      playerIndex: nep08.playerIndex, amount: 1,
+      reason: 'pioche hors phase de pioche', mortalName: nep08.mortalName,
+    });
+  }
+
+  return result;
+}
+
+/** Triggered when one of your mortals generates ether via its effect (not cycle production) */
+export function onMortalEffectGeneratedEther(
+  players: Player[],
+  beneficiaryPlayerIndex: number,
+  sourceMortalCode: string
+): TriggeredResult {
+  const result: TriggeredResult = { etherChanges: [], drawCards: [] };
+
+  // MIN-04 (Montagne): +1 ether when one of your mortals generates ether via its effect
+  // Excludes MIN-03 (Perdrie) and itself to prevent loops
+  if (sourceMortalCode === 'MIN-03' || sourceMortalCode === 'MIN-04') return result;
+
+  const min04 = findActiveEffect(players, 'MIN-04');
+  if (min04 && min04.playerIndex === beneficiaryPlayerIndex) {
+    result.etherChanges.push({
+      playerIndex: min04.playerIndex, amount: 1,
+      reason: 'effet de mortel générant de l\'Éther', mortalName: min04.mortalName,
+    });
+  }
+
+  return result;
+}
+
 /** Apply triggered result to game state */
 export function applyTriggeredResult(
   state: GameState,
