@@ -74,7 +74,7 @@ const OwnPlayerBoard = ({
       {/* Mortals grid — large, centered, marble background */}
       <div
         ref={mortalsContainerRef}
-        className="flex-1 flex items-center justify-center p-4 overflow-hidden relative"
+        className="flex-1 grid grid-cols-5 place-content-center gap-2 p-4 overflow-hidden relative"
         style={{
           background: 'linear-gradient(135deg, hsl(30 15% 92%), hsl(30 10% 96%), hsl(30 15% 90%))',
           backgroundImage: `
