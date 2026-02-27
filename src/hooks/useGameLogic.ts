@@ -1636,6 +1636,17 @@ export function useGameLogic() {
         }, ...prev.log],
       };
     });
+    // Triggered: NEP-01 (Banc de poissons) — forced discard from mortal effect
+    if (pendingEffect.sourceMortalCode) {
+      setGameState(gs => {
+        if (!gs) return gs;
+        const isEnemy = pendingEffect.sourcePlayerIndex !== gs.activePlayerIndex;
+        const trigResult = onForcedDiscard(gs.players, pendingEffect.sourcePlayerIndex, isEnemy);
+        if (trigResult.etherChanges.length === 0 && trigResult.drawCards.length === 0) return gs;
+        const applied = applyTriggeredResult(gs, trigResult);
+        return { ...gs, players: applied.players, deck: applied.deck, discardPile: applied.discardPile, log: [...applied.logs, ...gs.log] };
+      });
+    }
     // Chain thenEffect (e.g. heal for NEP-05)
     if (pendingEffect.thenEffect) {
       setPendingEffect(pendingEffect.thenEffect);

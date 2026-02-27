@@ -65,6 +65,15 @@ export function onMortalMetamorphosed(
     }
   }
 
+  // NEP-10 (Leucothée et Palémon): draw 1 card when the owner metamorphoses one of their mortals
+  const nep10 = findActiveEffect(players, 'NEP-10');
+  if (nep10 && nep10.playerIndex === ownerPlayerIndex && mortalCode !== 'NEP-10') {
+    result.drawCards.push({
+      playerIndex: nep10.playerIndex, count: 1,
+      reason: 'mortel métamorphosé (Leucothée)', mortalName: nep10.mortalName,
+    });
+  }
+
   return result;
 }
 
