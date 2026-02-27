@@ -21,10 +21,7 @@ const MortalGrid = ({ mortals, owner, gameState, tokenSize = 80, selectable = fa
   const gap = tokenSize < 60 ? 4 : tokenSize < 100 ? 8 : 12;
 
   return (
-    <div
-      className="grid grid-cols-5"
-      style={{ gap: `${gap}px` }}
-    >
+    <>
       {mortals.map((mortal, i) => (
         <MortalToken
           key={mortal.id}
@@ -38,7 +35,7 @@ const MortalGrid = ({ mortals, owner, gameState, tokenSize = 80, selectable = fa
           containerRef={containerRef}
         />
       ))}
-    </div>
+    </>
   );
 };
 
