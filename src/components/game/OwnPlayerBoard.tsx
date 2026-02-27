@@ -6,7 +6,7 @@ import MortalGrid from './MortalGrid';
 import GameCard from './GameCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, Zap, Sword, RefreshCw } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 interface OwnPlayerBoardProps {
   player: Player;
@@ -32,6 +32,7 @@ const OwnPlayerBoard = ({
   const isSpellMode = interactionMode === 'playing_spell';
   const isActivateMode = interactionMode === 'activating_effect';
   const [reactionToManage, setReactionToManage] = useState<SpellCard | null>(null);
+  const mortalsContainerRef = useRef<HTMLDivElement>(null);
 
   return (
     <div className="flex flex-col h-full">
@@ -70,8 +71,18 @@ const OwnPlayerBoard = ({
         </div>
       )}
 
-      {/* Mortals grid — large, centered */}
-      <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
+      {/* Mortals grid — large, centered, marble background */}
+      <div
+        ref={mortalsContainerRef}
+        className="flex-1 flex items-center justify-center p-4 overflow-hidden relative"
+        style={{
+          background: 'linear-gradient(135deg, hsl(30 15% 92%), hsl(30 10% 96%), hsl(30 15% 90%))',
+          backgroundImage: `
+            linear-gradient(135deg, hsl(30 15% 92%), hsl(30 10% 96%), hsl(30 15% 90%)),
+            url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E")
+          `,
+        }}
+      >
         <MortalGrid
           mortals={player.mortals}
           owner={player}
@@ -79,6 +90,7 @@ const OwnPlayerBoard = ({
           tokenSize={80}
           selectable={isMetaMode || isActivateMode || !!onTargetMortalClick}
           onMortalClick={isMetaMode ? onMortalClick : isActivateMode ? onMortalClick : onTargetMortalClick ? onTargetMortalClick : undefined}
+          containerRef={mortalsContainerRef}
         />
       </div>
 
