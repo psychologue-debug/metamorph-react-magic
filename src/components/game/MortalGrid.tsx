@@ -14,9 +14,10 @@ interface MortalGridProps {
   selectable?: boolean;
   targetingMode?: boolean;
   onMortalClick?: (mortalId: string) => void;
+  containerRef?: React.RefObject<HTMLDivElement>;
 }
 
-const MortalGrid = ({ mortals, owner, gameState, tokenSize = 80, selectable = false, targetingMode = false, onMortalClick }: MortalGridProps) => {
+const MortalGrid = ({ mortals, owner, gameState, tokenSize = 80, selectable = false, targetingMode = false, onMortalClick, containerRef }: MortalGridProps) => {
   const gap = tokenSize < 60 ? 4 : tokenSize < 100 ? 8 : 12;
 
   return (
@@ -34,6 +35,7 @@ const MortalGrid = ({ mortals, owner, gameState, tokenSize = 80, selectable = fa
           index={i}
           selectable={targetingMode || (selectable && !mortal.isMetamorphosed && mortal.status !== 'incapacite')}
           onClick={onMortalClick}
+          containerRef={containerRef}
         />
       ))}
     </div>
@@ -48,6 +50,7 @@ function MortalToken({
   index,
   selectable,
   onClick,
+  containerRef,
 }: {
   mortal: Mortal;
   owner?: Player;
@@ -56,12 +59,13 @@ function MortalToken({
   index: number;
   selectable: boolean;
   onClick?: (id: string) => void;
+  containerRef?: React.RefObject<HTMLDivElement>;
 }) {
   const [imgFailed, setImgFailed] = useState(false);
   const [hovered, setHovered] = useState(false);
   const tokenRef = useRef<HTMLDivElement>(null);
   const [tooltipSide, setTooltipSide] = useState<'bottom' | 'top'>('top');
-
+  const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties>({});
   const imageSrc = mortal.isMetamorphosed ? mortal.imageVerso : mortal.imageRecto;
   const displayName = mortal.isMetamorphosed ? mortal.nameVerso : mortal.nameRecto;
   const hasPermanentEffect = mortal.isMetamorphosed && !!mortal.effectPermanent;
@@ -76,10 +80,32 @@ function MortalToken({
   useEffect(() => {
     if (hovered && tokenRef.current) {
       const rect = tokenRef.current.getBoundingClientRect();
-      // If token is in the top 400px of the screen, show tooltip below
-      setTooltipSide(rect.top < 400 ? 'bottom' : 'top');
+      const containerRect = containerRef?.current?.getBoundingClientRect();
+      
+      // Determine vertical side
+      const tooltipHeight = 420; // approximate max tooltip height
+      const spaceAbove = containerRect ? rect.top - containerRect.top : rect.top;
+      const side = spaceAbove < tooltipHeight ? 'bottom' : 'top';
+      setTooltipSide(side);
+
+      // Clamp horizontally within container
+      if (containerRect) {
+        const tooltipWidth = 280;
+        const tokenCenterX = rect.left + rect.width / 2;
+        const idealLeft = tokenCenterX - tooltipWidth / 2;
+        const idealRight = tokenCenterX + tooltipWidth / 2;
+        let offsetX = 0;
+        if (idealLeft < containerRect.left + 8) {
+          offsetX = containerRect.left + 8 - idealLeft;
+        } else if (idealRight > containerRect.right - 8) {
+          offsetX = containerRect.right - 8 - idealRight;
+        }
+        setTooltipStyle({ transform: `translateX(calc(-50% + ${offsetX}px))` });
+      } else {
+        setTooltipStyle({});
+      }
     }
-  }, [hovered]);
+  }, [hovered, containerRef]);
 
   // Show tooltip for both recto (preview verso) and verso (show current card info)
   const showTooltip = hovered;
@@ -197,9 +223,10 @@ function MortalToken({
       {/* Hover tooltip — card-shaped, positioned dynamically */}
       {showTooltip && (
           <motion.div
-          className={`absolute left-1/2 -translate-x-1/2 z-[99999] pointer-events-none ${
+          className={`absolute left-1/2 z-[99999] pointer-events-none ${
             tooltipSide === 'top' ? 'bottom-full mb-3' : 'top-full mt-3'
           }`}
+          style={tooltipStyle}
           initial={{ opacity: 0, y: tooltipSide === 'top' ? 5 : -5 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.15 }}
