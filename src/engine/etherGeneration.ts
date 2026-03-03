@@ -23,8 +23,9 @@ export function calculateCycleEtherGeneration(
 ): EtherGenerationResult {
   const logs: GameLogEntry[] = [];
   const enemyCount = gameState.players.length - 1;
+  const stolenFromEnemy: { ownerIndex: number; amount: number; mortalName: string }[] = [];
 
-  const updatedPlayers = gameState.players.map((player) => {
+  let updatedPlayers = gameState.players.map((player, playerIdx) => {
     let etherGain = 0;
     const bonusDetails: string[] = [];
 
@@ -86,7 +87,7 @@ export function calculateCycleEtherGeneration(
 
         // MIN-03 (Perdrie): ether is stolen from richest enemy god instead of generated
         if (mortal.code === 'MIN-03' && production > 0) {
-          stolenFromEnemy.push({ ownerIndex: gameState.players.indexOf(player), amount: production, mortalName: mortal.nameVerso });
+          stolenFromEnemy.push({ ownerIndex: playerIdx, amount: production, mortalName: mortal.nameVerso });
           bonusDetails.push(`Perdrie: vole ${production} Éther`);
         } else {
           // CER-04 (Lac) bonus: vegetal mortals +1 (not Lac itself)
