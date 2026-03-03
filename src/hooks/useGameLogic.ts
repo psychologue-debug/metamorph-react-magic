@@ -1310,7 +1310,7 @@ export function useGameLogic() {
             mortals: p.mortals.map(m =>
               m.id === actualRetroMortalId ? { ...m, isMetamorphosed: false, status: 'normal' as const } : m
             ),
-            metamorphosedCount: p.mortals.filter(m => m.id !== mortalId && m.isMetamorphosed).length,
+            metamorphosedCount: p.mortals.filter(m => m.id !== actualRetroMortalId && m.isMetamorphosed).length,
           };
         });
 
