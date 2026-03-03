@@ -9,7 +9,7 @@ import { TargetingResult } from '@/components/game/TargetingModal';
 import { canBeIncapacitated as canBeIncapacitatedCheck, canBeRemovedFromGame as canBeRemovedFromGameCheck, canBeRetroMetamorphosed as canBeRetroCheck } from '@/engine/mortalStatuses';
 import { getActivatedEffect, hasActivatedEffect } from '@/engine/activatedEffects';
 import { getEligibleReactors, resolveReaction } from '@/engine/reactionEngine';
-import { onMortalMetamorphosed, onMortalIncapacitated, onEtherDestroyed, onReactionPlayed, onMortalRetroMetamorphosed, onForcedDiscard, onOutOfCycleEtherGenerated, onOutOfPhaseCardDrawn, onMortalEffectGeneratedEther, applyTriggeredResult } from '@/engine/triggeredEffects';
+import { onMortalMetamorphosed, onMortalIncapacitated, onEtherDestroyed, onReactionPlayed, onMortalRetroMetamorphosed, onForcedDiscard, onOutOfCycleEtherGenerated, onOutOfPhaseCardDrawn, onMortalEffectGeneratedEther, onMortalRetired, applyTriggeredResult } from '@/engine/triggeredEffects';
 
 export type InteractionMode = 'idle' | 'metamorphosing' | 'playing_spell' | 'activating_effect';
 
@@ -1020,9 +1020,17 @@ export function useGameLogic() {
             detail: actionDetail,
           });
         }
+
+        // Trigger VEN-09 (Pins) for retired mortals
+        if (result.type === 'enemy_mortal_remove') {
+          const retiredResult = onMortalRetired(updatedPlayers);
+          const applied = applyTriggeredResult({ ...prev, players: updatedPlayers }, retiredResult);
+          updatedPlayers = applied.players;
+          applied.logs.forEach(l => newLog.unshift(l));
+        }
       }
 
-      // Handle ether destruction
+
       if (result.etherDestroyed && result.etherDestroyed.length > 0) {
         // First generate ether for the source player
         if (pendingEffect?.etherGenerate) {
@@ -1273,15 +1281,36 @@ export function useGameLogic() {
         actionLabel = 'Guérison';
         actionDetail = `a levé l'incapacité de ${mortal.nameVerso || mortal.nameRecto} de ${targetPlayer.name}`;
       } else if (isRetroOwn || isRetroEnemy) {
+        // NEP-09 (Cénée): substitution — if enemy retro targets this player's mortal
+        // and Cénée is active and the target isn't Cénée itself, retro Cénée instead
+        let actualRetroMortalId = mortalId;
+        let actualRetroPlayerId = playerId;
+        if (isRetroEnemy) {
+          const defenderPlayer = prev.players.find(p => p.id === playerId);
+          if (defenderPlayer) {
+            const cenee = defenderPlayer.mortals.find(
+              m => m.code === 'NEP-09' && m.isMetamorphosed && m.status !== 'incapacite' && m.status !== 'retired' && m.id !== mortalId
+            );
+            if (cenee) {
+              actualRetroMortalId = cenee.id;
+              toast.info(`${cenee.nameVerso} se sacrifie à la place de ${mortal.nameVerso || mortal.nameRecto} !`, {
+                style: { background: 'hsl(195 70% 20%)', border: '1px solid hsl(195 70% 40%)', color: 'white', fontSize: '16px' },
+                duration: 4000,
+              });
+            }
+          }
+        }
+
         // Retrometamorphosis: flip back to recto
+        const retroTarget = prev.players.find(p => p.id === actualRetroPlayerId)?.mortals.find(m => m.id === actualRetroMortalId);
         let updatedPlayers = prev.players.map(p => {
-          if (p.id !== playerId) return p;
+          if (p.id !== actualRetroPlayerId) return p;
           return {
             ...p,
             mortals: p.mortals.map(m =>
-              m.id === mortalId ? { ...m, isMetamorphosed: false, status: 'normal' as const } : m
+              m.id === actualRetroMortalId ? { ...m, isMetamorphosed: false, status: 'normal' as const } : m
             ),
-            metamorphosedCount: p.mortals.filter(m => m.id !== mortalId && m.isMetamorphosed).length,
+            metamorphosedCount: p.mortals.filter(m => m.id !== actualRetroMortalId && m.isMetamorphosed).length,
           };
         });
 
@@ -1316,7 +1345,8 @@ export function useGameLogic() {
           }
         }
 
-        toast.success(`${mortal.nameVerso || mortal.nameRecto} rétromorphosé !${pendingEffect.thenGenerate ? ` +${pendingEffect.thenGenerate} Éther` : ''}${pendingEffect.thenDraw ? ` +${pendingEffect.thenDraw} carte(s)` : ''}`, {
+        const retroName = retroTarget?.nameVerso || retroTarget?.nameRecto || mortal.nameVerso || mortal.nameRecto;
+        toast.success(`${retroName} rétromorphosé !${pendingEffect.thenGenerate ? ` +${pendingEffect.thenGenerate} Éther` : ''}${pendingEffect.thenDraw ? ` +${pendingEffect.thenDraw} carte(s)` : ''}`, {
           style: { background: 'hsl(30 50% 20%)', border: '1px solid hsl(30 60% 40%)', color: 'white', fontSize: '16px' },
         });
 
@@ -1331,7 +1361,7 @@ export function useGameLogic() {
               timestamp: Date.now(),
               playerName: sourcePlayer?.name || 'Système',
               action: 'Rétromorphose',
-              detail: `a rétromorphosé ${mortal.nameVerso || mortal.nameRecto} de ${targetPlayer.name}${pendingEffect.thenGenerate ? ` (+${pendingEffect.thenGenerate} Éther)` : ''}${pendingEffect.thenDraw ? ` (+${pendingEffect.thenDraw} carte)` : ''}`,
+              detail: `a rétromorphosé ${retroName} de ${targetPlayer.name}${pendingEffect.thenGenerate ? ` (+${pendingEffect.thenGenerate} Éther)` : ''}${pendingEffect.thenDraw ? ` (+${pendingEffect.thenDraw} carte)` : ''}`,
             },
             ...prev.log,
           ],
@@ -1380,9 +1410,41 @@ export function useGameLogic() {
         style: { background: 'hsl(270 40% 20%)', border: '1px solid hsl(270 50% 40%)', color: 'white', fontSize: '16px' },
       });
 
+      // Trigger VEN-09 (Pins) on mortal retired
+      let finalDeck = [...prev.deck];
+      let finalDiscardPile = [...prev.discardPile];
+      if (isRemove) {
+        const retiredResult = onMortalRetired(updatedPlayers);
+        const applied = applyTriggeredResult({ ...prev, players: updatedPlayers, deck: finalDeck, discardPile: finalDiscardPile }, retiredResult);
+        updatedPlayers = applied.players;
+        finalDeck = applied.deck;
+        finalDiscardPile = applied.discardPile;
+        if (applied.logs.length > 0) {
+          return {
+            ...prev,
+            players: updatedPlayers,
+            deck: finalDeck,
+            discardPile: finalDiscardPile,
+            log: [
+              ...applied.logs,
+              {
+                id: crypto.randomUUID(),
+                timestamp: Date.now(),
+                playerName: sourcePlayer?.name || 'Système',
+                action: actionLabel,
+                detail: actionDetail,
+              },
+              ...prev.log,
+            ],
+          };
+        }
+      }
+
       return {
         ...prev,
         players: updatedPlayers,
+        deck: finalDeck,
+        discardPile: finalDiscardPile,
         log: [
           {
             id: crypto.randomUUID(),
@@ -1584,6 +1646,13 @@ export function useGameLogic() {
         });
       }
 
+      // Generate ether if thenGenerate is set (VEN-09)
+      if (pendingEffect.thenGenerate) {
+        updatedPlayers = updatedPlayers.map((p, i) =>
+          i === pi ? { ...p, ether: p.ether + pendingEffect.thenGenerate! } : p
+        );
+      }
+
       return {
         ...prev,
         players: updatedPlayers,
@@ -1593,7 +1662,7 @@ export function useGameLogic() {
           timestamp: Date.now(),
           playerName: player.name,
           action: 'Activation',
-          detail: `a défaussé ${allDiscarded.length} carte(s)${pendingEffect.retroSelfMortalId ? ' et rétromorphosé un mortel' : ''}`,
+          detail: `a défaussé ${allDiscarded.length} carte(s)${pendingEffect.retroSelfMortalId ? ' et rétromorphosé un mortel' : ''}${pendingEffect.thenGenerate ? ` (+${pendingEffect.thenGenerate} Éther)` : ''}`,
         }, ...prev.log],
       };
     });

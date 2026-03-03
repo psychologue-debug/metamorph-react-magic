@@ -237,6 +237,22 @@ export function onMortalEffectGeneratedEther(
   return result;
 }
 
+/** Triggered when a mortal is retired (removed from game) */
+export function onMortalRetired(players: Player[]): TriggeredResult {
+  const result: TriggeredResult = { etherChanges: [], drawCards: [] };
+
+  // VEN-09 (Pins): draw 2 cards when a mortal is retired from the game
+  const ven09 = findActiveEffect(players, 'VEN-09');
+  if (ven09) {
+    result.drawCards.push({
+      playerIndex: ven09.playerIndex, count: 2,
+      reason: 'mortel retiré du jeu', mortalName: ven09.mortalName,
+    });
+  }
+
+  return result;
+}
+
 /** Apply triggered result to game state */
 export function applyTriggeredResult(
   state: GameState,

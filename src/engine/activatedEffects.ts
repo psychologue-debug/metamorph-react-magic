@@ -7,7 +7,7 @@ import { canBeIncapacitated, canBeRetroMetamorphosed, canBeRemovedFromGame } fro
 
 /** List of mortal codes that have manually activated effects */
 export const ACTIVATABLE_MORTALS = [
-  'APO-06', 'VEN-01', 'BAC-01', 'BAC-10', 'MIN-02', 'MIN-08',
+  'APO-06', 'VEN-01', 'VEN-09', 'BAC-01', 'BAC-10', 'MIN-02', 'MIN-08',
   'DIA-02', 'DIA-08', 'DIA-10', 'NEP-02', 'NEP-05', 'NEP-06', 'NEP-10',
   'CER-01', 'CER-07', 'CER-10',
 ];
@@ -544,6 +544,29 @@ export function getActivatedEffect(
     // ===== VEN-04 (Oiseaux): Passive, always active =====
     case 'VEN-04': {
       return { type: 'error', errorMessage: 'Cet effet est passif et toujours actif tant que les Oiseaux sont métamorphosés' };
+    }
+
+    // ===== VEN-09 (Pins): Discard 2 cards → generate 1 ether (repeatable) =====
+    case 'VEN-09': {
+      const totalCards = player.hand.length + player.reactions.length;
+      if (totalCards < 2) {
+        return { type: 'error', errorMessage: `Pas assez de cartes (${totalCards}/2 disponibles)` };
+      }
+      return {
+        type: 'pending',
+        effect: {
+          effectId: crypto.randomUUID(),
+          type: 'discard_cards_then_effect',
+          sourcePlayerIndex: playerIndex,
+          sourceMortalCode: mortal.code,
+          sourceMortalName: mortal.nameVerso,
+          description: 'Défaussez 2 cartes pour générer 1 Éther.',
+          maxTargets: 0,
+          cardsToDiscard: 2,
+          includeReactions: true,
+          thenGenerate: 1,
+        },
+      };
     }
 
     default:

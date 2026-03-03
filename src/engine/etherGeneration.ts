@@ -23,8 +23,9 @@ export function calculateCycleEtherGeneration(
 ): EtherGenerationResult {
   const logs: GameLogEntry[] = [];
   const enemyCount = gameState.players.length - 1;
+  const stolenFromEnemy: { ownerIndex: number; amount: number; mortalName: string }[] = [];
 
-  const updatedPlayers = gameState.players.map((player) => {
+  let updatedPlayers = gameState.players.map((player, playerIdx) => {
     let etherGain = 0;
     const bonusDetails: string[] = [];
 
@@ -84,12 +85,17 @@ export function calculateCycleEtherGeneration(
           }
         }
 
-        // CER-04 (Lac) bonus: vegetal mortals +1 (not Lac itself)
-        if (lacActive && mortal.type === 'vegetal' && mortal.code !== 'CER-04') {
-          production += 1;
+        // MIN-03 (Perdrie): ether is stolen from richest enemy god instead of generated
+        if (mortal.code === 'MIN-03' && production > 0) {
+          stolenFromEnemy.push({ ownerIndex: playerIdx, amount: production, mortalName: mortal.nameVerso });
+          bonusDetails.push(`Perdrie: vole ${production} Éther`);
+        } else {
+          // CER-04 (Lac) bonus: vegetal mortals +1 (not Lac itself)
+          if (lacActive && mortal.type === 'vegetal' && mortal.code !== 'CER-04') {
+            production += 1;
+          }
+          etherGain += production;
         }
-
-        etherGain += production;
       } else {
         // Non-metamorphosed: base recto production (2)
         etherGain += mortal.etherProductionRecto;
@@ -108,6 +114,37 @@ export function calculateCycleEtherGeneration(
 
     return { ...player, ether: player.ether + etherGain };
   });
+
+  // MIN-03 (Perdrie): steal ether from richest enemy god
+  for (const steal of stolenFromEnemy) {
+    // Find richest enemy
+    let richestIdx = -1;
+    let richestEther = -1;
+    for (let i = 0; i < updatedPlayers.length; i++) {
+      if (i === steal.ownerIndex) continue;
+      if (updatedPlayers[i].ether > richestEther) {
+        richestEther = updatedPlayers[i].ether;
+        richestIdx = i;
+      }
+    }
+    if (richestIdx >= 0) {
+      const actualSteal = Math.min(steal.amount, updatedPlayers[richestIdx].ether);
+      if (actualSteal > 0) {
+        updatedPlayers = updatedPlayers.map((p, i) => {
+          if (i === steal.ownerIndex) return { ...p, ether: p.ether + actualSteal };
+          if (i === richestIdx) return { ...p, ether: p.ether - actualSteal };
+          return p;
+        });
+        logs.push({
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          playerName: updatedPlayers[steal.ownerIndex].name,
+          action: steal.mortalName,
+          detail: `a volé ${actualSteal} Éther à ${updatedPlayers[richestIdx].name}`,
+        });
+      }
+    }
+  }
 
   return { updatedPlayers, logs };
 }
