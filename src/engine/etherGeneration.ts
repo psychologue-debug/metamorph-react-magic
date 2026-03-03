@@ -115,6 +115,37 @@ export function calculateCycleEtherGeneration(
     return { ...player, ether: player.ether + etherGain };
   });
 
+  // MIN-03 (Perdrie): steal ether from richest enemy god
+  for (const steal of stolenFromEnemy) {
+    // Find richest enemy
+    let richestIdx = -1;
+    let richestEther = -1;
+    for (let i = 0; i < updatedPlayers.length; i++) {
+      if (i === steal.ownerIndex) continue;
+      if (updatedPlayers[i].ether > richestEther) {
+        richestEther = updatedPlayers[i].ether;
+        richestIdx = i;
+      }
+    }
+    if (richestIdx >= 0) {
+      const actualSteal = Math.min(steal.amount, updatedPlayers[richestIdx].ether);
+      if (actualSteal > 0) {
+        updatedPlayers = updatedPlayers.map((p, i) => {
+          if (i === steal.ownerIndex) return { ...p, ether: p.ether + actualSteal };
+          if (i === richestIdx) return { ...p, ether: p.ether - actualSteal };
+          return p;
+        });
+        logs.push({
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          playerName: updatedPlayers[steal.ownerIndex].name,
+          action: steal.mortalName,
+          detail: `a volé ${actualSteal} Éther à ${updatedPlayers[richestIdx].name}`,
+        });
+      }
+    }
+  }
+
   return { updatedPlayers, logs };
 }
 
