@@ -564,16 +564,7 @@ export function getActivatedEffect(
           maxTargets: 0,
           cardsToDiscard: 2,
           includeReactions: true,
-          thenEffect: {
-            effectId: crypto.randomUUID(),
-            type: 'none',
-            sourcePlayerIndex: playerIndex,
-            sourceMortalCode: mortal.code,
-            sourceMortalName: mortal.nameVerso,
-            description: '',
-            maxTargets: 0,
-            etherGenerate: 1,
-          },
+          thenGenerate: 1,
         },
       };
     }
