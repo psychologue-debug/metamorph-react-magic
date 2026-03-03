@@ -1028,8 +1028,9 @@ export function useGameLogic() {
           updatedPlayers = applied.players;
           applied.logs.forEach(l => newLog.unshift(l));
         }
+      }
 
-      // Handle ether destruction
+
       if (result.etherDestroyed && result.etherDestroyed.length > 0) {
         // First generate ether for the source player
         if (pendingEffect?.etherGenerate) {
