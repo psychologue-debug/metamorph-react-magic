@@ -1281,13 +1281,34 @@ export function useGameLogic() {
         actionLabel = 'Guérison';
         actionDetail = `a levé l'incapacité de ${mortal.nameVerso || mortal.nameRecto} de ${targetPlayer.name}`;
       } else if (isRetroOwn || isRetroEnemy) {
+        // NEP-09 (Cénée): substitution — if enemy retro targets this player's mortal
+        // and Cénée is active and the target isn't Cénée itself, retro Cénée instead
+        let actualRetroMortalId = mortalId;
+        let actualRetroPlayerId = playerId;
+        if (isRetroEnemy) {
+          const defenderPlayer = prev.players.find(p => p.id === playerId);
+          if (defenderPlayer) {
+            const cenee = defenderPlayer.mortals.find(
+              m => m.code === 'NEP-09' && m.isMetamorphosed && m.status !== 'incapacite' && m.status !== 'retired' && m.id !== mortalId
+            );
+            if (cenee) {
+              actualRetroMortalId = cenee.id;
+              toast.info(`${cenee.nameVerso} se sacrifie à la place de ${mortal.nameVerso || mortal.nameRecto} !`, {
+                style: { background: 'hsl(195 70% 20%)', border: '1px solid hsl(195 70% 40%)', color: 'white', fontSize: '16px' },
+                duration: 4000,
+              });
+            }
+          }
+        }
+
         // Retrometamorphosis: flip back to recto
+        const retroTarget = prev.players.find(p => p.id === actualRetroPlayerId)?.mortals.find(m => m.id === actualRetroMortalId);
         let updatedPlayers = prev.players.map(p => {
-          if (p.id !== playerId) return p;
+          if (p.id !== actualRetroPlayerId) return p;
           return {
             ...p,
             mortals: p.mortals.map(m =>
-              m.id === mortalId ? { ...m, isMetamorphosed: false, status: 'normal' as const } : m
+              m.id === actualRetroMortalId ? { ...m, isMetamorphosed: false, status: 'normal' as const } : m
             ),
             metamorphosedCount: p.mortals.filter(m => m.id !== mortalId && m.isMetamorphosed).length,
           };
