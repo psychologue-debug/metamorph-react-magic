@@ -1019,6 +1019,8 @@ export function useGameLogic() {
             action: actionLabel,
             detail: actionDetail,
           });
+        }
+
         // Trigger VEN-09 (Pins) for retired mortals
         if (result.type === 'enemy_mortal_remove') {
           const retiredResult = onMortalRetired(updatedPlayers);
