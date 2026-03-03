@@ -1646,6 +1646,13 @@ export function useGameLogic() {
         });
       }
 
+      // Generate ether if thenGenerate is set (VEN-09)
+      if (pendingEffect.thenGenerate) {
+        updatedPlayers = updatedPlayers.map((p, i) =>
+          i === pi ? { ...p, ether: p.ether + pendingEffect.thenGenerate! } : p
+        );
+      }
+
       return {
         ...prev,
         players: updatedPlayers,
@@ -1655,7 +1662,7 @@ export function useGameLogic() {
           timestamp: Date.now(),
           playerName: player.name,
           action: 'Activation',
-          detail: `a défaussé ${allDiscarded.length} carte(s)${pendingEffect.retroSelfMortalId ? ' et rétromorphosé un mortel' : ''}`,
+          detail: `a défaussé ${allDiscarded.length} carte(s)${pendingEffect.retroSelfMortalId ? ' et rétromorphosé un mortel' : ''}${pendingEffect.thenGenerate ? ` (+${pendingEffect.thenGenerate} Éther)` : ''}`,
         }, ...prev.log],
       };
     });
