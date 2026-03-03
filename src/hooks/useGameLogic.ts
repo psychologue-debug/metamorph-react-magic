@@ -1019,6 +1019,14 @@ export function useGameLogic() {
             action: actionLabel,
             detail: actionDetail,
           });
+        // Trigger VEN-09 (Pins) for retired mortals
+        if (result.type === 'enemy_mortal_remove') {
+          const retiredResult = onMortalRetired(updatedPlayers);
+          const applied = applyTriggeredResult({ ...prev, players: updatedPlayers, deck: newDeck, discardPile: newDiscardPile }, retiredResult);
+          updatedPlayers = applied.players;
+          newDeck = [...applied.deck];
+          newDiscardPile = [...applied.discardPile];
+          applied.logs.forEach(l => newLog.unshift(l));
         }
       }
 
