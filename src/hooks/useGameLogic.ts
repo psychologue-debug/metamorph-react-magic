@@ -9,7 +9,7 @@ import { TargetingResult } from '@/components/game/TargetingModal';
 import { canBeIncapacitated as canBeIncapacitatedCheck, canBeRemovedFromGame as canBeRemovedFromGameCheck, canBeRetroMetamorphosed as canBeRetroCheck } from '@/engine/mortalStatuses';
 import { getActivatedEffect, hasActivatedEffect } from '@/engine/activatedEffects';
 import { getEligibleReactors, resolveReaction } from '@/engine/reactionEngine';
-import { onMortalMetamorphosed, onMortalIncapacitated, onEtherDestroyed, onReactionPlayed, onMortalRetroMetamorphosed, onForcedDiscard, onOutOfCycleEtherGenerated, onOutOfPhaseCardDrawn, onMortalEffectGeneratedEther, applyTriggeredResult } from '@/engine/triggeredEffects';
+import { onMortalMetamorphosed, onMortalIncapacitated, onEtherDestroyed, onReactionPlayed, onMortalRetroMetamorphosed, onForcedDiscard, onOutOfCycleEtherGenerated, onOutOfPhaseCardDrawn, onMortalEffectGeneratedEther, onMortalRetired, applyTriggeredResult } from '@/engine/triggeredEffects';
 
 export type InteractionMode = 'idle' | 'metamorphosing' | 'playing_spell' | 'activating_effect';
 
