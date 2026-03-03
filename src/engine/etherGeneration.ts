@@ -88,15 +88,13 @@ export function calculateCycleEtherGeneration(
         if (mortal.code === 'MIN-03' && production > 0) {
           stolenFromEnemy.push({ ownerIndex: gameState.players.indexOf(player), amount: production, mortalName: mortal.nameVerso });
           bonusDetails.push(`Perdrie: vole ${production} Éther`);
-          // Don't add to etherGain — it will be handled as theft below
         } else {
-
-        // CER-04 (Lac) bonus: vegetal mortals +1 (not Lac itself)
-        if (lacActive && mortal.type === 'vegetal' && mortal.code !== 'CER-04') {
-          production += 1;
+          // CER-04 (Lac) bonus: vegetal mortals +1 (not Lac itself)
+          if (lacActive && mortal.type === 'vegetal' && mortal.code !== 'CER-04') {
+            production += 1;
+          }
+          etherGain += production;
         }
-
-        etherGain += production;
       } else {
         // Non-metamorphosed: base recto production (2)
         etherGain += mortal.etherProductionRecto;
