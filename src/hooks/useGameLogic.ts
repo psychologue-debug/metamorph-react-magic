@@ -1345,7 +1345,8 @@ export function useGameLogic() {
           }
         }
 
-        toast.success(`${mortal.nameVerso || mortal.nameRecto} rétromorphosé !${pendingEffect.thenGenerate ? ` +${pendingEffect.thenGenerate} Éther` : ''}${pendingEffect.thenDraw ? ` +${pendingEffect.thenDraw} carte(s)` : ''}`, {
+        const retroName = retroTarget?.nameVerso || retroTarget?.nameRecto || mortal.nameVerso || mortal.nameRecto;
+        toast.success(`${retroName} rétromorphosé !${pendingEffect.thenGenerate ? ` +${pendingEffect.thenGenerate} Éther` : ''}${pendingEffect.thenDraw ? ` +${pendingEffect.thenDraw} carte(s)` : ''}`, {
           style: { background: 'hsl(30 50% 20%)', border: '1px solid hsl(30 60% 40%)', color: 'white', fontSize: '16px' },
         });
 
@@ -1360,7 +1361,7 @@ export function useGameLogic() {
               timestamp: Date.now(),
               playerName: sourcePlayer?.name || 'Système',
               action: 'Rétromorphose',
-              detail: `a rétromorphosé ${mortal.nameVerso || mortal.nameRecto} de ${targetPlayer.name}${pendingEffect.thenGenerate ? ` (+${pendingEffect.thenGenerate} Éther)` : ''}${pendingEffect.thenDraw ? ` (+${pendingEffect.thenDraw} carte)` : ''}`,
+              detail: `a rétromorphosé ${retroName} de ${targetPlayer.name}${pendingEffect.thenGenerate ? ` (+${pendingEffect.thenGenerate} Éther)` : ''}${pendingEffect.thenDraw ? ` (+${pendingEffect.thenDraw} carte)` : ''}`,
             },
             ...prev.log,
           ],
