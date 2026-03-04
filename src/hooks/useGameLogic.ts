@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { GameState, Player, SpellCard, TurnPhase, DivinityId, Mortal, ReactionTrigger, ReactionWindowState } from '@/types/game';
+import { GameState, Player, SpellCard, TurnPhase, DivinityId, Mortal, ReactionTrigger, ReactionWindowState, GameLogEntry } from '@/types/game';
 import { createMockGameState } from '@/data/mockGame';
 import { toast } from 'sonner';
 import { getEffectiveMetamorphosisCost, getEffectiveCardCost } from '@/engine/costModifiers';
