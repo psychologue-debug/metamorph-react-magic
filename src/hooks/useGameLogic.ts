@@ -1368,6 +1368,7 @@ export function useGameLogic() {
           deck: newDeck,
           discardPile: newDiscardPile,
           log: [
+            ...extraLogs,
             {
               id: crypto.randomUUID(),
               timestamp: Date.now(),
