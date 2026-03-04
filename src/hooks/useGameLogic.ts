@@ -1322,6 +1322,13 @@ export function useGameLogic() {
               ? { ...p, ether: p.ether + pendingEffect.thenGenerate! }
               : p
           );
+          // Trigger APO-05 (Source d'eau) for out-of-cycle ether generation
+          const oocResult = onOutOfCycleEtherGenerated(updatedPlayers, pendingEffect.sourcePlayerIndex, pendingEffect.sourceMortalCode);
+          if (oocResult.etherChanges.length > 0 || oocResult.drawCards.length > 0) {
+            const oocApplied = applyTriggeredResult({ ...prev, players: updatedPlayers, deck: newDeck || prev.deck, discardPile: newDiscardPile || prev.discardPile }, oocResult);
+            updatedPlayers = oocApplied.players;
+            newLogs.push(...oocApplied.logs);
+          }
         }
 
         // Handle thenDraw (e.g. APO-06: draw 1 card after retro)
