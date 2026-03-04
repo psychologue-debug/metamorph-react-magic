@@ -33,6 +33,7 @@ export function useGameLogic() {
     playerId: string;
     mortalId: string;
     mortalSnapshot: Mortal;
+    effectType?: string; // e.g. 'enemy_mortal_remove' to trigger VEN-09 after reaction
   } | null>(null);
 
   const startGame = useCallback((playerCount: number, selectedGods?: DivinityId[], playerNames?: string[]) => {
@@ -1410,35 +1411,10 @@ export function useGameLogic() {
         style: { background: 'hsl(270 40% 20%)', border: '1px solid hsl(270 50% 40%)', color: 'white', fontSize: '16px' },
       });
 
-      // Trigger VEN-09 (Pins) on mortal retired
+      // VEN-09 (Pins) trigger is deferred — will fire after reaction resolution
+      // or immediately below if no reaction window opens
       let finalDeck = [...prev.deck];
       let finalDiscardPile = [...prev.discardPile];
-      if (isRemove) {
-        const retiredResult = onMortalRetired(updatedPlayers);
-        const applied = applyTriggeredResult({ ...prev, players: updatedPlayers, deck: finalDeck, discardPile: finalDiscardPile }, retiredResult);
-        updatedPlayers = applied.players;
-        finalDeck = applied.deck;
-        finalDiscardPile = applied.discardPile;
-        if (applied.logs.length > 0) {
-          return {
-            ...prev,
-            players: updatedPlayers,
-            deck: finalDeck,
-            discardPile: finalDiscardPile,
-            log: [
-              ...applied.logs,
-              {
-                id: crypto.randomUUID(),
-                timestamp: Date.now(),
-                playerName: sourcePlayer?.name || 'Système',
-                action: actionLabel,
-                detail: actionDetail,
-              },
-              ...prev.log,
-            ],
-          };
-        }
-      }
 
       return {
         ...prev,
@@ -1490,6 +1466,7 @@ export function useGameLogic() {
               playerId: snapshot.playerId,
               mortalId: snapshot.mortal.id,
               mortalSnapshot: snapshot.mortal,
+              effectType: pendingEffect.type,
             });
           }
           const targetPlayer = gameState.players.find(p => p.id === playerId);
