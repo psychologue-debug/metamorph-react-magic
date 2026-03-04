@@ -185,7 +185,7 @@ export function onOutOfCycleEtherGenerated(
   if (sourceMortalCode === 'APO-05') return result;
 
   const apo05 = findActiveEffect(players, 'APO-05');
-  if (apo05 && apo05.playerIndex === beneficiaryPlayerIndex) {
+  if (apo05) {
     result.etherChanges.push({
       playerIndex: apo05.playerIndex, amount: 1,
       reason: 'Éther généré hors cycle', mortalName: apo05.mortalName,
