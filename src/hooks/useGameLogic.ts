@@ -1315,6 +1315,10 @@ export function useGameLogic() {
           };
         });
 
+        let newDeck = [...prev.deck];
+        let newDiscardPile = [...prev.discardPile];
+        const extraLogs: GameLogEntry[] = [];
+
         // Handle thenGenerate (e.g. APO-06: +6 ether after retro)
         if (pendingEffect.thenGenerate) {
           updatedPlayers = updatedPlayers.map((p, i) =>
@@ -1325,15 +1329,15 @@ export function useGameLogic() {
           // Trigger APO-05 (Source d'eau) for out-of-cycle ether generation
           const oocResult = onOutOfCycleEtherGenerated(updatedPlayers, pendingEffect.sourcePlayerIndex, pendingEffect.sourceMortalCode);
           if (oocResult.etherChanges.length > 0 || oocResult.drawCards.length > 0) {
-            const oocApplied = applyTriggeredResult({ ...prev, players: updatedPlayers, deck: newDeck || prev.deck, discardPile: newDiscardPile || prev.discardPile }, oocResult);
+            const oocApplied = applyTriggeredResult({ ...prev, players: updatedPlayers, deck: newDeck, discardPile: newDiscardPile }, oocResult);
             updatedPlayers = oocApplied.players;
-            newLogs.push(...oocApplied.logs);
+            newDeck = oocApplied.deck;
+            newDiscardPile = oocApplied.discardPile;
+            extraLogs.push(...oocApplied.logs);
           }
         }
 
         // Handle thenDraw (e.g. APO-06: draw 1 card after retro)
-        let newDeck = [...prev.deck];
-        let newDiscardPile = [...prev.discardPile];
         if (pendingEffect.thenDraw && pendingEffect.thenDraw > 0) {
           const drawnCards: any[] = [];
           for (let i = 0; i < pendingEffect.thenDraw; i++) {
