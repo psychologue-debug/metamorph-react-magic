@@ -1491,6 +1491,25 @@ export function useGameLogic() {
         }
       }
 
+      // No reaction window opened — trigger VEN-09 (Pins) immediately if removal
+      if (isRemove) {
+        setGameState(prev => {
+          if (!prev) return prev;
+          const retiredResult = onMortalRetired(prev.players);
+          const applied = applyTriggeredResult(prev, retiredResult);
+          if (applied.logs.length > 0) {
+            return {
+              ...prev,
+              players: applied.players,
+              deck: applied.deck,
+              discardPile: applied.discardPile,
+              log: [...applied.logs, ...prev.log],
+            };
+          }
+          return prev;
+        });
+      }
+
       // Support multi-target: decrement maxTargets
       if (pendingEffect.maxTargets > 1) {
         setPendingEffect(prev => prev ? { ...prev, maxTargets: prev.maxTargets - 1, optional: true } : null);
@@ -2058,6 +2077,25 @@ export function useGameLogic() {
             }, ...prev.log],
           };
         });
+      } else {
+        // Effect was NOT cancelled — trigger VEN-09 (Pins) now if it was a removal
+        if (metamorphoseEffectUndo.effectType === 'enemy_mortal_remove') {
+          setGameState(prev => {
+            if (!prev) return prev;
+            const retiredResult = onMortalRetired(prev.players);
+            const applied = applyTriggeredResult(prev, retiredResult);
+            if (applied.logs.length > 0) {
+              return {
+                ...prev,
+                players: applied.players,
+                deck: applied.deck,
+                discardPile: applied.discardPile,
+                log: [...applied.logs, ...prev.log],
+              };
+            }
+            return prev;
+          });
+        }
       }
       setMetamorphoseEffectUndo(null);
       setStoredMetamorphoseEffect(null);
