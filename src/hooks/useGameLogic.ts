@@ -800,33 +800,40 @@ export function useGameLogic() {
         };
       }
 
+      const baseLog: GameLogEntry = {
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        playerName: player.name,
+        action: 'Sort joué',
+        detail: `a joué ${card.name} (coût: ${effectiveCardCost} Éther${effectiveCardCost !== card.cost ? ` [base: ${card.cost}]` : ''}) — ${card.description}`,
+      };
+
+      let finalPlayers = updatedPlayers;
+      let finalDeck = [...prev.deck];
+      let finalDiscardPile = [card, ...prev.discardPile];
+      const extraLogs: GameLogEntry[] = [];
+
+      // Triggered: APO-05 (Source d'eau) for spells that generate ether
+      if (spellGeneratedEtherForPlayer >= 0) {
+        const trigResult = onOutOfCycleEtherGenerated(finalPlayers, spellGeneratedEtherForPlayer);
+        if (trigResult.etherChanges.length > 0 || trigResult.drawCards.length > 0) {
+          const applied = applyTriggeredResult({ ...prev, players: finalPlayers, deck: finalDeck, discardPile: finalDiscardPile }, trigResult);
+          finalPlayers = applied.players;
+          finalDeck = applied.deck;
+          finalDiscardPile = applied.discardPile;
+          extraLogs.push(...applied.logs);
+        }
+      }
+
       return {
         ...prev,
-        players: updatedPlayers,
+        players: finalPlayers,
         reactionsBlocked,
-        discardPile: [card, ...prev.discardPile],
-        log: [
-          {
-            id: crypto.randomUUID(),
-            timestamp: Date.now(),
-            playerName: player.name,
-            action: 'Sort joué',
-            detail: `a joué ${card.name} (coût: ${effectiveCardCost} Éther${effectiveCardCost !== card.cost ? ` [base: ${card.cost}]` : ''}) — ${card.description}`,
-          },
-          ...prev.log,
-        ],
+        deck: finalDeck,
+        discardPile: finalDiscardPile,
+        log: [baseLog, ...extraLogs, ...prev.log],
       };
     });
-    // Triggered: APO-05 (Source d'eau) for spells that generate ether
-    if (spellGeneratedEtherForPlayer >= 0) {
-      setGameState(gs => {
-        if (!gs) return gs;
-        const trigResult = onOutOfCycleEtherGenerated(gs.players, spellGeneratedEtherForPlayer);
-        if (trigResult.etherChanges.length === 0) return gs;
-        const applied = applyTriggeredResult(gs, trigResult);
-        return { ...gs, players: applied.players, log: [...applied.logs, ...gs.log] };
-      });
-    }
     setInteractionMode('idle');
   }, [interactionMode]);
 
