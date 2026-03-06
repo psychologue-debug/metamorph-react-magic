@@ -20,6 +20,8 @@ export type EffectTargetType =
   | 'discard_own_reaction_then_enemy' // Discard own reaction, then enemy discards one
   | 'select_from_discard'          // Select a card from the discard pile
   | 'select_enemy_god'             // Select an enemy god for a targeted effect
+  | 'play_spell_at_discount'       // Pick a spell from hand to play at reduced cost
+  | 'pay_multiple_enemy_discard'   // Pay a multiple of N ether, each enemy discards that many cards
   | 'none';                        // No targeting needed / no effect
 
 export interface PendingEffect {
@@ -64,6 +66,8 @@ export interface PendingEffect {
   drawCards?: number;
   discardCards?: number;
   fromMetamorphose?: boolean;
+  // For play_spell_at_discount
+  spellDiscount?: number;
 }
 
 /**
@@ -608,9 +612,87 @@ export function getMetamorphoseEffect(
         maxTargets: 1,
       };
 
-    // DIA-06 (Hermaphrodite): TODO - Play spell at -10 cost (needs custom spell mode)
+    // DIA-06 (Hermaphrodite): Play a spell at -10 cost
+    case 'DIA-06': {
+      // Check if player has any spells in hand (sortilege type)
+      const hasSpells = player.hand.some(c => c.type === 'sortilege');
+      if (!hasSpells) {
+        return {
+          effectId: crypto.randomUUID(),
+          type: 'none',
+          sourcePlayerIndex: playerIndex,
+          sourceMortalCode: mortal.code,
+          sourceMortalName: mortal.nameVerso,
+          description: 'Jouez un sort en réduisant son coût de 10.',
+          maxTargets: 0,
+          conditionNotMet: 'Aucun sortilège en main !',
+        };
+      }
+      return {
+        effectId: crypto.randomUUID(),
+        type: 'choice',
+        sourcePlayerIndex: playerIndex,
+        sourceMortalCode: mortal.code,
+        sourceMortalName: mortal.nameVerso,
+        description: 'Voulez-vous jouer un sort à coût réduit de 10 ?',
+        maxTargets: 0,
+        optional: true,
+        choices: [
+          {
+            label: 'Oui — Jouer un sort (-10)',
+            effect: {
+              effectId: crypto.randomUUID(),
+              type: 'play_spell_at_discount' as any,
+              sourcePlayerIndex: playerIndex,
+              sourceMortalCode: mortal.code,
+              sourceMortalName: mortal.nameVerso,
+              description: 'Choisissez un sortilège à jouer (coût réduit de 10).',
+              maxTargets: 0,
+              spellDiscount: 10,
+            },
+          },
+          {
+            label: 'Non — Passer',
+            effect: {
+              effectId: crypto.randomUUID(),
+              type: 'none',
+              sourcePlayerIndex: playerIndex,
+              sourceMortalCode: mortal.code,
+              sourceMortalName: mortal.nameVerso,
+              description: 'Effet ignoré.',
+              maxTargets: 0,
+            },
+          },
+        ],
+      };
+    }
 
-    // CER-05 (Monstre de Gila): TODO - Pay multiple of 3 (needs custom counter UI)
+    // CER-05 (Monstre de Gila): Pay a multiple of 3 ether, each enemy discards that many cards
+    case 'CER-05': {
+      if (player.ether < 3) {
+        return {
+          effectId: crypto.randomUUID(),
+          type: 'none',
+          sourcePlayerIndex: playerIndex,
+          sourceMortalCode: mortal.code,
+          sourceMortalName: mortal.nameVerso,
+          description: 'Payez un multiple de 3 Éther pour que chaque dieu ennemi défausse autant de cartes.',
+          maxTargets: 0,
+          conditionNotMet: 'Pas assez d\'Éther (minimum 3) !',
+          optional: true,
+        };
+      }
+      return {
+        effectId: crypto.randomUUID(),
+        type: 'pay_multiple_enemy_discard' as any,
+        sourcePlayerIndex: playerIndex,
+        sourceMortalCode: mortal.code,
+        sourceMortalName: mortal.nameVerso,
+        description: 'Payez un multiple de 3 Éther pour que chaque dieu ennemi défausse autant de cartes.',
+        maxTargets: 0,
+        optional: true,
+      };
+    }
 
     // BAC-03 (Mouettes): TODO - Steal 3 ether total + steal card (needs custom steal mechanic)
 

@@ -28,6 +28,7 @@ export function calculateCycleEtherGeneration(
   let updatedPlayers = gameState.players.map((player, playerIdx) => {
     let etherGain = 0;
     const bonusDetails: string[] = [];
+    const mortalContributions: string[] = [];
 
     // Check if CER-04 (Lac) is active for this player
     const lacActive = player.mortals.some(
@@ -35,7 +36,10 @@ export function calculateCycleEtherGeneration(
     );
 
     for (const mortal of player.mortals) {
-      if (mortal.status === 'incapacite') continue;
+      if (mortal.status === 'incapacite') {
+        mortalContributions.push(`${mortal.isMetamorphosed ? mortal.nameVerso : mortal.nameRecto}: 0 (incapacité)`);
+        continue;
+      }
       if (mortal.status === 'retired') continue;
 
       if (mortal.isMetamorphosed) {
@@ -88,19 +92,31 @@ export function calculateCycleEtherGeneration(
         // MIN-03 (Perdrie): ether is stolen from richest enemy god instead of generated
         if (mortal.code === 'MIN-03' && production > 0) {
           stolenFromEnemy.push({ ownerIndex: playerIdx, amount: production, mortalName: mortal.nameVerso });
+          mortalContributions.push(`${mortal.nameVerso}: vole ${production}`);
           bonusDetails.push(`Perdrie: vole ${production} Éther`);
         } else {
           // CER-04 (Lac) bonus: vegetal mortals +1 (not Lac itself)
           if (lacActive && mortal.type === 'vegetal' && mortal.code !== 'CER-04') {
             production += 1;
           }
+          mortalContributions.push(`${mortal.nameVerso}: ${production}`);
           etherGain += production;
         }
       } else {
         // Non-metamorphosed: base recto production (2)
+        mortalContributions.push(`${mortal.nameRecto}: ${mortal.etherProductionRecto}`);
         etherGain += mortal.etherProductionRecto;
       }
     }
+
+    // Log per-mortal contributions
+    logs.push({
+      id: crypto.randomUUID(),
+      timestamp: Date.now(),
+      playerName: player.name,
+      action: 'Génération cycle',
+      detail: `+${etherGain} Éther — ${mortalContributions.join(', ')}`,
+    });
 
     if (bonusDetails.length > 0) {
       logs.push({
