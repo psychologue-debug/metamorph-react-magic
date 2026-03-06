@@ -1075,3 +1075,166 @@ function SelectFromDiscardContent({
     </ModalWrapper>
   );
 }
+
+// === SpellDiscountContent: Pick a spell from hand to play at reduced cost ===
+function SpellDiscountContent({
+  effect,
+  gameState,
+  onSelect,
+  onCancel,
+}: {
+  effect: PendingEffect;
+  gameState: GameState;
+  onSelect: (cardId: string) => void;
+  onCancel?: () => void;
+}) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const player = gameState.players[effect.sourcePlayerIndex];
+  const discount = effect.spellDiscount || 10;
+  const spells = player.hand.filter(c => c.type === 'sortilege');
+
+  return (
+    <ModalWrapper>
+      <div>
+        <h2 className="font-display text-xl font-bold text-foreground mb-2">
+          {effect.sourceMortalName}
+        </h2>
+        <p className="text-muted-foreground mb-4">{effect.description}</p>
+
+        <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto mb-4">
+          {spells.map(card => {
+            const reducedCost = Math.max(0, card.cost - discount);
+            const canAfford = player.ether >= reducedCost;
+            return (
+              <motion.button
+                key={card.id}
+                className={`p-3 rounded-lg border text-left transition-all ${
+                  selectedId === card.id ? 'border-ether ring-1 ring-ether' : 'border-border/50'
+                } ${!canAfford ? 'opacity-40' : ''}`}
+                style={{ background: 'hsl(var(--card))' }}
+                onClick={() => canAfford && setSelectedId(card.id)}
+                whileHover={canAfford ? { scale: 1.02 } : {}}
+                disabled={!canAfford}
+              >
+                <div className="font-display font-semibold text-sm text-foreground">{card.name}</div>
+                <div className="text-xs text-muted-foreground mt-1">{card.description}</div>
+                <div className="text-xs mt-1">
+                  <span className="line-through text-muted-foreground">{card.cost}</span>
+                  {' → '}
+                  <span className="text-ether font-bold">{reducedCost} Éther</span>
+                </div>
+              </motion.button>
+            );
+          })}
+        </div>
+
+        <div className="flex gap-3 justify-end">
+          {onCancel && (
+            <button
+              className="px-5 py-2 rounded-lg font-display text-sm border border-border/50 text-muted-foreground"
+              style={{ background: 'hsl(var(--muted))' }}
+              onClick={onCancel}
+            >
+              Passer
+            </button>
+          )}
+          <motion.button
+            className="px-6 py-2 rounded-lg font-display font-semibold text-sm"
+            style={{
+              background: selectedId
+                ? 'linear-gradient(135deg, hsl(var(--ether)), hsl(var(--ether-dim)))'
+                : 'hsl(var(--muted))',
+              color: selectedId ? 'white' : 'hsl(var(--muted-foreground))',
+            }}
+            whileHover={selectedId ? { scale: 1.05 } : {}}
+            onClick={() => selectedId && onSelect(selectedId)}
+            disabled={!selectedId}
+          >
+            Jouer ce sort
+          </motion.button>
+        </div>
+      </div>
+    </ModalWrapper>
+  );
+}
+
+// === PayMultipleDiscardContent: Counter to pay multiples of 3 ===
+function PayMultipleDiscardContent({
+  effect,
+  gameState,
+  onConfirm,
+  onCancel,
+}: {
+  effect: PendingEffect;
+  gameState: GameState;
+  onConfirm: (multiplier: number) => void;
+  onCancel?: () => void;
+}) {
+  const [multiplier, setMultiplier] = useState(1);
+  const player = gameState.players[effect.sourcePlayerIndex];
+  const maxMultiplier = Math.floor(player.ether / 3);
+  const cost = multiplier * 3;
+
+  return (
+    <ModalWrapper>
+      <div className="text-center">
+        <h2 className="font-display text-xl font-bold text-foreground mb-2">
+          {effect.sourceMortalName}
+        </h2>
+        <p className="text-muted-foreground mb-4">{effect.description}</p>
+
+        <div className="flex items-center justify-center gap-4 mb-4">
+          <motion.button
+            className="w-10 h-10 rounded-full flex items-center justify-center border border-border/50 font-bold text-foreground"
+            style={{ background: 'hsl(var(--muted))' }}
+            onClick={() => setMultiplier(m => Math.max(1, m - 1))}
+            whileHover={{ scale: 1.1 }}
+            disabled={multiplier <= 1}
+          >
+            −
+          </motion.button>
+          <div className="text-center">
+            <div className="text-3xl font-display font-bold text-ether">{multiplier}</div>
+            <div className="text-sm text-muted-foreground">× 3 = <span className="text-ether font-bold">{cost} Éther</span></div>
+          </div>
+          <motion.button
+            className="w-10 h-10 rounded-full flex items-center justify-center border border-border/50 font-bold text-foreground"
+            style={{ background: 'hsl(var(--muted))' }}
+            onClick={() => setMultiplier(m => Math.min(maxMultiplier, m + 1))}
+            whileHover={{ scale: 1.1 }}
+            disabled={multiplier >= maxMultiplier}
+          >
+            +
+          </motion.button>
+        </div>
+
+        <p className="text-sm text-muted-foreground mb-4">
+          Chaque dieu ennemi défaussera <span className="text-ether font-bold">{multiplier}</span> carte{multiplier > 1 ? 's' : ''}.
+        </p>
+
+        <div className="flex gap-3 justify-center">
+          {onCancel && (
+            <button
+              className="px-5 py-2 rounded-lg font-display text-sm border border-border/50 text-muted-foreground"
+              style={{ background: 'hsl(var(--muted))' }}
+              onClick={onCancel}
+            >
+              Passer
+            </button>
+          )}
+          <motion.button
+            className="px-6 py-2 rounded-lg font-display font-semibold text-sm"
+            style={{
+              background: 'linear-gradient(135deg, hsl(var(--ether)), hsl(var(--ether-dim)))',
+              color: 'white',
+            }}
+            whileHover={{ scale: 1.05 }}
+            onClick={() => onConfirm(multiplier)}
+          >
+            Payer {cost} Éther
+          </motion.button>
+        </div>
+      </div>
+    </ModalWrapper>
+  );
+}
