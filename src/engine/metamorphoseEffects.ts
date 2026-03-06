@@ -20,6 +20,8 @@ export type EffectTargetType =
   | 'discard_own_reaction_then_enemy' // Discard own reaction, then enemy discards one
   | 'select_from_discard'          // Select a card from the discard pile
   | 'select_enemy_god'             // Select an enemy god for a targeted effect
+  | 'play_spell_at_discount'       // Pick a spell from hand to play at reduced cost
+  | 'pay_multiple_enemy_discard'   // Pay a multiple of N ether, each enemy discards that many cards
   | 'none';                        // No targeting needed / no effect
 
 export interface PendingEffect {
@@ -64,6 +66,8 @@ export interface PendingEffect {
   drawCards?: number;
   discardCards?: number;
   fromMetamorphose?: boolean;
+  // For play_spell_at_discount
+  spellDiscount?: number;
 }
 
 /**
