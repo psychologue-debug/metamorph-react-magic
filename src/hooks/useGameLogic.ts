@@ -2474,6 +2474,8 @@ export function useGameLogic() {
     resolveReactionDiscard,
     resolveGlane,
     resolveSelectGod,
+    resolvePlaySpellAtDiscount,
+    resolvePayMultipleEnemyDiscard,
     handleReactionReady,
     handleReactionPass,
     handleReactionActivate,
