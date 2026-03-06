@@ -81,7 +81,9 @@ const Index = () => {
     pendingEffect.type === 'pay_draw_discard' ||
     pendingEffect.type === 'discard_own_reaction_then_enemy' ||
     pendingEffect.type === 'select_from_discard' ||
-    pendingEffect.type === 'select_enemy_god'
+    pendingEffect.type === 'select_enemy_god' ||
+    pendingEffect.type === 'play_spell_at_discount' ||
+    pendingEffect.type === 'pay_multiple_enemy_discard'
   );
 
   // Handle auto-heal-all (MIN-09 second metamorphosis)
@@ -397,6 +399,8 @@ const Index = () => {
           onReactionDiscard={resolveReactionDiscard}
           onGlane={resolveGlane}
           onSelectGod={resolveSelectGod}
+          onPlaySpellAtDiscount={resolvePlaySpellAtDiscount}
+          onPayMultipleEnemyDiscard={resolvePayMultipleEnemyDiscard}
         />
       )}
 
