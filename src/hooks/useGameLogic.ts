@@ -1952,6 +1952,95 @@ export function useGameLogic() {
     setPendingEffect(null);
   }, [pendingEffect]);
 
+  // === DIA-06 (Hermaphrodite): Play spell at discount ===
+  const resolvePlaySpellAtDiscount = useCallback((cardId: string) => {
+    if (!pendingEffect) return;
+    const discount = pendingEffect.spellDiscount || 10;
+    setGameState(prev => {
+      if (!prev) return prev;
+      const pi = pendingEffect.sourcePlayerIndex;
+      const player = prev.players[pi];
+      const card = player.hand.find(c => c.id === cardId);
+      if (!card) return prev;
+      const reducedCost = Math.max(0, card.cost - discount);
+      if (player.ether < reducedCost) return prev;
+
+      const updatedPlayers = prev.players.map((p, i) => {
+        if (i !== pi) return p;
+        return {
+          ...p,
+          ether: p.ether - reducedCost,
+          hand: p.hand.filter(c => c.id !== cardId),
+        };
+      });
+
+      return {
+        ...prev,
+        players: updatedPlayers,
+        discardPile: [card, ...prev.discardPile],
+        log: [{
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          playerName: player.name,
+          action: pendingEffect.sourceMortalName,
+          detail: `a joué ${card.name} pour ${reducedCost} Éther (réduit de ${discount})`,
+        }, ...prev.log],
+      };
+    });
+    setPendingEffect(null);
+    // Note: The spell effect itself is NOT applied here — this is just the cost reduction.
+    // For a full implementation, we'd need to chain the spell's own effect.
+    // For now, it plays the card at reduced cost and discards it.
+    toast.info('Le sort est joué à coût réduit. Ses effets doivent être résolus manuellement si nécessaire.');
+  }, [pendingEffect]);
+
+  // === CER-05 (Monstre de Gila): Pay multiple of 3, enemies discard ===
+  const resolvePayMultipleEnemyDiscard = useCallback((multiplier: number) => {
+    if (!pendingEffect) return;
+    const cost = multiplier * 3;
+    setGameState(prev => {
+      if (!prev) return prev;
+      const pi = pendingEffect.sourcePlayerIndex;
+      const player = prev.players[pi];
+      if (player.ether < cost) return prev;
+
+      const allDiscarded: SpellCard[] = [];
+      const updatedPlayers = prev.players.map((p, i) => {
+        if (i === pi) return { ...p, ether: p.ether - cost };
+        // Each enemy discards 'multiplier' cards from hand
+        const discardCount = Math.min(multiplier, p.hand.length);
+        const discarded = p.hand.slice(-discardCount);
+        allDiscarded.push(...discarded);
+        return {
+          ...p,
+          hand: discardCount > 0 ? p.hand.slice(0, -discardCount) : p.hand,
+        };
+      });
+
+      return {
+        ...prev,
+        players: updatedPlayers,
+        discardPile: [...allDiscarded, ...prev.discardPile],
+        log: [{
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          playerName: player.name,
+          action: pendingEffect.sourceMortalName,
+          detail: `a payé ${cost} Éther — chaque ennemi défausse ${multiplier} carte(s)`,
+        }, ...prev.log],
+      };
+    });
+    // Triggered: NEP-01 for forced discards
+    setGameState(gs => {
+      if (!gs) return gs;
+      const trigResult = onForcedDiscard(gs.players, pendingEffect.sourcePlayerIndex, true);
+      if (trigResult.etherChanges.length === 0 && trigResult.drawCards.length === 0) return gs;
+      const applied = applyTriggeredResult(gs, trigResult);
+      return { ...gs, players: applied.players, deck: applied.deck, discardPile: applied.discardPile, log: [...applied.logs, ...gs.log] };
+    });
+    setPendingEffect(null);
+  }, [pendingEffect]);
+
   // === Reaction Window Handlers ===
   const handleReactionReady = useCallback((playerId: string) => {
     setReactionWindow(prev => {
