@@ -57,6 +57,8 @@ const Index = () => {
     resolveReactionDiscard,
     resolveGlane,
     resolveSelectGod,
+    resolvePlaySpellAtDiscount,
+    resolvePayMultipleEnemyDiscard,
     handleReactionReady,
     handleReactionPass,
     handleReactionActivate,
