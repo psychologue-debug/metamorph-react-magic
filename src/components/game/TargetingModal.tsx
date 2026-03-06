@@ -17,6 +17,8 @@ interface TargetingModalProps {
   onReactionDiscard?: (ownReactionId: string, enemyPlayerId: string, enemyReactionId: string) => void;
   onGlane?: (cardId: string) => void;
   onSelectGod?: (targetPlayerId: string) => void;
+  onPlaySpellAtDiscount?: (cardId: string) => void;
+  onPayMultipleEnemyDiscard?: (multiplier: number) => void;
 }
 
 export interface TargetingResult {
@@ -31,7 +33,7 @@ export interface TargetingResult {
   etherStolen?: { playerId: string; amount: number }[];
 }
 
-const TargetingModal = ({ effect, gameState, onResolve, onCancel, onGodDiscard, onCardDiscard, onPayDrawDiscard, onInitiatePayDraw, onReactionDiscard, onGlane, onSelectGod }: TargetingModalProps) => {
+const TargetingModal = ({ effect, gameState, onResolve, onCancel, onGodDiscard, onCardDiscard, onPayDrawDiscard, onInitiatePayDraw, onReactionDiscard, onGlane, onSelectGod, onPlaySpellAtDiscount, onPayMultipleEnemyDiscard }: TargetingModalProps) => {
   // No interaction needed
   if (effect.type === 'none') {
     return (
@@ -149,6 +151,28 @@ const TargetingModal = ({ effect, gameState, onResolve, onCancel, onGodDiscard, 
         effect={effect}
         gameState={gameState}
         onSelect={onSelectGod}
+        onCancel={onCancel}
+      />
+    );
+  }
+
+  if (effect.type === 'play_spell_at_discount' && onPlaySpellAtDiscount) {
+    return (
+      <SpellDiscountContent
+        effect={effect}
+        gameState={gameState}
+        onSelect={onPlaySpellAtDiscount}
+        onCancel={onCancel}
+      />
+    );
+  }
+
+  if (effect.type === 'pay_multiple_enemy_discard' && onPayMultipleEnemyDiscard) {
+    return (
+      <PayMultipleDiscardContent
+        effect={effect}
+        gameState={gameState}
+        onConfirm={onPayMultipleEnemyDiscard}
         onCancel={onCancel}
       />
     );
