@@ -36,7 +36,7 @@ export interface TargetingResult {
   etherStolen?: { playerId: string; amount: number }[];
 }
 
-const TargetingModal = ({ effect, gameState, onResolve, onCancel, onGodDiscard, onCardDiscard, onPayDrawDiscard, onInitiatePayDraw, onReactionDiscard, onGlane, onSelectGod, onPlaySpellAtDiscount, onPayMultipleEnemyDiscard }: TargetingModalProps) => {
+const TargetingModal = ({ effect, gameState, onResolve, onCancel, onGodDiscard, onCardDiscard, onPayDrawDiscard, onInitiatePayDraw, onReactionDiscard, onGlane, onSelectGod, onPlaySpellAtDiscount, onPayMultipleEnemyDiscard, onStealCard, onMetamorphoseExtra, onMoveIncapacitations }: TargetingModalProps) => {
   // No interaction needed
   if (effect.type === 'none') {
     return (
