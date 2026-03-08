@@ -137,16 +137,17 @@ export function calculateCycleEtherGeneration(
       m => m.code === 'DIA-04' && m.isMetamorphosed && m.status !== 'incapacite'
     );
     if (hasDIA04) {
+      const ownerName = updatedPlayers[pIdx].name;
       updatedPlayers = updatedPlayers.map((ep, i) => {
         if (i === pIdx) return ep;
+        logs.push({
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          playerName: 'Système',
+          action: 'Deux serpents',
+          detail: `${ep.name} reçoit +1 Éther (compensation Deux serpents de ${ownerName}) : ${ep.ether} → ${ep.ether + 1}`,
+        });
         return { ...ep, ether: ep.ether + 1 };
-      });
-      logs.push({
-        id: crypto.randomUUID(),
-        timestamp: Date.now(),
-        playerName: 'Système',
-        action: 'Deux serpents',
-        detail: `Chaque dieu ennemi reçoit +1 Éther (compensation)`,
       });
     }
   }
