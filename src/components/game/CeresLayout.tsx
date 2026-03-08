@@ -89,7 +89,7 @@ function CeresToken({
 
   return (
     <motion.div
-      className={`
+      className={`mortal-token
         rounded-full relative cursor-pointer transition-all duration-300 overflow-hidden
         ${mortal.isMetamorphosed ? 'ring-2 ring-ether/60' : 'ring-1 ring-border/40'}
         ${isRetired ? 'grayscale opacity-40 pointer-events-none' : ''}
