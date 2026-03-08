@@ -232,6 +232,12 @@ const Index = () => {
 
   const currentPlayer = gameState.players[currentPlayerIndex];
   const isOwnTurn = currentPlayerIndex === gameState.activePlayerIndex;
+
+  // VEN-04 (Oiseaux): check if current player can see enemy reactions
+  const canSeeEnemyReactions = currentPlayer.mortals.some(
+    m => m.code === 'VEN-04' && m.isMetamorphosed && m.status !== 'incapacite' && m.status !== 'retired'
+  );
+
   const opponents = gameState.players
     .map((player, index) => ({ player, index }))
     .filter(({ index }) => index !== currentPlayerIndex);
