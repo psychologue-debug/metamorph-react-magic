@@ -579,7 +579,53 @@ export function getMetamorphoseEffect(
       return { effectId: crypto.randomUUID(), type: 'choice', sourcePlayerIndex: playerIndex, sourceMortalCode: mortal.code, sourceMortalName: mortal.nameVerso, description: 'Défaussez jusqu\'à 2 cartes pour incapaciter autant de mortels ennemis.', maxTargets: 0, choices, optional: true };
     }
 
-    // BAC-02 (Dauphins): TODO - Extra metamorphose at +6 cost (needs custom mechanic)
+    // BAC-02 (Dauphins): Optional extra metamorphose at +6 cost
+    case 'BAC-02': {
+      // Check if player has any non-metamorphosed mortals (other than BAC-02 itself)
+      const hasNonMetamorphosed = player.mortals.some(
+        m => !m.isMetamorphosed && m.status !== 'retired' && m.status !== 'incapacite' && m.code !== 'BAC-02'
+      );
+      if (!hasNonMetamorphosed) {
+        return null; // No mortal to metamorphose
+      }
+      return {
+        effectId: crypto.randomUUID(),
+        type: 'choice',
+        sourcePlayerIndex: playerIndex,
+        sourceMortalCode: mortal.code,
+        sourceMortalName: mortal.nameVerso,
+        description: 'Voulez-vous métamorphoser un autre mortel en payant 6 Éther de plus que son coût ?',
+        maxTargets: 0,
+        optional: true,
+        choices: [
+          {
+            label: 'Oui — Métamorphoser un mortel (+6)',
+            effect: {
+              effectId: crypto.randomUUID(),
+              type: 'metamorphose_extra' as EffectTargetType,
+              sourcePlayerIndex: playerIndex,
+              sourceMortalCode: mortal.code,
+              sourceMortalName: mortal.nameVerso,
+              description: 'Choisissez un mortel à métamorphoser (coût + 6 Éther).',
+              maxTargets: 1,
+              extraMetamorphoseCostAdded: 6,
+            },
+          },
+          {
+            label: 'Non — Passer',
+            effect: {
+              effectId: crypto.randomUUID(),
+              type: 'none',
+              sourcePlayerIndex: playerIndex,
+              sourceMortalCode: mortal.code,
+              sourceMortalName: mortal.nameVerso,
+              description: 'Effet ignoré.',
+              maxTargets: 0,
+            },
+          },
+        ],
+      };
+    }
 
     // CER-03 (Hiboux): Draw 2, discard 1
     case 'CER-03':
