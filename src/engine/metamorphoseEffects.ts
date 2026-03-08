@@ -747,7 +747,93 @@ export function getMetamorphoseEffect(
       };
     }
 
-    // BAC-03 (Mouettes): TODO - Steal 3 ether total + steal card (needs custom steal mechanic)
+    // BAC-03 (Mouettes): Steal 3 ether total + steal a card from a god
+    case 'BAC-03': {
+      return {
+        effectId: crypto.randomUUID(),
+        type: 'steal_ether_total' as EffectTargetType,
+        sourcePlayerIndex: playerIndex,
+        sourceMortalCode: mortal.code,
+        sourceMortalName: mortal.nameVerso,
+        description: 'Volez 3 Éther de n\'importe quel(s) réservoir(s) ennemi(s).',
+        maxTargets: 0,
+        etherStealTotal: 3,
+        thenEffect: {
+          effectId: crypto.randomUUID(),
+          type: 'steal_card_from_god' as EffectTargetType,
+          sourcePlayerIndex: playerIndex,
+          sourceMortalCode: mortal.code,
+          sourceMortalName: mortal.nameVerso,
+          description: 'Volez une carte à un dieu.',
+          maxTargets: 1,
+        },
+      };
+    }
+
+    // BAC-04 (Quatre Colombes): Move up to 4 incapacitations
+    case 'BAC-04': {
+      const hasIncap = gameState.players.some(p =>
+        p.mortals.some(m => m.isMetamorphosed && m.status === 'incapacite')
+      );
+      if (!hasIncap) {
+        return {
+          effectId: crypto.randomUUID(),
+          type: 'none',
+          sourcePlayerIndex: playerIndex,
+          sourceMortalCode: mortal.code,
+          sourceMortalName: mortal.nameVerso,
+          description: 'Déplacez jusqu\'à 4 incapacités d\'un mortel à un autre.',
+          maxTargets: 0,
+          conditionNotMet: 'Aucun mortel incapacité !',
+        };
+      }
+      return {
+        effectId: crypto.randomUUID(),
+        type: 'move_incapacitations' as EffectTargetType,
+        sourcePlayerIndex: playerIndex,
+        sourceMortalCode: mortal.code,
+        sourceMortalName: mortal.nameVerso,
+        description: 'Déplacez jusqu\'à 4 incapacités d\'un mortel à un autre.',
+        maxTargets: 4,
+      };
+    }
+
+    // BAC-05 (Arbre à Myrrhe): If BAC-08 + BAC-06 metamorphosed, incapacitate up to 2
+    case 'BAC-05': {
+      const arbresOk = player.mortals.some(
+        m => m.code === 'BAC-08' && m.isMetamorphosed && m.status !== 'incapacite'
+      );
+      const tournesolOk = player.mortals.some(
+        m => m.code === 'BAC-06' && m.isMetamorphosed && m.status !== 'incapacite'
+      );
+      if (!arbresOk || !tournesolOk) return null;
+
+      const hasIncapTarget = gameState.players.some(p =>
+        p.mortals.some(m => canBeIncapacitated(m, p, gameState))
+      );
+      if (!hasIncapTarget) {
+        return {
+          effectId: crypto.randomUUID(),
+          type: 'none',
+          sourcePlayerIndex: playerIndex,
+          sourceMortalCode: mortal.code,
+          sourceMortalName: mortal.nameVerso,
+          description: 'Incapacitez jusqu\'à 2 mortels.',
+          maxTargets: 2,
+          conditionNotMet: 'Aucune cible possible !',
+        };
+      }
+      return {
+        effectId: crypto.randomUUID(),
+        type: 'enemy_mortal_incapacitate',
+        sourcePlayerIndex: playerIndex,
+        sourceMortalCode: mortal.code,
+        sourceMortalName: mortal.nameVerso,
+        description: 'Incapacitez jusqu\'à 2 mortels.',
+        maxTargets: 2,
+        optional: true,
+      };
+    }
 
     // MIN-01 (Grenouilles): All enemies discard 1 (or 2 if not first + gain ether)
     case 'MIN-01': {
