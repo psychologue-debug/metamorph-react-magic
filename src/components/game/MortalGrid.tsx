@@ -1,8 +1,6 @@
 import { Mortal, Player, GameState } from '@/types/game';
 import { motion } from 'framer-motion';
-import { useState, useRef, useEffect } from 'react';
-import { getEffectiveMetamorphosisCost } from '@/engine/costModifiers';
-import { getEffectiveEtherProduction } from '@/engine/etherGeneration';
+import { useState, useRef } from 'react';
 import { isMortalInvulnerable, isMortalRetired } from '@/engine/mortalStatuses';
 import { Shield } from 'lucide-react';
 
@@ -14,12 +12,11 @@ interface MortalGridProps {
   selectable?: boolean;
   targetingMode?: boolean;
   onMortalClick?: (mortalId: string) => void;
+  onMortalHover?: (mortal: Mortal | null) => void;
   containerRef?: React.RefObject<HTMLDivElement>;
 }
 
-const MortalGrid = ({ mortals, owner, gameState, tokenSize = 80, selectable = false, targetingMode = false, onMortalClick, containerRef }: MortalGridProps) => {
-  const gap = tokenSize < 60 ? 4 : tokenSize < 100 ? 8 : 12;
-
+const MortalGrid = ({ mortals, owner, gameState, tokenSize = 80, selectable = false, targetingMode = false, onMortalClick, onMortalHover }: MortalGridProps) => {
   return (
     <>
       {mortals.map((mortal, i) => (
@@ -32,7 +29,7 @@ const MortalGrid = ({ mortals, owner, gameState, tokenSize = 80, selectable = fa
           index={i}
           selectable={targetingMode || (selectable && !mortal.isMetamorphosed && mortal.status !== 'incapacite')}
           onClick={onMortalClick}
-          containerRef={containerRef}
+          onHover={onMortalHover}
         />
       ))}
     </>
@@ -47,7 +44,7 @@ function MortalToken({
   index,
   selectable,
   onClick,
-  containerRef,
+  onHover,
 }: {
   mortal: Mortal;
   owner?: Player;
@@ -56,13 +53,9 @@ function MortalToken({
   index: number;
   selectable: boolean;
   onClick?: (id: string) => void;
-  containerRef?: React.RefObject<HTMLDivElement>;
+  onHover?: (mortal: Mortal | null) => void;
 }) {
   const [imgFailed, setImgFailed] = useState(false);
-  const [hovered, setHovered] = useState(false);
-  const tokenRef = useRef<HTMLDivElement>(null);
-  const [tooltipSide, setTooltipSide] = useState<'bottom' | 'top'>('top');
-  const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties>({});
   const imageSrc = mortal.isMetamorphosed ? mortal.imageVerso : mortal.imageRecto;
   const displayName = mortal.isMetamorphosed ? mortal.nameVerso : mortal.nameRecto;
   const hasPermanentEffect = mortal.isMetamorphosed && !!mortal.effectPermanent;
@@ -70,50 +63,13 @@ function MortalToken({
   const isRetired = isMortalRetired(mortal);
   const isInvulnerable = owner && gameState ? isMortalInvulnerable(mortal, owner, gameState) : false;
   const showImage = imageSrc && !imgFailed;
-  const isSmall = size < 80;
   const fontSize = size < 60 ? 'text-xs' : size < 100 ? 'text-sm' : 'text-lg';
 
-  // Determine tooltip position based on screen position
-  useEffect(() => {
-    if (hovered && tokenRef.current) {
-      const rect = tokenRef.current.getBoundingClientRect();
-      const containerRect = containerRef?.current?.getBoundingClientRect();
-      
-      // Determine vertical side
-      const tooltipHeight = 420; // approximate max tooltip height
-      const spaceAbove = containerRect ? rect.top - containerRect.top : rect.top;
-      const side = spaceAbove < tooltipHeight ? 'bottom' : 'top';
-      setTooltipSide(side);
-
-      // Clamp horizontally within container
-      if (containerRect) {
-        const tooltipWidth = 280;
-        const tokenCenterX = rect.left + rect.width / 2;
-        const idealLeft = tokenCenterX - tooltipWidth / 2;
-        const idealRight = tokenCenterX + tooltipWidth / 2;
-        let offsetX = 0;
-        if (idealLeft < containerRect.left + 8) {
-          offsetX = containerRect.left + 8 - idealLeft;
-        } else if (idealRight > containerRect.right - 8) {
-          offsetX = containerRect.right - 8 - idealRight;
-        }
-        setTooltipStyle({ transform: `translateX(calc(-50% + ${offsetX}px))` });
-      } else {
-        setTooltipStyle({});
-      }
-    }
-  }, [hovered, containerRef]);
-
-  // Show tooltip for both recto (preview verso) and verso (show current card info)
-  const showTooltip = hovered;
-  const tooltipImage = mortal.isMetamorphosed ? mortal.imageVerso : mortal.imageVerso;
-  const tooltipName = mortal.isMetamorphosed ? mortal.nameVerso : mortal.nameVerso;
-
   return (
-    <div className="relative" ref={tokenRef} style={{ zIndex: hovered ? 99999 : 'auto' }}>
+    <div className="relative">
       <motion.div
         className={`
-          rounded-full relative cursor-pointer transition-all duration-300 group overflow-hidden
+          rounded-full relative cursor-pointer transition-all duration-300 overflow-hidden
           ${mortal.isMetamorphosed ? 'ring-2 ring-ether/60' : 'ring-1 ring-border/40'}
           ${isRetired ? 'grayscale opacity-40 pointer-events-none' : ''}
           ${isIncapacitated && !isRetired ? 'grayscale opacity-60' : ''}
@@ -129,8 +85,8 @@ function MortalToken({
         transition={selectable ? { boxShadow: { duration: 1.5, repeat: Infinity } } : { delay: index * 0.03 }}
         whileHover={{ scale: 1.1, zIndex: 10 }}
         onClick={() => onClick?.(mortal.id)}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
+        onMouseEnter={() => onHover?.(mortal)}
+        onMouseLeave={() => onHover?.(null)}
       >
         {showImage ? (
           <img
@@ -154,7 +110,6 @@ function MortalToken({
           </div>
         )}
 
-        {/* Permanent effect glow */}
         {hasPermanentEffect && !isIncapacitated && (
           <motion.div
             className="absolute -inset-1 rounded-full pointer-events-none"
@@ -167,14 +122,12 @@ function MortalToken({
           />
         )}
 
-        {/* Retired overlay */}
         {isRetired && (
           <div className="absolute inset-0 rounded-full flex items-center justify-center bg-background/60">
             <span className="text-lg">🚫</span>
           </div>
         )}
 
-        {/* Incapacitated overlay */}
         {isIncapacitated && !isRetired && (
           <div className="absolute inset-0 rounded-full flex items-center justify-center bg-background/40">
             <motion.div
@@ -191,7 +144,6 @@ function MortalToken({
           </div>
         )}
 
-        {/* Invulnerable shield indicator */}
         {isInvulnerable && !isRetired && (
           <motion.div
             className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
@@ -206,7 +158,6 @@ function MortalToken({
           </motion.div>
         )}
 
-        {/* Metamorphosed glow */}
         {mortal.isMetamorphosed && !hasPermanentEffect && !isIncapacitated && !isRetired && (
           <motion.div
             className="absolute inset-0 rounded-full pointer-events-none"
@@ -216,73 +167,6 @@ function MortalToken({
           />
         )}
       </motion.div>
-
-      {/* Hover tooltip — card-shaped, positioned dynamically */}
-      {showTooltip && (
-          <motion.div
-          className={`absolute left-1/2 z-[99999] pointer-events-none ${
-            tooltipSide === 'top' ? 'bottom-full mb-3' : 'top-full mt-3'
-          }`}
-          style={tooltipStyle}
-          initial={{ opacity: 0, y: tooltipSide === 'top' ? 5 : -5 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.15 }}
-        >
-          <div
-            className="rounded-xl overflow-hidden shadow-2xl"
-            style={{
-              background: 'hsl(var(--card))',
-              border: '1px solid hsl(var(--border))',
-              width: '280px',
-            }}
-          >
-            {tooltipImage && (
-              <img
-                src={tooltipImage}
-                alt={tooltipName}
-                className="w-full object-contain"
-                style={{ maxHeight: '360px' }}
-              />
-            )}
-            <div className="p-3">
-              <div className="font-display text-lg font-bold text-foreground">{tooltipName}</div>
-              <div className="flex items-center gap-2 mt-1">
-                {(() => {
-                  const effectiveCost = owner && gameState
-                    ? getEffectiveMetamorphosisCost(mortal, owner, gameState)
-                    : mortal.cost;
-                  const effectiveProduction = owner && gameState
-                    ? getEffectiveEtherProduction(mortal, owner, gameState)
-                    : (mortal.isMetamorphosed ? mortal.etherProduction : mortal.etherProductionRecto);
-                  const costModified = effectiveCost !== mortal.cost;
-                  return (
-                    <>
-                      <span className={`text-base font-display font-semibold ${costModified ? 'text-divine' : 'text-ether'}`}>
-                        Coût: {effectiveCost} Éther
-                        {costModified && <span className="text-muted-foreground line-through ml-1 text-sm">{mortal.cost}</span>}
-                      </span>
-                      <span className="text-base text-muted-foreground">|</span>
-                      <span className="text-base text-ether font-display">+{effectiveProduction} Éther/cycle</span>
-                    </>
-                  );
-                })()}
-              </div>
-              {mortal.effectOnMetamorphose && (
-                <div className="text-sm text-foreground mt-2 flex gap-2">
-                  <span>⚡</span>
-                  <span>{mortal.effectOnMetamorphose}</span>
-                </div>
-              )}
-              {mortal.effectPermanent && (
-                <div className="text-sm mt-1 flex gap-2" style={{ color: 'hsl(var(--divine))' }}>
-                  <span>🔮</span>
-                  <span>{mortal.effectPermanent}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </motion.div>
-      )}
     </div>
   );
 }

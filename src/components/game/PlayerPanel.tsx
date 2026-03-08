@@ -1,4 +1,4 @@
-import { Player, GameState, DIVINITIES } from '@/types/game';
+import { Player, GameState, DIVINITIES, Mortal } from '@/types/game';
 import EtherCounter from './EtherCounter';
 import MortalGrid from './MortalGrid';
 import { motion } from 'framer-motion';
@@ -11,31 +11,30 @@ interface PlayerPanelProps {
   index: number;
   compact?: boolean;
   onMortalClick?: (mortalId: string) => void;
+  onMortalHover?: (mortal: Mortal | null) => void;
 }
 
-const PlayerPanel = ({ player, gameState, isActive, index, compact = false, onMortalClick }: PlayerPanelProps) => {
+const PlayerPanel = ({ player, gameState, isActive, index, compact = false, onMortalClick, onMortalHover }: PlayerPanelProps) => {
   const divinity = DIVINITIES[player.divinity];
-  // Always use compact tokens to fit 3 panels in width
-  const tokenSize = compact ? 86 : 121;
+  const tokenSize = compact ? 50 : 64;
 
   return (
     <motion.div
-      className={`flex flex-col items-stretch ${isActive ? 'ring-2 ring-ether/50 rounded-xl' : ''}`}
-      style={{ flex: '1 1 30%', maxWidth: '33%', minWidth: '260px' }}
+      className={`flex flex-col items-stretch h-full ${isActive ? 'ring-2 ring-ether/50 rounded-xl' : ''}`}
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1, duration: 0.4 }}
     >
       <div
-        className="rounded-xl p-3 h-full"
+        className="rounded-xl p-3 h-full flex flex-col"
         style={{
           background: `linear-gradient(135deg, hsl(var(--card) / 0.95), hsl(var(--secondary) / 0.9))`,
           backdropFilter: 'blur(8px)',
           border: isActive ? '1px solid hsl(var(--ether) / 0.4)' : '1px solid hsl(var(--border) / 0.3)',
         }}
       >
-        {/* Header row — compact */}
-        <div className="flex items-center gap-2 mb-2">
+        {/* Header row */}
+        <div className="flex items-center gap-2 mb-2 shrink-0">
           <div
             className="w-8 h-8 rounded-full flex items-center justify-center border-2 shrink-0 overflow-hidden"
             style={{
@@ -56,7 +55,7 @@ const PlayerPanel = ({ player, gameState, isActive, index, compact = false, onMo
         </div>
 
         {/* Stats row */}
-        <div className="flex items-center gap-3 mb-2 text-sm">
+        <div className="flex items-center gap-3 mb-2 text-sm shrink-0">
           <div className="flex items-center gap-1">
             <RefreshCw className="text-ether w-4 h-4" />
             <span className="font-display text-foreground font-bold">{player.metamorphosedCount}/10</span>
@@ -84,15 +83,18 @@ const PlayerPanel = ({ player, gameState, isActive, index, compact = false, onMo
           <span className="text-muted-foreground">{player.hand.length} cartes</span>
         </div>
 
-        {/* Mortal Grid */}
-        <MortalGrid
-          mortals={player.mortals}
-          owner={player}
-          gameState={gameState}
-          tokenSize={tokenSize}
-          targetingMode={!!onMortalClick}
-          onMortalClick={onMortalClick}
-        />
+        {/* Mortal Grid — fills remaining space */}
+        <div className="flex-1 grid grid-cols-5 place-content-center gap-1 overflow-hidden">
+          <MortalGrid
+            mortals={player.mortals}
+            owner={player}
+            gameState={gameState}
+            tokenSize={tokenSize}
+            targetingMode={!!onMortalClick}
+            onMortalClick={onMortalClick}
+            onMortalHover={onMortalHover}
+          />
+        </div>
       </div>
     </motion.div>
   );

@@ -1,50 +1,29 @@
 import { GameLogEntry } from '@/types/game';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ScrollText } from 'lucide-react';
-import { useState } from 'react';
 
 interface GameLogProps {
   entries: GameLogEntry[];
+  open: boolean;
 }
 
-const GameLog = ({ entries }: GameLogProps) => {
-  const [hovered, setHovered] = useState(false);
-
+const GameLog = ({ entries, open }: GameLogProps) => {
   return (
-    <div className="fixed top-12 right-0 z-[9990] flex items-start">
-      {/* Toggle button — always visible */}
-      <button
-        className="flex items-center gap-1.5 px-3 py-2 rounded-l-lg font-display text-sm font-semibold transition-colors"
-        style={{
-          background: 'hsl(var(--card) / 0.95)',
-          border: '1px solid hsl(var(--border) / 0.4)',
-          borderRight: 'none',
-          color: 'hsl(var(--foreground))',
-        }}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-      >
-        <ScrollText className="w-4 h-4 text-ether" />
-        Chroniques
-      </button>
-
-      {/* Slide-in panel */}
-      <motion.div
-        className="w-72 max-h-[70vh] overflow-y-auto rounded-bl-lg"
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        style={{
-          background: 'hsl(var(--card) / 0.97)',
-          backdropFilter: 'blur(12px)',
-          borderLeft: '1px solid hsl(var(--border) / 0.4)',
-          borderBottom: '1px solid hsl(var(--border) / 0.4)',
-        }}
-        initial={false}
-        animate={{ x: hovered ? 0 : '100%' }}
-        transition={{ type: 'tween', duration: 0.25 }}
-      >
-        <div className="p-3 space-y-2">
-          <AnimatePresence>
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="absolute top-0 right-0 z-[9990] w-72 max-h-[70vh] overflow-y-auto rounded-bl-lg"
+          style={{
+            background: 'hsl(var(--card) / 0.97)',
+            backdropFilter: 'blur(12px)',
+            borderLeft: '1px solid hsl(var(--border) / 0.4)',
+            borderBottom: '1px solid hsl(var(--border) / 0.4)',
+          }}
+          initial={{ x: '100%' }}
+          animate={{ x: 0 }}
+          exit={{ x: '100%' }}
+          transition={{ type: 'tween', duration: 0.25 }}
+        >
+          <div className="p-3 space-y-2">
             {entries.slice(0, 30).map((entry, i) => (
               <motion.div
                 key={entry.id}
@@ -61,10 +40,10 @@ const GameLog = ({ entries }: GameLogProps) => {
                 </span>
               </motion.div>
             ))}
-          </AnimatePresence>
-        </div>
-      </motion.div>
-    </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
 
