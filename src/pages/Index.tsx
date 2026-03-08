@@ -63,6 +63,9 @@ const Index = () => {
     resolveSelectGod,
     resolvePlaySpellAtDiscount,
     resolvePayMultipleEnemyDiscard,
+    resolveStealCard,
+    resolveMetamorphoseExtra,
+    resolveMoveIncapacitations,
     handleReactionReady,
     handleReactionPass,
     handleReactionActivate,
@@ -79,6 +82,10 @@ const Index = () => {
   const isModalEffect = pendingEffect && (
     pendingEffect.type === 'generate_destroy_ether' ||
     pendingEffect.type === 'steal_ether_each_god' ||
+    pendingEffect.type === 'steal_ether_total' ||
+    pendingEffect.type === 'steal_card_from_god' ||
+    pendingEffect.type === 'metamorphose_extra' ||
+    pendingEffect.type === 'move_incapacitations' ||
     pendingEffect.type === 'none' ||
     pendingEffect.type === 'select_god_discard_all' ||
     pendingEffect.type === 'discard_cards_then_effect' ||
@@ -225,6 +232,12 @@ const Index = () => {
 
   const currentPlayer = gameState.players[currentPlayerIndex];
   const isOwnTurn = currentPlayerIndex === gameState.activePlayerIndex;
+
+  // VEN-04 (Oiseaux): check if current player can see enemy reactions
+  const canSeeEnemyReactions = currentPlayer.mortals.some(
+    m => m.code === 'VEN-04' && m.isMetamorphosed && m.status !== 'incapacite' && m.status !== 'retired'
+  );
+
   const opponents = gameState.players
     .map((player, index) => ({ player, index }))
     .filter(({ index }) => index !== currentPlayerIndex);
@@ -335,6 +348,7 @@ const Index = () => {
                 isActive={true}
                 index={activeEnemy.index}
                 compact={false}
+                canSeeReactions={canSeeEnemyReactions}
                 onMortalClick={isMortalTargeting ? (mortalId: string) => handleTargetMortalClick(activeEnemy.player.id, mortalId) : undefined}
                 onMortalHover={(m) => handleEnemyMortalHover(m, activeEnemy.player)}
               />
@@ -434,6 +448,9 @@ const Index = () => {
           onSelectGod={resolveSelectGod}
           onPlaySpellAtDiscount={resolvePlaySpellAtDiscount}
           onPayMultipleEnemyDiscard={resolvePayMultipleEnemyDiscard}
+          onStealCard={resolveStealCard}
+          onMetamorphoseExtra={resolveMetamorphoseExtra}
+          onMoveIncapacitations={resolveMoveIncapacitations}
         />
       )}
 

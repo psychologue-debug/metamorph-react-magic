@@ -19,6 +19,9 @@ interface TargetingModalProps {
   onSelectGod?: (targetPlayerId: string) => void;
   onPlaySpellAtDiscount?: (cardId: string) => void;
   onPayMultipleEnemyDiscard?: (multiplier: number) => void;
+  onStealCard?: (targetPlayerId: string, cardId: string) => void;
+  onMetamorphoseExtra?: (mortalId: string) => void;
+  onMoveIncapacitations?: (moves: { fromMortalId: string; toMortalId: string; fromPlayerId: string; toPlayerId: string }[]) => void;
 }
 
 export interface TargetingResult {
@@ -33,7 +36,7 @@ export interface TargetingResult {
   etherStolen?: { playerId: string; amount: number }[];
 }
 
-const TargetingModal = ({ effect, gameState, onResolve, onCancel, onGodDiscard, onCardDiscard, onPayDrawDiscard, onInitiatePayDraw, onReactionDiscard, onGlane, onSelectGod, onPlaySpellAtDiscount, onPayMultipleEnemyDiscard }: TargetingModalProps) => {
+const TargetingModal = ({ effect, gameState, onResolve, onCancel, onGodDiscard, onCardDiscard, onPayDrawDiscard, onInitiatePayDraw, onReactionDiscard, onGlane, onSelectGod, onPlaySpellAtDiscount, onPayMultipleEnemyDiscard, onStealCard, onMetamorphoseExtra, onMoveIncapacitations }: TargetingModalProps) => {
   // No interaction needed
   if (effect.type === 'none') {
     return (
@@ -174,6 +177,48 @@ const TargetingModal = ({ effect, gameState, onResolve, onCancel, onGodDiscard, 
         gameState={gameState}
         onConfirm={onPayMultipleEnemyDiscard}
         onCancel={onCancel}
+      />
+    );
+  }
+
+  if (effect.type === 'steal_ether_total') {
+    return (
+      <StealEtherTotalContent
+        effect={effect}
+        gameState={gameState}
+        onResolve={onResolve}
+      />
+    );
+  }
+
+  if (effect.type === 'steal_card_from_god' && onStealCard) {
+    return (
+      <StealCardFromGodContent
+        effect={effect}
+        gameState={gameState}
+        onSteal={onStealCard}
+        onCancel={onCancel}
+      />
+    );
+  }
+
+  if (effect.type === 'metamorphose_extra' && onMetamorphoseExtra) {
+    return (
+      <MetamorphoseExtraContent
+        effect={effect}
+        gameState={gameState}
+        onSelect={onMetamorphoseExtra}
+        onCancel={onCancel}
+      />
+    );
+  }
+
+  if (effect.type === 'move_incapacitations' && onMoveIncapacitations) {
+    return (
+      <MoveIncapacitationsContent
+        effect={effect}
+        gameState={gameState}
+        onConfirm={onMoveIncapacitations}
       />
     );
   }
@@ -1232,6 +1277,473 @@ function PayMultipleDiscardContent({
             onClick={() => onConfirm(multiplier)}
           >
             Payer {cost} Éther
+          </motion.button>
+        </div>
+      </div>
+    </ModalWrapper>
+  );
+}
+
+// === StealEtherTotalContent: Steal N total ether from any enemies (BAC-03) ===
+function StealEtherTotalContent({
+  effect,
+  gameState,
+  onResolve,
+}: {
+  effect: PendingEffect;
+  gameState: GameState;
+  onResolve: (result: TargetingResult) => void;
+}) {
+  const totalToSteal = effect.etherStealTotal || 3;
+  const [stolen, setStolen] = useState<Record<string, number>>({});
+  const totalStolen = Object.values(stolen).reduce((a, b) => a + b, 0);
+  const remaining = totalToSteal - totalStolen;
+
+  const enemies = gameState.players.filter((_, i) => i !== effect.sourcePlayerIndex);
+
+  const addSteal = (playerId: string) => {
+    if (remaining <= 0) return;
+    const player = gameState.players.find(p => p.id === playerId);
+    if (!player) return;
+    const current = stolen[playerId] || 0;
+    if (current >= player.ether) return;
+    setStolen(prev => ({ ...prev, [playerId]: current + 1 }));
+  };
+
+  const removeSteal = (playerId: string) => {
+    const current = stolen[playerId] || 0;
+    if (current <= 0) return;
+    setStolen(prev => ({ ...prev, [playerId]: current - 1 }));
+  };
+
+  return (
+    <ModalWrapper>
+      <div>
+        <div className="flex items-center gap-3 mb-4">
+          <Target className="w-6 h-6 text-ether" />
+          <div>
+            <h2 className="font-display text-xl font-bold text-foreground">{effect.sourceMortalName}</h2>
+            <p className="text-muted-foreground text-sm">{effect.description}</p>
+          </div>
+        </div>
+
+        <p className="text-sm font-display text-foreground mb-3">
+          Volez {totalToSteal} Éther — restant : <span className="text-ether font-bold">{remaining}</span>
+        </p>
+
+        <div className="space-y-3 mb-6">
+          {enemies.map(enemy => (
+            <div key={enemy.id} className="flex items-center gap-4 p-3 rounded-lg" style={{ background: 'hsl(var(--secondary) / 0.5)' }}>
+              <div className="flex-1">
+                <span className="font-display font-semibold text-foreground">{enemy.name}</span>
+                <span className="text-muted-foreground ml-2">({enemy.ether} Éther)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <motion.button
+                  className="w-8 h-8 rounded-full flex items-center justify-center border border-border/50"
+                  style={{ background: 'hsl(var(--muted))' }}
+                  onClick={() => removeSteal(enemy.id)}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <span className="text-foreground text-lg">−</span>
+                </motion.button>
+                <span className="w-8 text-center font-display font-bold text-lg text-foreground">
+                  {stolen[enemy.id] || 0}
+                </span>
+                <motion.button
+                  className="w-8 h-8 rounded-full flex items-center justify-center border border-ether/50"
+                  style={{ background: remaining > 0 ? 'hsl(var(--ether) / 0.2)' : 'hsl(var(--muted))' }}
+                  onClick={() => addSteal(enemy.id)}
+                  whileTap={{ scale: 0.9 }}
+                  disabled={remaining <= 0}
+                >
+                  <span className="text-foreground text-lg">+</span>
+                </motion.button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-display text-ether font-semibold">
+            Total volé : +{totalStolen} Éther
+          </span>
+          <motion.button
+            className="px-6 py-2 rounded-lg font-display font-semibold text-sm"
+            style={{
+              background: 'linear-gradient(135deg, hsl(var(--ether)), hsl(var(--ether-dim)))',
+              color: 'white',
+            }}
+            whileHover={{ scale: 1.05 }}
+            onClick={() => {
+              const etherStolen = Object.entries(stolen)
+                .filter(([_, amount]) => amount > 0)
+                .map(([playerId, amount]) => ({ playerId, amount }));
+              onResolve({
+                effectId: effect.effectId,
+                type: effect.type,
+                sourceMortalCode: effect.sourceMortalCode,
+                etherStolen,
+              });
+            }}
+          >
+            Confirmer
+          </motion.button>
+        </div>
+      </div>
+    </ModalWrapper>
+  );
+}
+
+// === StealCardFromGodContent: Pick a god, then pick a card from their hand (BAC-03) ===
+function StealCardFromGodContent({
+  effect,
+  gameState,
+  onSteal,
+  onCancel,
+}: {
+  effect: PendingEffect;
+  gameState: GameState;
+  onSteal: (targetPlayerId: string, cardId: string) => void;
+  onCancel?: () => void;
+}) {
+  const [selectedGod, setSelectedGod] = useState<string | null>(null);
+  const [selectedCard, setSelectedCard] = useState<string | null>(null);
+  const enemies = gameState.players.filter((_, i) => i !== effect.sourcePlayerIndex && gameState.players[i].hand.length > 0);
+  const selectedEnemy = selectedGod ? gameState.players.find(p => p.id === selectedGod) : null;
+
+  if (enemies.length === 0) {
+    return (
+      <ModalWrapper>
+        <div className="text-center">
+          <h2 className="font-display text-xl font-bold text-foreground mb-2">{effect.sourceMortalName}</h2>
+          <p className="text-muted-foreground mb-4">Aucun dieu ennemi n'a de cartes en main.</p>
+          <button
+            className="px-6 py-2 rounded-lg font-display font-semibold"
+            style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--foreground))' }}
+            onClick={onCancel}
+          >
+            OK
+          </button>
+        </div>
+      </ModalWrapper>
+    );
+  }
+
+  return (
+    <ModalWrapper>
+      <div>
+        <div className="flex items-center gap-3 mb-4">
+          <Target className="w-6 h-6 text-ether" />
+          <div>
+            <h2 className="font-display text-xl font-bold text-foreground">{effect.sourceMortalName}</h2>
+            <p className="text-muted-foreground text-sm">{effect.description}</p>
+          </div>
+        </div>
+
+        {!selectedGod ? (
+          <>
+            <p className="text-sm font-display text-foreground mb-3">Choisissez un dieu à qui voler une carte :</p>
+            <div className="space-y-2 mb-4">
+              {enemies.map(enemy => {
+                const divinity = DIVINITIES[enemy.divinity];
+                return (
+                  <motion.button
+                    key={enemy.id}
+                    className="w-full flex items-center gap-4 p-4 rounded-lg border border-border/50"
+                    style={{ background: 'hsl(var(--secondary) / 0.5)' }}
+                    whileHover={{ scale: 1.02, borderColor: 'hsl(var(--ether) / 0.5)' }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setSelectedGod(enemy.id)}
+                  >
+                    <div className="w-10 h-10 rounded-md overflow-hidden border-2" style={{ borderColor: `hsl(${divinity.color})` }}>
+                      {divinity.image && <img src={divinity.image} alt={divinity.name} className="w-full h-full object-cover" />}
+                    </div>
+                    <div className="flex-1 text-left">
+                      <span className="font-display font-semibold text-foreground">{enemy.name}</span>
+                      <span className="text-muted-foreground text-sm ml-2">({enemy.hand.length} cartes)</span>
+                    </div>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-sm font-display text-foreground mb-3">Choisissez la carte à voler à {selectedEnemy?.name} :</p>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {selectedEnemy?.hand.map(card => {
+                const selected = selectedCard === card.id;
+                return (
+                  <motion.button
+                    key={card.id}
+                    className={`p-3 rounded-lg border-2 transition-all text-left ${selected ? 'border-ether ring-2 ring-ether/30' : 'border-border/50 hover:border-ether/40'}`}
+                    style={{ background: selected ? 'hsl(var(--ether) / 0.1)' : 'hsl(var(--secondary) / 0.5)', minWidth: '140px' }}
+                    whileHover={{ scale: 1.03 }}
+                    onClick={() => setSelectedCard(card.id)}
+                  >
+                    <div className="font-display text-sm font-bold text-foreground">{card.name}</div>
+                    <div className="text-xs text-muted-foreground">Coût: {card.cost} | {card.type === 'reaction' ? 'Réaction' : 'Sortilège'}</div>
+                    <div className="text-xs text-muted-foreground mt-1">{card.description}</div>
+                    {selected && <Check className="w-4 h-4 text-ether mt-1" />}
+                  </motion.button>
+                );
+              })}
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button
+                className="px-5 py-2 rounded-lg font-display text-sm border border-border/50 text-muted-foreground"
+                style={{ background: 'hsl(var(--muted))' }}
+                onClick={() => { setSelectedGod(null); setSelectedCard(null); }}
+              >
+                Retour
+              </button>
+              <motion.button
+                className="px-6 py-2 rounded-lg font-display font-semibold text-sm"
+                style={{
+                  background: selectedCard ? 'linear-gradient(135deg, hsl(var(--ether)), hsl(var(--ether-dim)))' : 'hsl(var(--muted))',
+                  color: selectedCard ? 'white' : 'hsl(var(--muted-foreground))',
+                }}
+                whileHover={selectedCard ? { scale: 1.05 } : {}}
+                onClick={() => selectedCard && selectedGod && onSteal(selectedGod, selectedCard)}
+                disabled={!selectedCard}
+              >
+                Voler
+              </motion.button>
+            </div>
+          </>
+        )}
+      </div>
+    </ModalWrapper>
+  );
+}
+
+// === MetamorphoseExtraContent: Pick own mortal to metamorphose at extra cost (BAC-02) ===
+function MetamorphoseExtraContent({
+  effect,
+  gameState,
+  onSelect,
+  onCancel,
+}: {
+  effect: PendingEffect;
+  gameState: GameState;
+  onSelect: (mortalId: string) => void;
+  onCancel?: () => void;
+}) {
+  const player = gameState.players[effect.sourcePlayerIndex];
+  const extraCost = effect.extraMetamorphoseCostAdded || 6;
+  const availableMortals = player.mortals.filter(
+    m => !m.isMetamorphosed && m.status !== 'retired' && m.status !== 'incapacite'
+  );
+
+  return (
+    <ModalWrapper>
+      <div>
+        <div className="flex items-center gap-3 mb-4">
+          <Target className="w-6 h-6 text-ether" />
+          <div>
+            <h2 className="font-display text-xl font-bold text-foreground">{effect.sourceMortalName}</h2>
+            <p className="text-muted-foreground text-sm">{effect.description}</p>
+          </div>
+        </div>
+
+        <div className="space-y-2 mb-4">
+          {availableMortals.map(mortal => {
+            const totalCost = mortal.cost + extraCost;
+            const canAfford = player.ether >= totalCost;
+            return (
+              <motion.button
+                key={mortal.id}
+                className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left ${canAfford ? 'border-border/50 hover:border-ether/50' : 'border-border/20 opacity-40'}`}
+                style={{ background: 'hsl(var(--secondary) / 0.5)' }}
+                whileHover={canAfford ? { scale: 1.02 } : {}}
+                whileTap={canAfford ? { scale: 0.98 } : {}}
+                onClick={() => canAfford && onSelect(mortal.id)}
+                disabled={!canAfford}
+              >
+                <div className="w-12 h-12 rounded-lg overflow-hidden border border-border/50 shrink-0">
+                  <img src={mortal.imageRecto} alt={mortal.nameRecto} className="w-full h-full object-cover" />
+                </div>
+                <div className="flex-1">
+                  <span className="font-display font-semibold text-foreground">{mortal.nameRecto}</span>
+                  <span className="text-muted-foreground text-sm ml-2">→ {mortal.nameVerso}</span>
+                  <div className="text-xs mt-1">
+                    <span className="text-muted-foreground">Coût base: {mortal.cost}</span>
+                    <span className="text-ether ml-2">+ {extraCost} = <strong>{totalCost} Éther</strong></span>
+                    {!canAfford && <span className="text-destructive ml-2">(insuffisant)</span>}
+                  </div>
+                </div>
+              </motion.button>
+            );
+          })}
+        </div>
+
+        {onCancel && (
+          <div className="flex justify-end">
+            <button
+              className="px-5 py-2 rounded-lg font-display text-sm border border-border/50 text-muted-foreground"
+              style={{ background: 'hsl(var(--muted))' }}
+              onClick={onCancel}
+            >
+              Annuler
+            </button>
+          </div>
+        )}
+      </div>
+    </ModalWrapper>
+  );
+}
+
+// === MoveIncapacitationsContent: Move incapacitations between mortals (BAC-04) ===
+function MoveIncapacitationsContent({
+  effect,
+  gameState,
+  onConfirm,
+}: {
+  effect: PendingEffect;
+  gameState: GameState;
+  onConfirm: (moves: { fromMortalId: string; toMortalId: string; fromPlayerId: string; toPlayerId: string }[]) => void;
+}) {
+  const [moves, setMoves] = useState<{ fromMortalId: string; toMortalId: string; fromPlayerId: string; toPlayerId: string }[]>([]);
+  const [phase, setPhase] = useState<'select_source' | 'select_target'>('select_source');
+  const [currentSource, setCurrentSource] = useState<{ mortalId: string; playerId: string } | null>(null);
+  const maxMoves = effect.maxTargets || 4;
+
+  // Build list of incapacitated mortals that haven't been "healed" yet in this session
+  const healedIds = new Set(moves.map(m => m.fromMortalId));
+  const incapacitatedIds = new Set(moves.map(m => m.toMortalId));
+
+  const allPlayers = gameState.players;
+
+  const getEffectiveStatus = (mortal: Mortal) => {
+    if (healedIds.has(mortal.id) && !incapacitatedIds.has(mortal.id)) return 'normal';
+    if (incapacitatedIds.has(mortal.id)) return 'incapacite';
+    return mortal.status;
+  };
+
+  const isValidSource = (mortal: Mortal) => {
+    if (!mortal.isMetamorphosed) return false;
+    const effectiveStatus = getEffectiveStatus(mortal);
+    return effectiveStatus === 'incapacite';
+  };
+
+  const isValidTarget = (mortal: Mortal, owner: Player) => {
+    if (!mortal.isMetamorphosed) return false;
+    if (mortal.status === 'retired') return false;
+    const effectiveStatus = getEffectiveStatus(mortal);
+    if (effectiveStatus === 'incapacite') return false;
+    // Check invulnerability
+    return canBeIncapacitated(mortal, owner, gameState);
+  };
+
+  return (
+    <ModalWrapper>
+      <div>
+        <div className="flex items-center gap-3 mb-4">
+          <Target className="w-6 h-6 text-ether" />
+          <div>
+            <h2 className="font-display text-xl font-bold text-foreground">{effect.sourceMortalName}</h2>
+            <p className="text-muted-foreground text-sm">{effect.description}</p>
+          </div>
+        </div>
+
+        <p className="text-sm font-display text-foreground mb-1">
+          Déplacements : <span className="text-ether font-bold">{moves.length}/{maxMoves}</span>
+        </p>
+        <p className="text-sm text-muted-foreground mb-3">
+          {phase === 'select_source'
+            ? 'Cliquez sur un mortel incapacité pour le libérer :'
+            : 'Cliquez sur un mortel à incapaciter à la place :'}
+        </p>
+
+        <div className="space-y-3 mb-4 max-h-[50vh] overflow-y-auto">
+          {allPlayers.map(owner => {
+            const relevantMortals = owner.mortals.filter(m => {
+              if (phase === 'select_source') return isValidSource(m);
+              return isValidTarget(m, owner);
+            });
+            if (relevantMortals.length === 0) return null;
+            return (
+              <div key={owner.id}>
+                <h3 className="font-display text-xs font-semibold text-muted-foreground mb-1">{owner.name}</h3>
+                <div className="flex flex-wrap gap-2">
+                  {owner.mortals.map(mortal => {
+                    const valid = phase === 'select_source' ? isValidSource(mortal) : isValidTarget(mortal, owner);
+                    const effectiveStatus = getEffectiveStatus(mortal);
+                    return (
+                      <motion.button
+                        key={mortal.id}
+                        className={`relative rounded-lg overflow-hidden border-2 transition-all ${
+                          valid ? 'border-ether/50 hover:border-ether cursor-pointer' : 'border-border/20 opacity-30 cursor-not-allowed'
+                        }`}
+                        style={{ width: 56, height: 56 }}
+                        onClick={() => {
+                          if (!valid) return;
+                          if (phase === 'select_source') {
+                            setCurrentSource({ mortalId: mortal.id, playerId: owner.id });
+                            setPhase('select_target');
+                          } else if (currentSource) {
+                            setMoves(prev => [...prev, {
+                              fromMortalId: currentSource.mortalId,
+                              toMortalId: mortal.id,
+                              fromPlayerId: currentSource.playerId,
+                              toPlayerId: owner.id,
+                            }]);
+                            setCurrentSource(null);
+                            setPhase('select_source');
+                          }
+                        }}
+                        whileHover={valid ? { scale: 1.1 } : {}}
+                        disabled={!valid}
+                      >
+                        <img
+                          src={mortal.isMetamorphosed ? mortal.imageVerso : mortal.imageRecto}
+                          alt={mortal.isMetamorphosed ? mortal.nameVerso : mortal.nameRecto}
+                          className="w-full h-full object-cover"
+                        />
+                        {effectiveStatus === 'incapacite' && (
+                          <div className="absolute bottom-0 left-0 right-0 text-center text-xs bg-black/60 text-white">⛓️</div>
+                        )}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Move log */}
+        {moves.length > 0 && (
+          <div className="mb-3 p-2 rounded-lg text-xs text-muted-foreground" style={{ background: 'hsl(var(--muted) / 0.5)' }}>
+            {moves.map((m, i) => {
+              const fromMortal = allPlayers.flatMap(p => p.mortals).find(mo => mo.id === m.fromMortalId);
+              const toMortal = allPlayers.flatMap(p => p.mortals).find(mo => mo.id === m.toMortalId);
+              return <div key={i}>{i + 1}. {fromMortal?.nameVerso} → {toMortal?.nameVerso}</div>;
+            })}
+          </div>
+        )}
+
+        <div className="flex gap-3 justify-end">
+          {phase === 'select_target' && (
+            <button
+              className="px-4 py-2 rounded-lg font-display text-sm border border-border/50 text-muted-foreground"
+              style={{ background: 'hsl(var(--muted))' }}
+              onClick={() => { setPhase('select_source'); setCurrentSource(null); }}
+            >
+              Annuler la sélection
+            </button>
+          )}
+          <motion.button
+            className="px-6 py-2 rounded-lg font-display font-semibold text-sm"
+            style={{
+              background: 'linear-gradient(135deg, hsl(var(--ether)), hsl(var(--ether-dim)))',
+              color: 'white',
+            }}
+            whileHover={{ scale: 1.05 }}
+            onClick={() => onConfirm(moves)}
+          >
+            Terminer {moves.length > 0 ? `(${moves.length} déplacement${moves.length > 1 ? 's' : ''})` : ''}
           </motion.button>
         </div>
       </div>

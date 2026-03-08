@@ -13,6 +13,10 @@ export type EffectTargetType =
   | 'retro_enemy_mortal'           // Select an enemy metamorphosed mortal to retrometamorphose
   | 'generate_destroy_ether'       // Generate X ether then click enemy reservoirs to destroy Y
   | 'steal_ether_each_god'         // Steal up to N ether from each enemy god
+  | 'steal_ether_total'            // Steal N ether total from any combination of enemies
+  | 'steal_card_from_god'          // Select a god then steal one card from their hand
+  | 'metamorphose_extra'           // Pick own mortal to metamorphose at extra cost
+  | 'move_incapacitations'         // Move incapacitations from one mortal to another
   | 'choice'                       // Player must choose between multiple sub-effects
   | 'select_god_discard_all'       // Select a god who discards all cards
   | 'discard_cards_then_effect'    // Discard N cards (hand+reactions) then chain effect
@@ -37,6 +41,9 @@ export interface PendingEffect {
   etherGenerate?: number;
   etherDestroy?: number;
   etherStealPerGod?: number;
+  etherStealTotal?: number;
+  // For metamorphose_extra
+  extraMetamorphoseCostAdded?: number;
   // Whether the effect is optional (player can skip)
   optional?: boolean;
   // Condition description (shown when effect can't fire)
@@ -572,7 +579,53 @@ export function getMetamorphoseEffect(
       return { effectId: crypto.randomUUID(), type: 'choice', sourcePlayerIndex: playerIndex, sourceMortalCode: mortal.code, sourceMortalName: mortal.nameVerso, description: 'Défaussez jusqu\'à 2 cartes pour incapaciter autant de mortels ennemis.', maxTargets: 0, choices, optional: true };
     }
 
-    // BAC-02 (Dauphins): TODO - Extra metamorphose at +6 cost (needs custom mechanic)
+    // BAC-02 (Dauphins): Optional extra metamorphose at +6 cost
+    case 'BAC-02': {
+      // Check if player has any non-metamorphosed mortals (other than BAC-02 itself)
+      const hasNonMetamorphosed = player.mortals.some(
+        m => !m.isMetamorphosed && m.status !== 'retired' && m.status !== 'incapacite' && m.code !== 'BAC-02'
+      );
+      if (!hasNonMetamorphosed) {
+        return null; // No mortal to metamorphose
+      }
+      return {
+        effectId: crypto.randomUUID(),
+        type: 'choice',
+        sourcePlayerIndex: playerIndex,
+        sourceMortalCode: mortal.code,
+        sourceMortalName: mortal.nameVerso,
+        description: 'Voulez-vous métamorphoser un autre mortel en payant 6 Éther de plus que son coût ?',
+        maxTargets: 0,
+        optional: true,
+        choices: [
+          {
+            label: 'Oui — Métamorphoser un mortel (+6)',
+            effect: {
+              effectId: crypto.randomUUID(),
+              type: 'metamorphose_extra' as EffectTargetType,
+              sourcePlayerIndex: playerIndex,
+              sourceMortalCode: mortal.code,
+              sourceMortalName: mortal.nameVerso,
+              description: 'Choisissez un mortel à métamorphoser (coût + 6 Éther).',
+              maxTargets: 1,
+              extraMetamorphoseCostAdded: 6,
+            },
+          },
+          {
+            label: 'Non — Passer',
+            effect: {
+              effectId: crypto.randomUUID(),
+              type: 'none',
+              sourcePlayerIndex: playerIndex,
+              sourceMortalCode: mortal.code,
+              sourceMortalName: mortal.nameVerso,
+              description: 'Effet ignoré.',
+              maxTargets: 0,
+            },
+          },
+        ],
+      };
+    }
 
     // CER-03 (Hiboux): Draw 2, discard 1
     case 'CER-03':
@@ -694,7 +747,93 @@ export function getMetamorphoseEffect(
       };
     }
 
-    // BAC-03 (Mouettes): TODO - Steal 3 ether total + steal card (needs custom steal mechanic)
+    // BAC-03 (Mouettes): Steal 3 ether total + steal a card from a god
+    case 'BAC-03': {
+      return {
+        effectId: crypto.randomUUID(),
+        type: 'steal_ether_total' as EffectTargetType,
+        sourcePlayerIndex: playerIndex,
+        sourceMortalCode: mortal.code,
+        sourceMortalName: mortal.nameVerso,
+        description: 'Volez 3 Éther de n\'importe quel(s) réservoir(s) ennemi(s).',
+        maxTargets: 0,
+        etherStealTotal: 3,
+        thenEffect: {
+          effectId: crypto.randomUUID(),
+          type: 'steal_card_from_god' as EffectTargetType,
+          sourcePlayerIndex: playerIndex,
+          sourceMortalCode: mortal.code,
+          sourceMortalName: mortal.nameVerso,
+          description: 'Volez une carte à un dieu.',
+          maxTargets: 1,
+        },
+      };
+    }
+
+    // BAC-04 (Quatre Colombes): Move up to 4 incapacitations
+    case 'BAC-04': {
+      const hasIncap = gameState.players.some(p =>
+        p.mortals.some(m => m.isMetamorphosed && m.status === 'incapacite')
+      );
+      if (!hasIncap) {
+        return {
+          effectId: crypto.randomUUID(),
+          type: 'none',
+          sourcePlayerIndex: playerIndex,
+          sourceMortalCode: mortal.code,
+          sourceMortalName: mortal.nameVerso,
+          description: 'Déplacez jusqu\'à 4 incapacités d\'un mortel à un autre.',
+          maxTargets: 0,
+          conditionNotMet: 'Aucun mortel incapacité !',
+        };
+      }
+      return {
+        effectId: crypto.randomUUID(),
+        type: 'move_incapacitations' as EffectTargetType,
+        sourcePlayerIndex: playerIndex,
+        sourceMortalCode: mortal.code,
+        sourceMortalName: mortal.nameVerso,
+        description: 'Déplacez jusqu\'à 4 incapacités d\'un mortel à un autre.',
+        maxTargets: 4,
+      };
+    }
+
+    // BAC-05 (Arbre à Myrrhe): If BAC-08 + BAC-06 metamorphosed, incapacitate up to 2
+    case 'BAC-05': {
+      const arbresOk = player.mortals.some(
+        m => m.code === 'BAC-08' && m.isMetamorphosed && m.status !== 'incapacite'
+      );
+      const tournesolOk = player.mortals.some(
+        m => m.code === 'BAC-06' && m.isMetamorphosed && m.status !== 'incapacite'
+      );
+      if (!arbresOk || !tournesolOk) return null;
+
+      const hasIncapTarget = gameState.players.some(p =>
+        p.mortals.some(m => canBeIncapacitated(m, p, gameState))
+      );
+      if (!hasIncapTarget) {
+        return {
+          effectId: crypto.randomUUID(),
+          type: 'none',
+          sourcePlayerIndex: playerIndex,
+          sourceMortalCode: mortal.code,
+          sourceMortalName: mortal.nameVerso,
+          description: 'Incapacitez jusqu\'à 2 mortels.',
+          maxTargets: 2,
+          conditionNotMet: 'Aucune cible possible !',
+        };
+      }
+      return {
+        effectId: crypto.randomUUID(),
+        type: 'enemy_mortal_incapacitate',
+        sourcePlayerIndex: playerIndex,
+        sourceMortalCode: mortal.code,
+        sourceMortalName: mortal.nameVerso,
+        description: 'Incapacitez jusqu\'à 2 mortels.',
+        maxTargets: 2,
+        optional: true,
+      };
+    }
 
     // MIN-01 (Grenouilles): All enemies discard 1 (or 2 if not first + gain ether)
     case 'MIN-01': {
