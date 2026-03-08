@@ -4,6 +4,7 @@ import { getEffectiveCardCost } from '@/engine/costModifiers';
 import EtherCounter from './EtherCounter';
 import MortalGrid from './MortalGrid';
 import CeresLayout from './CeresLayout';
+import VenusLayout from './VenusLayout';
 import MortalTooltip from './MortalTooltip';
 import GameCard from './GameCard';
 import { motion, AnimatePresence } from 'framer-motion';
