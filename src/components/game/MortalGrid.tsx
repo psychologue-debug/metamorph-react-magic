@@ -75,7 +75,7 @@ function MortalToken({
           ...(selectable ? { boxShadow: ['0 0 0px hsl(270 50% 55% / 0)', '0 0 16px hsl(270 50% 55% / 0.5)', '0 0 0px hsl(270 50% 55% / 0)'] } : {}),
         }}
         transition={selectable ? { boxShadow: { duration: 1.5, repeat: Infinity } } : { delay: index * 0.03 }}
-        whileHover={{ zIndex: 10 }}
+        whileHover={{ scale: 1.1, zIndex: 10 }}
         onClick={() => onClick?.(mortal.id)}
         onMouseEnter={() => onHover?.(mortal)}
         onMouseLeave={() => onHover?.(null)}
