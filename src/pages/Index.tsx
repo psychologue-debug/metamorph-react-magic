@@ -469,6 +469,7 @@ function OpponentMini({
   player,
   gameState,
   playerIndex,
+  canSeeReactions,
   onMortalClick,
   onMortalHover,
   fillSpace,
@@ -476,25 +477,27 @@ function OpponentMini({
   player: PlayerType;
   gameState: GameStateType;
   playerIndex: number;
+  canSeeReactions?: boolean;
   onMortalClick?: (mortalId: string) => void;
   onMortalHover?: (mortal: Mortal | null) => void;
   fillSpace?: boolean;
 }) {
   const divinity = DIV[player.divinity];
+  const [hoveredReactionIdx, setHoveredReactionIdx] = useState<number | null>(null);
 
   return (
     <div
       className="rounded-lg border border-border/30 overflow-hidden flex flex-col"
       style={{
         background: `linear-gradient(135deg, hsl(var(--card) / 0.95), hsl(var(--secondary) / 0.9))`,
-        width: fillSpace ? undefined : '150px',
-        height: fillSpace ? undefined : '100px',
-        flex: fillSpace ? '1 1 200px' : '0 0 150px',
-        maxWidth: fillSpace ? '300px' : '150px',
+        width: fillSpace ? undefined : '170px',
+        height: fillSpace ? undefined : '110px',
+        flex: fillSpace ? '1 1 200px' : '0 0 170px',
+        maxWidth: fillSpace ? '300px' : '170px',
       }}
     >
       {/* Compact header */}
-      <div className="flex items-center gap-1.5 px-2 py-1 shrink-0">
+      <div className="flex items-center gap-1.5 px-2 py-1 shrink-0 relative">
         <div
           className="w-5 h-7 rounded-sm overflow-hidden border shrink-0"
           style={{ borderColor: `hsl(${divinity.color})` }}
@@ -506,8 +509,46 @@ function OpponentMini({
           )}
         </div>
         <span className="font-display text-xs font-bold text-foreground truncate flex-1">{player.name}</span>
-        <span className="text-[10px] text-ether font-bold">{player.ether}⚡</span>
-        <span className="text-[10px] text-muted-foreground">{player.metamorphosedCount}/10</span>
+        <EtherCounter amount={player.ether} size="sm" />
+        {/* Reaction slots */}
+        <div className="flex items-center gap-0.5 relative">
+          {[0, 1].map((slot) => (
+            <div
+              key={slot}
+              className="w-3.5 h-5 rounded-sm cursor-default"
+              style={
+                slot < player.reactions.length
+                  ? {
+                      background: 'linear-gradient(135deg, hsl(var(--reaction)), hsl(var(--reaction) / 0.7))',
+                      border: '1px solid hsl(var(--reaction) / 0.8)',
+                      boxShadow: '0 0 4px hsl(var(--reaction) / 0.4)',
+                    }
+                  : {
+                      background: 'hsl(var(--secondary) / 0.4)',
+                      border: '1px dashed hsl(var(--reaction) / 0.3)',
+                    }
+              }
+              onMouseEnter={() => canSeeReactions && slot < player.reactions.length && setHoveredReactionIdx(slot)}
+              onMouseLeave={() => setHoveredReactionIdx(null)}
+            />
+          ))}
+          {/* Reaction tooltip on hover (VEN-04) */}
+          {canSeeReactions && hoveredReactionIdx !== null && hoveredReactionIdx < player.reactions.length && (
+            <div
+              className="absolute z-50 right-0 top-full mt-1 p-2 rounded-lg border text-xs min-w-[180px]"
+              style={{
+                background: 'hsl(var(--card))',
+                border: '1px solid hsl(var(--reaction) / 0.5)',
+                boxShadow: '0 0 12px hsl(var(--reaction) / 0.3)',
+              }}
+            >
+              <div className="font-display font-bold text-foreground">{player.reactions[hoveredReactionIdx].name}</div>
+              <div className="text-muted-foreground mt-1">Coût: {player.reactions[hoveredReactionIdx].cost} Éther</div>
+              <div className="text-foreground mt-1">{player.reactions[hoveredReactionIdx].description}</div>
+              <div className="text-[10px] text-reaction mt-1 italic">👁 Oiseaux de Vénus</div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Tiny mortals grid */}
