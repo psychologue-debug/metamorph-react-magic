@@ -1467,6 +1467,7 @@ export function useGameLogic() {
 
     // Only clear pending effect if the target was valid
     if (targetValid) {
+      targetingLockRef.current = true;
       // Check if Compassion/Parade reaction window should open for hostile targeting
       const isHostileEnemyEffect = (isIncapacitate || isRemove || isRetroEnemy);
       const srcPlayerId = gameState?.players[pendingEffect.sourcePlayerIndex]?.id;
