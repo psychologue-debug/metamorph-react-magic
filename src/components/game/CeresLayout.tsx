@@ -77,8 +77,8 @@ const CeresLayout = ({ mortals, owner, gameState, selectable, onMortalClick, onM
               x1={`${pFrom.x}%`} y1={`${pFrom.y}%`}
               x2={`${pTo.x}%`} y2={`${pTo.y}%`}
               stroke="hsl(210 70% 50%)"
-              strokeWidth="3"
-              strokeOpacity="0.5"
+              strokeWidth="5"
+              strokeOpacity="0.55"
               strokeLinecap="round"
             />
           );
