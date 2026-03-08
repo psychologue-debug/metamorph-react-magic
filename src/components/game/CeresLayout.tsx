@@ -17,16 +17,16 @@ interface CeresLayoutProps {
 // Brown cluster (CER-02 hub = Bêtes sauvages, connected to animals)
 // Blue cluster (CER-04 hub = Lac, connected to vegetals)
 const POSITIONS: Record<string, { x: number; y: number }> = {
-  'CER-02': { x: 28, y: 45 },   // Center-left hub (Bêtes sauvages)
-  'CER-06': { x: 10, y: 15 },   // Fourmilière (top-left)
-  'CER-05': { x: 32, y: 8 },    // Enfant (top-center)
-  'CER-01': { x: 55, y: 12 },   // Lyncus (top-right)
-  'CER-09': { x: 8, y: 55 },    // Picus (left)
-  'CER-03': { x: 15, y: 80 },   // Ascalaphus (bottom-left)
-  'CER-04': { x: 52, y: 52 },   // Cyané/Lac (center-right hub)
-  'CER-10': { x: 78, y: 42 },   // Cadavre de Leucothée (right)
-  'CER-07': { x: 45, y: 82 },   // Arbre aux fruits blancs (bottom-center)
-  'CER-08': { x: 72, y: 78 },   // Dryope (bottom-right)
+  'CER-06': { x: 12, y: 12 },   // Fourmilière (top-left)
+  'CER-05': { x: 38, y: 8 },    // Enfant (top-center)
+  'CER-01': { x: 65, y: 10 },   // Lyncus (top-right)
+  'CER-02': { x: 25, y: 40 },   // Bêtes sauvages (center-left hub)
+  'CER-09': { x: 8, y: 62 },    // Picus (mid-left)
+  'CER-04': { x: 55, y: 48 },   // Cyané/Lac (center-right hub)
+  'CER-10': { x: 85, y: 38 },   // Cadavre de Leucothée (right)
+  'CER-03': { x: 18, y: 85 },   // Ascalaphus (bottom-left)
+  'CER-07': { x: 48, y: 82 },   // Arbre aux fruits blancs (bottom-center)
+  'CER-08': { x: 78, y: 78 },   // Dryope (bottom-right)
 };
 
 // Synergy connections
@@ -44,7 +44,7 @@ const BLUE_CONNECTIONS: [string, string][] = [
   ['CER-04', 'CER-08'],
 ];
 
-const TOKEN_SIZE = 180;
+const TOKEN_SIZE = 110;
 
 const CeresLayout = ({ mortals, owner, gameState, selectable, onMortalClick, onMortalHover }: CeresLayoutProps) => {
   return (
@@ -61,8 +61,8 @@ const CeresLayout = ({ mortals, owner, gameState, selectable, onMortalClick, onM
               x1={`${pFrom.x}%`} y1={`${pFrom.y}%`}
               x2={`${pTo.x}%`} y2={`${pTo.y}%`}
               stroke="hsl(25 60% 40%)"
-              strokeWidth="3"
-              strokeOpacity="0.5"
+              strokeWidth="5"
+              strokeOpacity="0.55"
               strokeLinecap="round"
             />
           );
@@ -77,8 +77,8 @@ const CeresLayout = ({ mortals, owner, gameState, selectable, onMortalClick, onM
               x1={`${pFrom.x}%`} y1={`${pFrom.y}%`}
               x2={`${pTo.x}%`} y2={`${pTo.y}%`}
               stroke="hsl(210 70% 50%)"
-              strokeWidth="3"
-              strokeOpacity="0.5"
+              strokeWidth="5"
+              strokeOpacity="0.55"
               strokeLinecap="round"
             />
           );
