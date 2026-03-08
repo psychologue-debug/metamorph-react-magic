@@ -13,6 +13,10 @@ export type EffectTargetType =
   | 'retro_enemy_mortal'           // Select an enemy metamorphosed mortal to retrometamorphose
   | 'generate_destroy_ether'       // Generate X ether then click enemy reservoirs to destroy Y
   | 'steal_ether_each_god'         // Steal up to N ether from each enemy god
+  | 'steal_ether_total'            // Steal N ether total from any combination of enemies
+  | 'steal_card_from_god'          // Select a god then steal one card from their hand
+  | 'metamorphose_extra'           // Pick own mortal to metamorphose at extra cost
+  | 'move_incapacitations'         // Move incapacitations from one mortal to another
   | 'choice'                       // Player must choose between multiple sub-effects
   | 'select_god_discard_all'       // Select a god who discards all cards
   | 'discard_cards_then_effect'    // Discard N cards (hand+reactions) then chain effect
