@@ -1537,9 +1537,7 @@ export function useGameLogic() {
       // Support multi-target: decrement maxTargets
       if (pendingEffect.maxTargets && pendingEffect.maxTargets > 1) {
         setPendingEffect(prev => prev ? { ...prev, maxTargets: prev.maxTargets - 1, optional: true } : null);
-      } else if (pendingEffect.maxTargets === 1 || !pendingEffect.maxTargets) {
-        // Single target reached or no multi-target — check thenEffect or clear
-        if (pendingEffect.thenEffect) {
+      } else if (pendingEffect.thenEffect) {
         // Chain to next effect
         setPendingEffect(pendingEffect.thenEffect);
       } else {
