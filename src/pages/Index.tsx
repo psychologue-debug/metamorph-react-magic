@@ -483,7 +483,7 @@ function OpponentMini({
       {/* Compact header */}
       <div className="flex items-center gap-1.5 px-2 py-1 shrink-0">
         <div
-          className="w-5 h-5 rounded-full overflow-hidden border shrink-0"
+          className="w-5 h-7 rounded-sm overflow-hidden border shrink-0"
           style={{ borderColor: `hsl(${divinity.color})` }}
         >
           {divinity.image ? (

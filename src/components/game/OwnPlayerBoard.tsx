@@ -41,7 +41,7 @@ const OwnPlayerBoard = ({
       {/* Player info header */}
       <div className="flex items-center gap-3 p-3 border-b shrink-0" style={{ borderColor: 'hsl(var(--border) / 0.3)' }}>
         <div
-          className="w-12 h-12 rounded-full flex items-center justify-center border-2 overflow-hidden shrink-0"
+          className="w-12 h-16 rounded-lg flex items-center justify-center border-2 overflow-hidden shrink-0"
           style={{
             borderColor: `hsl(${divinity.color})`,
             background: `linear-gradient(135deg, hsl(${divinity.color} / 0.2), hsl(var(--card)))`,
@@ -202,21 +202,21 @@ const OwnPlayerBoard = ({
                 exit={{ opacity: 0 }}
                 className="rounded-xl px-4 py-3 shadow-2xl"
                 style={{
-                  minWidth: '220px',
-                  maxWidth: '280px',
+                  minWidth: '260px',
+                  maxWidth: '340px',
                   background: 'hsl(var(--card))',
                   border: `1px solid hsl(var(--${hoveredSpell.type === 'reaction' ? 'reaction' : 'divine'}) / 0.5)`,
                   boxShadow: `0 0 20px hsl(var(--${hoveredSpell.type === 'reaction' ? 'reaction' : 'divine'}) / 0.2)`,
                 }}
               >
-                <div className="font-display text-base font-bold text-foreground mb-1">{hoveredSpell.name}</div>
+                <div className="font-display text-lg font-bold text-foreground mb-1">{hoveredSpell.name}</div>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-sm font-display text-ether font-bold">{getEffectiveCardCost(hoveredSpell, player)} Éther</span>
-                  <span className="text-xs text-muted-foreground uppercase">{hoveredSpell.type === 'reaction' ? 'Réaction' : 'Sortilège'}</span>
+                  <span className="text-base font-display text-ether font-bold">{getEffectiveCardCost(hoveredSpell, player)} Éther</span>
+                  <span className="text-sm text-muted-foreground uppercase">{hoveredSpell.type === 'reaction' ? 'Réaction' : 'Sortilège'}</span>
                 </div>
-                <p className="text-sm text-muted-foreground leading-relaxed">{hoveredSpell.description}</p>
+                <p className="text-base text-foreground leading-relaxed">{hoveredSpell.description}</p>
                 {hoveredSpell.activationCondition && (
-                  <p className="text-xs mt-1 italic" style={{ color: 'hsl(30 80% 60%)' }}>Condition : {hoveredSpell.activationCondition}</p>
+                  <p className="text-sm mt-1.5 italic" style={{ color: 'hsl(30 80% 60%)' }}>Condition : {hoveredSpell.activationCondition}</p>
                 )}
               </motion.div>
             </div>
