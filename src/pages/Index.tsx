@@ -348,6 +348,7 @@ const Index = () => {
                 isActive={true}
                 index={activeEnemy.index}
                 compact={false}
+                canSeeReactions={canSeeEnemyReactions}
                 onMortalClick={isMortalTargeting ? (mortalId: string) => handleTargetMortalClick(activeEnemy.player.id, mortalId) : undefined}
                 onMortalHover={(m) => handleEnemyMortalHover(m, activeEnemy.player)}
               />

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Player, GameState, DIVINITIES, Mortal } from '@/types/game';
 import EtherCounter from './EtherCounter';
 import MortalGrid from './MortalGrid';
@@ -10,13 +11,15 @@ interface PlayerPanelProps {
   isActive: boolean;
   index: number;
   compact?: boolean;
+  canSeeReactions?: boolean;
   onMortalClick?: (mortalId: string) => void;
   onMortalHover?: (mortal: Mortal | null) => void;
 }
 
-const PlayerPanel = ({ player, gameState, isActive, index, compact = false, onMortalClick, onMortalHover }: PlayerPanelProps) => {
+const PlayerPanel = ({ player, gameState, isActive, index, compact = false, canSeeReactions = false, onMortalClick, onMortalHover }: PlayerPanelProps) => {
   const divinity = DIVINITIES[player.divinity];
   const tokenSize = compact ? 50 : 64;
+  const [hoveredReactionIdx, setHoveredReactionIdx] = useState<number | null>(null);
 
   return (
     <motion.div
@@ -60,11 +63,11 @@ const PlayerPanel = ({ player, gameState, isActive, index, compact = false, onMo
             <RefreshCw className="text-ether w-4 h-4" />
             <span className="font-display text-foreground font-bold">{player.metamorphosedCount}/10</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 relative">
             {[0, 1].map((slot) => (
               <div
                 key={slot}
-                className="w-5 h-7 rounded-sm border"
+                className="w-5 h-7 rounded-sm border cursor-default"
                 style={
                   slot < player.reactions.length
                     ? {
@@ -77,8 +80,26 @@ const PlayerPanel = ({ player, gameState, isActive, index, compact = false, onMo
                         border: '1px dashed hsl(var(--reaction) / 0.3)',
                       }
                 }
+                onMouseEnter={() => canSeeReactions && slot < player.reactions.length && setHoveredReactionIdx(slot)}
+                onMouseLeave={() => setHoveredReactionIdx(null)}
               />
             ))}
+            {/* VEN-04 tooltip: show reaction card on hover */}
+            {canSeeReactions && hoveredReactionIdx !== null && hoveredReactionIdx < player.reactions.length && (
+              <div
+                className="absolute z-50 left-12 top-0 p-2 rounded-lg border text-xs min-w-[180px]"
+                style={{
+                  background: 'hsl(var(--card))',
+                  border: '1px solid hsl(var(--reaction) / 0.5)',
+                  boxShadow: '0 0 12px hsl(var(--reaction) / 0.3)',
+                }}
+              >
+                <div className="font-display font-bold text-foreground">{player.reactions[hoveredReactionIdx].name}</div>
+                <div className="text-muted-foreground mt-1">Coût: {player.reactions[hoveredReactionIdx].cost} Éther</div>
+                <div className="text-foreground mt-1">{player.reactions[hoveredReactionIdx].description}</div>
+                <div className="text-[10px] text-reaction mt-1 italic">👁 Oiseaux de Vénus</div>
+              </div>
+            )}
           </div>
           <span className="text-muted-foreground">{player.hand.length} cartes</span>
         </div>
