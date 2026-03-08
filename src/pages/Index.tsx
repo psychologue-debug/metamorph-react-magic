@@ -82,6 +82,10 @@ const Index = () => {
   const isModalEffect = pendingEffect && (
     pendingEffect.type === 'generate_destroy_ether' ||
     pendingEffect.type === 'steal_ether_each_god' ||
+    pendingEffect.type === 'steal_ether_total' ||
+    pendingEffect.type === 'steal_card_from_god' ||
+    pendingEffect.type === 'metamorphose_extra' ||
+    pendingEffect.type === 'move_incapacitations' ||
     pendingEffect.type === 'none' ||
     pendingEffect.type === 'select_god_discard_all' ||
     pendingEffect.type === 'discard_cards_then_effect' ||

@@ -2460,6 +2460,147 @@ export function useGameLogic() {
     });
   }, [pendingEffect, gameState]);
 
+  // === BAC-03 (Mouettes): Steal a card from a god ===
+  const resolveStealCard = useCallback((targetPlayerId: string, cardId: string) => {
+    if (!pendingEffect) return;
+    setGameState(prev => {
+      if (!prev) return prev;
+      const pi = pendingEffect.sourcePlayerIndex;
+      const targetPlayer = prev.players.find(p => p.id === targetPlayerId);
+      if (!targetPlayer) return prev;
+      const card = targetPlayer.hand.find(c => c.id === cardId);
+      if (!card) return prev;
+
+      const updatedPlayers = prev.players.map(p => {
+        if (p.id === targetPlayerId) {
+          return { ...p, hand: p.hand.filter(c => c.id !== cardId) };
+        }
+        if (p.id === prev.players[pi].id) {
+          return { ...p, hand: [...p.hand, card] };
+        }
+        return p;
+      });
+
+      return {
+        ...prev,
+        players: updatedPlayers,
+        log: [{
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          playerName: prev.players[pi].name,
+          action: pendingEffect.sourceMortalName,
+          detail: `a volé ${card.name} à ${targetPlayer.name}`,
+        }, ...prev.log],
+      };
+    });
+    setPendingEffect(null);
+  }, [pendingEffect]);
+
+  // === BAC-02 (Dauphins): Metamorphose extra mortal at +6 cost ===
+  const resolveMetamorphoseExtra = useCallback((mortalId: string) => {
+    if (!pendingEffect) return;
+    const extraCost = pendingEffect.extraMetamorphoseCostAdded || 6;
+
+    setGameState(prev => {
+      if (!prev) return prev;
+      const pi = pendingEffect.sourcePlayerIndex;
+      const player = prev.players[pi];
+      const mortal = player.mortals.find(m => m.id === mortalId);
+      if (!mortal) return prev;
+      if (mortal.isMetamorphosed || mortal.status === 'retired' || mortal.status === 'incapacite') return prev;
+
+      const totalCost = mortal.cost + extraCost;
+      if (player.ether < totalCost) {
+        toast.error(`Pas assez d'Éther ! (${totalCost} requis, ${player.ether} disponible)`);
+        return prev;
+      }
+
+      const updatedMortals = player.mortals.map(m =>
+        m.id === mortalId ? { ...m, isMetamorphosed: true } : m
+      );
+      const updatedPlayers = prev.players.map((p, i) => {
+        if (i !== pi) return p;
+        return {
+          ...p,
+          ether: p.ether - totalCost,
+          mortals: updatedMortals,
+          metamorphosedCount: updatedMortals.filter(m => m.isMetamorphosed).length,
+        };
+      });
+
+      return {
+        ...prev,
+        players: updatedPlayers,
+        log: [{
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          playerName: player.name,
+          action: pendingEffect.sourceMortalName,
+          detail: `a métamorphosé ${mortal.nameRecto} → ${mortal.nameVerso} via Dauphins (coût: ${totalCost} Éther)`,
+        }, ...prev.log],
+      };
+    });
+    setPendingEffect(null);
+    toast.success('Mortel métamorphosé via Dauphins !', {
+      style: { background: 'hsl(280 40% 20%)', border: '1px solid hsl(280 50% 40%)', color: 'white', fontSize: '16px' },
+    });
+  }, [pendingEffect]);
+
+  // === BAC-04 (Quatre Colombes): Move incapacitations ===
+  const resolveMoveIncapacitations = useCallback((moves: { fromMortalId: string; toMortalId: string; fromPlayerId: string; toPlayerId: string }[]) => {
+    if (!pendingEffect) return;
+    if (moves.length === 0) {
+      setPendingEffect(null);
+      return;
+    }
+
+    setGameState(prev => {
+      if (!prev) return prev;
+      const pi = pendingEffect.sourcePlayerIndex;
+      let updatedPlayers = [...prev.players];
+      const newLog = [...prev.log];
+
+      for (const move of moves) {
+        // Heal the source mortal
+        updatedPlayers = updatedPlayers.map(p => {
+          if (p.id !== move.fromPlayerId) return p;
+          return {
+            ...p,
+            mortals: p.mortals.map(m =>
+              m.id === move.fromMortalId ? { ...m, status: 'normal' as const } : m
+            ),
+          };
+        });
+        // Incapacitate the target mortal
+        updatedPlayers = updatedPlayers.map(p => {
+          if (p.id !== move.toPlayerId) return p;
+          return {
+            ...p,
+            mortals: p.mortals.map(m =>
+              m.id === move.toMortalId ? { ...m, status: 'incapacite' as const } : m
+            ),
+          };
+        });
+
+        const fromMortal = prev.players.find(p => p.id === move.fromPlayerId)?.mortals.find(m => m.id === move.fromMortalId);
+        const toMortal = prev.players.find(p => p.id === move.toPlayerId)?.mortals.find(m => m.id === move.toMortalId);
+        newLog.unshift({
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          playerName: prev.players[pi].name,
+          action: 'Quatre Colombes',
+          detail: `a déplacé l'incapacité de ${fromMortal?.nameVerso || 'un mortel'} vers ${toMortal?.nameVerso || 'un mortel'}`,
+        });
+      }
+
+      return { ...prev, players: updatedPlayers, log: newLog };
+    });
+    setPendingEffect(null);
+    toast.success(`${moves.length} incapacité(s) déplacée(s) !`, {
+      style: { background: 'hsl(280 40% 20%)', border: '1px solid hsl(280 50% 40%)', color: 'white', fontSize: '16px' },
+    });
+  }, [pendingEffect]);
+
   return {
     gameState,
     currentPlayerIndex,
@@ -2499,6 +2640,9 @@ export function useGameLogic() {
     resolveSelectGod,
     resolvePlaySpellAtDiscount,
     resolvePayMultipleEnemyDiscard,
+    resolveStealCard,
+    resolveMetamorphoseExtra,
+    resolveMoveIncapacitations,
     handleReactionReady,
     handleReactionPass,
     handleReactionActivate,
