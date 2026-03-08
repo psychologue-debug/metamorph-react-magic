@@ -94,6 +94,15 @@ const OwnPlayerBoard = ({
               onMortalClick={isMetaMode ? onMortalClick : isActivateMode ? onMortalClick : onTargetMortalClick ? onTargetMortalClick : undefined}
               onMortalHover={setHoveredMortal}
             />
+          ) : player.divinity === 'venus' ? (
+            <VenusLayout
+              mortals={player.mortals}
+              owner={player}
+              gameState={gameState}
+              selectable={isMetaMode || isActivateMode || !!onTargetMortalClick}
+              onMortalClick={isMetaMode ? onMortalClick : isActivateMode ? onMortalClick : onTargetMortalClick ? onTargetMortalClick : undefined}
+              onMortalHover={setHoveredMortal}
+            />
           ) : (
             <div className="w-full h-full grid grid-cols-5 place-content-center gap-2 p-4">
               <MortalGrid
