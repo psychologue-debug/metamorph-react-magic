@@ -262,18 +262,13 @@ const Index = () => {
         style={{ background: `linear-gradient(90deg, hsl(var(--card)), hsl(var(--background)))` }}
       >
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Scroll className="w-5 h-5 text-ether" />
-            <h1 className="font-display text-lg font-bold text-foreground tracking-wider">MÉTAMORPHOSES</h1>
-          </div>
-
-          {/* Chroniques button */}
+          {/* Chroniques button — prominent */}
           <button
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-display font-semibold transition-colors ${logOpen ? 'bg-ether/20 text-ether' : 'text-muted-foreground hover:text-foreground'}`}
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-lg font-display font-bold tracking-wider transition-colors ${logOpen ? 'bg-ether/20 text-ether' : 'text-foreground hover:text-ether'}`}
             onMouseEnter={() => setLogOpen(true)}
             onMouseLeave={() => setLogOpen(false)}
           >
-            <ScrollText className="w-4 h-4" />
+            <ScrollText className="w-5 h-5" />
             Chroniques
           </button>
 
