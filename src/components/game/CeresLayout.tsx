@@ -49,69 +49,71 @@ const PADDING = 25;
 
 const CeresLayout = ({ mortals, owner, gameState, selectable, onMortalClick, onMortalHover }: CeresLayoutProps) => {
   return (
-    <div className="relative w-full h-full">
-      {/* SVG connection lines */}
-      <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
-        {BROWN_CONNECTIONS.map(([from, to], i) => {
-          const pFrom = POSITIONS[from];
-          const pTo = POSITIONS[to];
-          if (!pFrom || !pTo) return null;
-          return (
-            <line
-              key={`brown-${i}`}
-              x1={`${pFrom.x}%`} y1={`${pFrom.y}%`}
-              x2={`${pTo.x}%`} y2={`${pTo.y}%`}
-              stroke="hsl(25 60% 40%)"
-              strokeWidth="5"
-              strokeOpacity="0.55"
-              strokeLinecap="round"
-            />
-          );
-        })}
-        {BLUE_CONNECTIONS.map(([from, to], i) => {
-          const pFrom = POSITIONS[from];
-          const pTo = POSITIONS[to];
-          if (!pFrom || !pTo) return null;
-          return (
-            <line
-              key={`blue-${i}`}
-              x1={`${pFrom.x}%`} y1={`${pFrom.y}%`}
-              x2={`${pTo.x}%`} y2={`${pTo.y}%`}
-              stroke="hsl(210 70% 50%)"
-              strokeWidth="5"
-              strokeOpacity="0.55"
-              strokeLinecap="round"
-            />
-          );
-        })}
-      </svg>
+    <div className="relative w-full h-full" style={{ padding: PADDING }}>
+      <div className="relative w-full h-full">
+        {/* SVG connection lines */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
+          {BROWN_CONNECTIONS.map(([from, to], i) => {
+            const pFrom = POSITIONS[from];
+            const pTo = POSITIONS[to];
+            if (!pFrom || !pTo) return null;
+            return (
+              <line
+                key={`brown-${i}`}
+                x1={`${pFrom.x}%`} y1={`${pFrom.y}%`}
+                x2={`${pTo.x}%`} y2={`${pTo.y}%`}
+                stroke="hsl(25 60% 40%)"
+                strokeWidth="5"
+                strokeOpacity="0.55"
+                strokeLinecap="round"
+              />
+            );
+          })}
+          {BLUE_CONNECTIONS.map(([from, to], i) => {
+            const pFrom = POSITIONS[from];
+            const pTo = POSITIONS[to];
+            if (!pFrom || !pTo) return null;
+            return (
+              <line
+                key={`blue-${i}`}
+                x1={`${pFrom.x}%`} y1={`${pFrom.y}%`}
+                x2={`${pTo.x}%`} y2={`${pTo.y}%`}
+                stroke="hsl(210 70% 50%)"
+                strokeWidth="5"
+                strokeOpacity="0.55"
+                strokeLinecap="round"
+              />
+            );
+          })}
+        </svg>
 
-      {/* Mortal tokens */}
-      {mortals.map((mortal) => {
-        const pos = POSITIONS[mortal.code];
-        if (!pos) return null;
-        return (
-          <div
-            key={mortal.id}
-            className="absolute"
-            style={{
-              left: `${pos.x}%`,
-              top: `${pos.y}%`,
-              transform: 'translate(-50%, -50%)',
-              zIndex: 2,
-            }}
-          >
-            <CeresToken
-              mortal={mortal}
-              owner={owner}
-              gameState={gameState}
-              selectable={selectable && (mortal.isMetamorphosed || !mortal.isMetamorphosed)}
-              onClick={onMortalClick}
-              onHover={onMortalHover}
-            />
-          </div>
-        );
-      })}
+        {/* Mortal tokens */}
+        {mortals.map((mortal) => {
+          const pos = POSITIONS[mortal.code];
+          if (!pos) return null;
+          return (
+            <div
+              key={mortal.id}
+              className="absolute"
+              style={{
+                left: `${pos.x}%`,
+                top: `${pos.y}%`,
+                transform: 'translate(-50%, -50%)',
+                zIndex: 2,
+              }}
+            >
+              <CeresToken
+                mortal={mortal}
+                owner={owner}
+                gameState={gameState}
+                selectable={selectable && (mortal.isMetamorphosed || !mortal.isMetamorphosed)}
+                onClick={onMortalClick}
+                onHover={onMortalHover}
+              />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
