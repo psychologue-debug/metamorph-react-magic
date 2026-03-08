@@ -91,12 +91,12 @@ function CeresToken({
     <motion.div
       className={`mortal-token
         rounded-full relative cursor-pointer transition-all duration-300 overflow-hidden
-        ${mortal.isMetamorphosed ? 'ring-2 ring-ether/60' : 'ring-1 ring-border/40'}
+        ${!haloStyle && mortal.isMetamorphosed ? 'ring-2 ring-ether/60' : !mortal.isMetamorphosed ? 'ring-1 ring-border/40' : ''}
         ${isRetired ? 'grayscale opacity-40 pointer-events-none' : ''}
         ${isIncapacitated && !isRetired ? 'grayscale opacity-60' : ''}
         ${selectable ? 'ring-2 ring-divine/70 cursor-pointer' : ''}
       `}
-      style={{ width: TOKEN_SIZE, height: TOKEN_SIZE }}
+      style={{ width: TOKEN_SIZE, height: TOKEN_SIZE, ...(haloStyle ? { boxShadow: haloStyle.boxShadow } : {}) }}
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{
         opacity: 1, scale: 1,
@@ -117,15 +117,6 @@ function CeresToken({
             {mortal.isMetamorphosed ? mortal.etherProduction : mortal.nameRecto.charAt(0)}
           </span>
         </div>
-      )}
-
-      {/* Effect-type halo */}
-      {haloStyle && !isIncapacitated && !isRetired && (
-        <motion.div className="absolute -inset-2 rounded-full pointer-events-none"
-          style={{ background: haloStyle.gradient, boxShadow: haloStyle.boxShadow }}
-          animate={{ opacity: [0.5, 1, 0.5], scale: [1, 1.06, 1] }}
-          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-        />
       )}
 
       {isRetired && (

@@ -29,6 +29,7 @@ export function useGameLogic() {
   const metamorphoseReactionInfoRef = useRef<{ trigger: ReactionTrigger; reactors: string[] } | null>(null);
   const savedMortalSnapshotRef = useRef<{ mortal: Mortal; playerId: string } | null>(null);
   const prevGameStateRef = useRef<GameState | null>(null);
+  const targetingLockRef = useRef(false);
   const [metamorphoseEffectUndo, setMetamorphoseEffectUndo] = useState<{
     playerId: string;
     mortalId: string;
@@ -267,6 +268,11 @@ export function useGameLogic() {
       handleEndTurn();
     }
   }, [discardRequired, handleEndTurn]);
+
+  // Reset targeting lock when pendingEffect changes
+  useEffect(() => {
+    targetingLockRef.current = false;
+  }, [pendingEffect]);
 
   // === Sommeil auto-skip: when active player has skipNextTurn, auto-end after delay ===
   useEffect(() => {
@@ -991,6 +997,8 @@ export function useGameLogic() {
 
       let updatedPlayers = [...prev.players];
       const newLog = [...prev.log];
+      let updatedDeck = [...prev.deck];
+      let updatedDiscardPile = [...prev.discardPile];
 
       // Handle mortal targeting (incapacitate / remove)
       if (result.targetMortals && result.targetMortals.length > 0) {
@@ -1032,8 +1040,10 @@ export function useGameLogic() {
         // Trigger VEN-09 (Pins) for retired mortals
         if (result.type === 'enemy_mortal_remove') {
           const retiredResult = onMortalRetired(updatedPlayers);
-          const applied = applyTriggeredResult({ ...prev, players: updatedPlayers }, retiredResult);
+          const applied = applyTriggeredResult({ ...prev, players: updatedPlayers, deck: updatedDeck, discardPile: updatedDiscardPile }, retiredResult);
           updatedPlayers = applied.players;
+          updatedDeck = applied.deck;
+          updatedDiscardPile = applied.discardPile;
           applied.logs.forEach(l => newLog.unshift(l));
         }
       }
@@ -1107,6 +1117,8 @@ export function useGameLogic() {
       return {
         ...prev,
         players: updatedPlayers,
+        deck: updatedDeck,
+        discardPile: updatedDiscardPile,
         log: newLog,
       };
     });
@@ -1182,6 +1194,7 @@ export function useGameLogic() {
   /** Handle mortal targeting clicks from the board (bubble mode) */
   const handleTargetMortalClick = useCallback((playerId: string, mortalId: string) => {
     if (!pendingEffect) return;
+    if (targetingLockRef.current) return;
     const isIncapacitate = pendingEffect.type === 'enemy_mortal_incapacitate';
     const isRemove = pendingEffect.type === 'enemy_mortal_remove';
     const isHeal = pendingEffect.type === 'mortal_heal';
@@ -1460,6 +1473,7 @@ export function useGameLogic() {
 
     // Only clear pending effect if the target was valid
     if (targetValid) {
+      targetingLockRef.current = true;
       // Check if Compassion/Parade reaction window should open for hostile targeting
       const isHostileEnemyEffect = (isIncapacitate || isRemove || isRetroEnemy);
       const srcPlayerId = gameState?.players[pendingEffect.sourcePlayerIndex]?.id;
