@@ -1188,6 +1188,7 @@ export function useGameLogic() {
   /** Handle mortal targeting clicks from the board (bubble mode) */
   const handleTargetMortalClick = useCallback((playerId: string, mortalId: string) => {
     if (!pendingEffect) return;
+    if (targetingLockRef.current) return;
     const isIncapacitate = pendingEffect.type === 'enemy_mortal_incapacitate';
     const isRemove = pendingEffect.type === 'enemy_mortal_remove';
     const isHeal = pendingEffect.type === 'mortal_heal';
