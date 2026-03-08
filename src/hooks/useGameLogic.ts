@@ -1984,16 +1984,27 @@ export function useGameLogic() {
   const resolvePlaySpellAtDiscount = useCallback((cardId: string) => {
     if (!pendingEffect) return;
     const discount = pendingEffect.spellDiscount || 10;
+    
+    // We'll apply the spell inline (like handleCardClick) but with reduced cost
+    let spellEffect: PendingEffect | null = null;
+
     setGameState(prev => {
       if (!prev) return prev;
       const pi = pendingEffect.sourcePlayerIndex;
       const player = prev.players[pi];
       const card = player.hand.find(c => c.id === cardId);
       if (!card) return prev;
-      const reducedCost = Math.max(0, card.cost - discount);
-      if (player.ether < reducedCost) return prev;
+      
+      // Apply BAC-09 cost reduction too
+      const baseCost = getEffectiveCardCost(card, player);
+      const reducedCost = Math.max(0, baseCost - discount);
+      
+      if (player.ether < reducedCost) {
+        toast.error(`Pas assez d'Éther ! (${reducedCost} requis)`);
+        return prev;
+      }
 
-      const updatedPlayers = prev.players.map((p, i) => {
+      let updatedPlayers = prev.players.map((p, i) => {
         if (i !== pi) return p;
         return {
           ...p,
@@ -2002,10 +2013,68 @@ export function useGameLogic() {
         };
       });
 
+      let reactionsBlocked = prev.reactionsBlocked;
+      let newDeck = [...prev.deck];
+      let newDiscardPile = [card, ...prev.discardPile];
+
+      // Apply spell effects inline
+      if (card.name === 'Anabolisme') {
+        updatedPlayers = updatedPlayers.map((p, i) =>
+          i === pi ? { ...p, ether: p.ether + 1 } : p
+        );
+      } else if (card.name === 'Sursaut') {
+        updatedPlayers = updatedPlayers.map((p, i) =>
+          i === pi ? { ...p, ether: p.ether + 20, sursautActive: true } : p
+        );
+      } else if (card.name === 'Règne') {
+        reactionsBlocked = true;
+      } else if (card.name === 'Rage') {
+        updatedPlayers = updatedPlayers.map((p, i) =>
+          i === pi ? { ...p, maxMetamorphosesThisTurn: p.maxMetamorphosesThisTurn + 1 } : p
+        );
+      } else if (card.name === 'Torpeur') {
+        spellEffect = { effectId: crypto.randomUUID(), type: 'enemy_mortal_incapacitate', sourcePlayerIndex: pi, sourceMortalCode: 'SPELL-TORPEUR', sourceMortalName: 'Torpeur', description: 'Incapacitez un mortel ennemi.', maxTargets: 1 };
+      } else if (card.name === 'Catabolisme') {
+        spellEffect = { effectId: crypto.randomUUID(), type: 'generate_destroy_ether', sourcePlayerIndex: pi, sourceMortalCode: 'SPELL-CATABOLISME', sourceMortalName: 'Catabolisme', description: 'Détruisez jusqu\'à 5 Éther.', maxTargets: 0, etherGenerate: 0, etherDestroy: 5 };
+      } else if (card.name === 'Doute') {
+        spellEffect = { effectId: crypto.randomUUID(), type: 'retro_own_mortal', sourcePlayerIndex: pi, sourceMortalCode: 'SPELL-DOUTE', sourceMortalName: 'Doute', description: 'Rétromorphosez un de vos mortels.', maxTargets: 1 };
+      } else if (card.name === 'Pharmaka') {
+        spellEffect = { effectId: crypto.randomUUID(), type: 'retro_enemy_mortal', sourcePlayerIndex: pi, sourceMortalCode: 'SPELL-PHARMAKA', sourceMortalName: 'Pharmaka', description: 'Rétromorphosez un mortel ennemi.', maxTargets: 1 };
+      } else if (card.name === 'Éveil') {
+        spellEffect = { effectId: crypto.randomUUID(), type: 'mortal_heal', sourcePlayerIndex: pi, sourceMortalCode: 'SPELL-EVEIL', sourceMortalName: 'Éveil', description: 'Levez l\'incapacité d\'un de vos mortels.', maxTargets: 1, healOwnOnly: true };
+      } else if (card.name === 'Glane') {
+        spellEffect = { effectId: crypto.randomUUID(), type: 'select_from_discard', sourcePlayerIndex: pi, sourceMortalCode: 'SPELL-GLANE', sourceMortalName: 'Glane', description: 'Prenez une carte de la défausse.', maxTargets: 1 };
+      } else if (card.name === 'Métabolisme') {
+        const anaIdx = newDiscardPile.findIndex(c => c.name === 'Anabolisme');
+        const cataIdx = newDiscardPile.findIndex(c => c.name === 'Catabolisme');
+        if (anaIdx !== -1 && cataIdx !== -1) {
+          const toRemove = [anaIdx, cataIdx].sort((a, b) => b - a);
+          const taken: SpellCard[] = [];
+          for (const idx of toRemove) {
+            taken.push(newDiscardPile.splice(idx, 1)[0]);
+          }
+          updatedPlayers = updatedPlayers.map((p, i) =>
+            i === pi ? { ...p, hand: [...p.hand, ...taken] } : p
+          );
+        }
+      } else if (card.name === 'Manne') {
+        spellEffect = { effectId: crypto.randomUUID(), type: 'pay_draw_discard', sourcePlayerIndex: pi, sourceMortalCode: 'SPELL-MANNE', sourceMortalName: 'Manne', description: 'Piochez 4 cartes et défaussez-en 2.', maxTargets: 0, etherCostToActivate: 0, drawCards: 4, discardCards: 2, includeReactions: true };
+      } else if (card.name === 'Katadesmos') {
+        spellEffect = { effectId: crypto.randomUUID(), type: 'select_enemy_god', sourcePlayerIndex: pi, sourceMortalCode: 'SPELL-KATADESMOS', sourceMortalName: 'Katadesmos', description: 'Métamorphose interdite.', maxTargets: 1 };
+      } else if (card.name === 'Sommeil') {
+        spellEffect = { effectId: crypto.randomUUID(), type: 'select_enemy_god', sourcePlayerIndex: pi, sourceMortalCode: 'SPELL-SOMMEIL', sourceMortalName: 'Sommeil', description: 'Sautera son prochain tour.', maxTargets: 1 };
+      } else if (card.name === 'Turbulence') {
+        const allReactions = prev.players.flatMap(p => p.reactions);
+        updatedPlayers = updatedPlayers.map(p => ({ ...p, reactions: [] }));
+        newDiscardPile = [card, ...allReactions, ...prev.discardPile];
+      }
+
       return {
         ...prev,
         players: updatedPlayers,
-        discardPile: [card, ...prev.discardPile],
+        reactionsBlocked,
+        deck: newDeck,
+        discardPile: newDiscardPile,
         log: [{
           id: crypto.randomUUID(),
           timestamp: Date.now(),
@@ -2015,11 +2084,15 @@ export function useGameLogic() {
         }, ...prev.log],
       };
     });
-    setPendingEffect(null);
-    // Note: The spell effect itself is NOT applied here — this is just the cost reduction.
-    // For a full implementation, we'd need to chain the spell's own effect.
-    // For now, it plays the card at reduced cost and discards it.
-    toast.info('Le sort est joué à coût réduit. Ses effets doivent être résolus manuellement si nécessaire.');
+
+    if (spellEffect) {
+      setPendingEffect(spellEffect);
+    } else {
+      setPendingEffect(null);
+    }
+    toast.success('Sort joué à coût réduit !', {
+      style: { background: 'hsl(280 40% 20%)', border: '1px solid hsl(280 50% 40%)', color: 'white', fontSize: '16px' },
+    });
   }, [pendingEffect]);
 
   // === CER-05 (Monstre de Gila): Pay multiple of 3, enemies discard (hand + reactions) ===

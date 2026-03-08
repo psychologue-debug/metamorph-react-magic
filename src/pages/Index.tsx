@@ -324,12 +324,9 @@ const Index = () => {
         {/* RIGHT: Opponents */}
         <div
           className="w-1/2 flex flex-col min-h-0 overflow-hidden relative"
-          onMouseLeave={() => setLogOpen(false)}
         >
-          {/* GameLog panel — anchored below header on the right */}
-          <div onMouseEnter={() => setLogOpen(true)} onMouseLeave={() => setLogOpen(false)}>
-            <GameLog entries={gameState.log} open={logOpen} />
-          </div>
+          {/* GameLog panel — anchored below header on the right, click to toggle */}
+          <GameLog entries={gameState.log} open={logOpen} />
 
           {/* Active enemy — fills the main area */}
           {activeEnemy && (
