@@ -2501,6 +2501,8 @@ export function useGameLogic() {
     if (!pendingEffect) return;
     const extraCost = pendingEffect.extraMetamorphoseCostAdded || 6;
 
+    let effectToTrigger: PendingEffect | null = null;
+
     setGameState(prev => {
       if (!prev) return prev;
       const pi = pendingEffect.sourcePlayerIndex;
@@ -2525,10 +2527,11 @@ export function useGameLogic() {
           ether: p.ether - totalCost,
           mortals: updatedMortals,
           metamorphosedCount: updatedMortals.filter(m => m.isMetamorphosed).length,
+          metamorphosesThisTurn: p.metamorphosesThisTurn + 1,
         };
       });
 
-      return {
+      const newState = {
         ...prev,
         players: updatedPlayers,
         log: [{
@@ -2539,8 +2542,26 @@ export function useGameLogic() {
           detail: `a métamorphosé ${mortal.nameRecto} → ${mortal.nameVerso} via Dauphins (coût: ${totalCost} Éther)`,
         }, ...prev.log],
       };
+
+      // Check for on-metamorphose effect on the newly metamorphosed mortal
+      const metamorphosedMortal = updatedMortals.find(m => m.id === mortalId)!;
+      const updatedPlayer = updatedPlayers[pi];
+      effectToTrigger = getMetamorphoseEffect(metamorphosedMortal, updatedPlayer, newState);
+
+      return newState;
     });
-    setPendingEffect(null);
+
+    // If the extra metamorphose has an on-metamorphose effect, trigger it
+    if (effectToTrigger) {
+      if ((effectToTrigger as PendingEffect).conditionNotMet && (effectToTrigger as PendingEffect).type === 'none') {
+        toast.info((effectToTrigger as PendingEffect).conditionNotMet);
+        setPendingEffect(null);
+      } else {
+        setPendingEffect(effectToTrigger);
+      }
+    } else {
+      setPendingEffect(null);
+    }
     toast.success('Mortel métamorphosé via Dauphins !', {
       style: { background: 'hsl(280 40% 20%)', border: '1px solid hsl(280 50% 40%)', color: 'white', fontSize: '16px' },
     });
