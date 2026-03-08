@@ -46,7 +46,7 @@ export function getActivatedEffect(
           ...prev,
           players: prev.players.map((pl, i) => i !== pi ? pl : {
             ...pl,
-            ether: pl.ether + 8,
+            ether: pl.ether + 12,
             mortals: pl.mortals.map(m => m.id === mortal.id ? { ...m, isMetamorphosed: false, status: 'normal' as const } : m),
             metamorphosedCount: pl.mortals.filter(m => m.id !== mortal.id && m.isMetamorphosed).length,
           }),
