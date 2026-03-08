@@ -183,9 +183,9 @@ export function getEffectiveEtherProduction(
     if (metamorphosedCount >= 3) return 0;
   }
 
-  // DIA-04 (Deux serpents): +1 per enemy god
+  // DIA-04 (Deux serpents): generates 1 per enemy god (replaces base production)
   if (mortal.code === 'DIA-04') {
-    production += gameState.players.length - 1;
+    production = gameState.players.length - 1;
   }
 
   // NEP-04 (Ecueil): +1 per mineral metamorphosed

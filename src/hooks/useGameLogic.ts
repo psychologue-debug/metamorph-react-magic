@@ -1924,9 +1924,10 @@ export function useGameLogic() {
       if (pendingEffect.sourceMortalCode === 'DIA-03') {
         const tp = prev.players.find(p => p.id === targetPlayerId);
         if (!tp) return prev;
+        const actualEtherLoss = Math.min(2, tp.ether);
         const discardCount = Math.min(2, tp.hand.length);
         const discardedCards = discardCount > 0 ? tp.hand.slice(-discardCount) : [];
-        const updatedPlayers = prev.players.map(p => {
+        let updatedPlayers = prev.players.map(p => {
           if (p.id !== targetPlayerId) return p;
           return {
             ...p,
@@ -1934,17 +1935,39 @@ export function useGameLogic() {
             hand: discardCount > 0 ? p.hand.slice(0, -discardCount) : p.hand,
           };
         });
+        const mainLog: GameLogEntry = {
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          playerName: sourceName,
+          action: pendingEffect.sourceMortalName,
+          detail: `${tp.name} perd ${actualEtherLoss} Éther et défausse ${discardedCards.length} carte(s)`,
+        };
+        let extraLogs: GameLogEntry[] = [];
+
+        // Trigger DIA-05 (Mouettes) if ether was destroyed
+        if (actualEtherLoss > 0) {
+          const trigResult = onEtherDestroyed(updatedPlayers);
+          if (trigResult.etherChanges.length > 0) {
+            const applied = applyTriggeredResult({ ...prev, players: updatedPlayers } as GameState, trigResult);
+            updatedPlayers = applied.players;
+            extraLogs = [...extraLogs, ...applied.logs];
+            // Chain APO-05/MIN-04 for DIA-05 ether
+            for (const change of trigResult.etherChanges) {
+              const apo05Result = onOutOfCycleEtherGenerated(updatedPlayers, change.playerIndex, 'DIA-05');
+              if (apo05Result.etherChanges.length > 0) {
+                const apo05Applied = applyTriggeredResult({ ...prev, players: updatedPlayers } as GameState, apo05Result);
+                updatedPlayers = apo05Applied.players;
+                extraLogs = [...extraLogs, ...apo05Applied.logs];
+              }
+            }
+          }
+        }
+
         return {
           ...prev,
           players: updatedPlayers,
           discardPile: [...discardedCards, ...prev.discardPile],
-          log: [{
-            id: crypto.randomUUID(),
-            timestamp: Date.now(),
-            playerName: sourceName,
-            action: pendingEffect.sourceMortalName,
-            detail: `${tp.name} perd 2 Éther et défausse ${discardedCards.length} carte(s)`,
-          }, ...prev.log],
+          log: [mainLog, ...extraLogs, ...prev.log],
         };
       }
       return prev;
