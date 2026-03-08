@@ -485,10 +485,10 @@ function OpponentMini({
       className="rounded-lg border border-border/30 overflow-hidden flex flex-col"
       style={{
         background: `linear-gradient(135deg, hsl(var(--card) / 0.95), hsl(var(--secondary) / 0.9))`,
-        width: fillSpace ? undefined : '170px',
-        height: fillSpace ? undefined : '110px',
-        flex: fillSpace ? '1 1 200px' : '0 0 170px',
-        maxWidth: fillSpace ? '300px' : '170px',
+        width: fillSpace ? undefined : '185px',
+        height: fillSpace ? undefined : '115px',
+        flex: fillSpace ? '1 1 200px' : '0 0 185px',
+        maxWidth: fillSpace ? '300px' : '185px',
       }}
     >
       {/* Compact header */}
