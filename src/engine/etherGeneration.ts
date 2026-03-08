@@ -130,6 +130,27 @@ export function calculateCycleEtherGeneration(
     return { ...player, ether: player.ether + etherGain };
   });
 
+  // DIA-04 (Deux serpents): give +1 ether to each enemy god
+  for (let pIdx = 0; pIdx < updatedPlayers.length; pIdx++) {
+    const p = updatedPlayers[pIdx];
+    const hasDIA04 = p.mortals.some(
+      m => m.code === 'DIA-04' && m.isMetamorphosed && m.status !== 'incapacite'
+    );
+    if (hasDIA04) {
+      updatedPlayers = updatedPlayers.map((ep, i) => {
+        if (i === pIdx) return ep;
+        return { ...ep, ether: ep.ether + 1 };
+      });
+      logs.push({
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        playerName: 'Système',
+        action: 'Deux serpents',
+        detail: `Chaque dieu ennemi reçoit +1 Éther (compensation)`,
+      });
+    }
+  }
+
   // MIN-03 (Perdrie): steal ether from richest enemy god
   for (const steal of stolenFromEnemy) {
     // Find richest enemy
