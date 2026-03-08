@@ -41,6 +41,9 @@ export interface PendingEffect {
   etherGenerate?: number;
   etherDestroy?: number;
   etherStealPerGod?: number;
+  etherStealTotal?: number;
+  // For metamorphose_extra
+  extraMetamorphoseCostAdded?: number;
   // Whether the effect is optional (player can skip)
   optional?: boolean;
   // Condition description (shown when effect can't fire)
