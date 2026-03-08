@@ -202,8 +202,8 @@ const OwnPlayerBoard = ({
                 exit={{ opacity: 0 }}
                 className="rounded-xl px-4 py-3 shadow-2xl"
                 style={{
-                  minWidth: '220px',
-                  maxWidth: '280px',
+                  minWidth: '260px',
+                  maxWidth: '340px',
                   background: 'hsl(var(--card))',
                   border: `1px solid hsl(var(--${hoveredSpell.type === 'reaction' ? 'reaction' : 'divine'}) / 0.5)`,
                   boxShadow: `0 0 20px hsl(var(--${hoveredSpell.type === 'reaction' ? 'reaction' : 'divine'}) / 0.2)`,
