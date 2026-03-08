@@ -61,12 +61,12 @@ export function calculateCycleEtherGeneration(
           bonusDetails.push(`Deux serpents: 3 (fixe) + 1 par ennemi`);
         }
 
-        // NEP-04 (Ecueil): +1 per mineral metamorphosed in entire game
+        // NEP-04 (Ecueil): +1 per mineral metamorphosed in entire game (incapacitated count too)
         if (mortal.code === 'NEP-04') {
           let mineralCount = 0;
           for (const p of gameState.players) {
             for (const m of p.mortals) {
-              if (m.isMetamorphosed && m.type === 'mineral' && m.status !== 'incapacite' && m.id !== mortal.id) {
+              if (m.isMetamorphosed && m.type === 'mineral' && m.id !== mortal.id) {
                 mineralCount++;
               }
             }
