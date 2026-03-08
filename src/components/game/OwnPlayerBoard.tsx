@@ -4,6 +4,7 @@ import { getEffectiveCardCost } from '@/engine/costModifiers';
 import EtherCounter from './EtherCounter';
 import MortalGrid from './MortalGrid';
 import CeresLayout from './CeresLayout';
+import VenusLayout from './VenusLayout';
 import MortalTooltip from './MortalTooltip';
 import GameCard from './GameCard';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -86,6 +87,15 @@ const OwnPlayerBoard = ({
         >
           {player.divinity === 'ceres' ? (
             <CeresLayout
+              mortals={player.mortals}
+              owner={player}
+              gameState={gameState}
+              selectable={isMetaMode || isActivateMode || !!onTargetMortalClick}
+              onMortalClick={isMetaMode ? onMortalClick : isActivateMode ? onMortalClick : onTargetMortalClick ? onTargetMortalClick : undefined}
+              onMortalHover={setHoveredMortal}
+            />
+          ) : player.divinity === 'venus' ? (
+            <VenusLayout
               mortals={player.mortals}
               owner={player}
               gameState={gameState}
