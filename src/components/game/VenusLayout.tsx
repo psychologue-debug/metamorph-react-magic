@@ -88,7 +88,7 @@ function VenusToken({
 
   return (
     <motion.div
-      className={`
+      className={`mortal-token
         rounded-full relative cursor-pointer transition-all duration-300 overflow-hidden
         ${mortal.isMetamorphosed ? 'ring-2 ring-ether/60' : 'ring-1 ring-border/40'}
         ${isRetired ? 'grayscale opacity-40 pointer-events-none' : ''}
@@ -102,7 +102,7 @@ function VenusToken({
         ...(selectable ? { boxShadow: ['0 0 0px hsl(270 50% 55% / 0)', '0 0 16px hsl(270 50% 55% / 0.5)', '0 0 0px hsl(270 50% 55% / 0)'] } : {}),
       }}
       transition={selectable ? { boxShadow: { duration: 1.5, repeat: Infinity } } : { duration: 0.3 }}
-      whileHover={{ scale: 1.15, zIndex: 10 }}
+      whileHover={{ zIndex: 10 }}
       onClick={() => onClick?.(mortal.id)}
       onMouseEnter={() => onHover?.(mortal)}
       onMouseLeave={() => onHover?.(null)}
