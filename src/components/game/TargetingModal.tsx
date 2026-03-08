@@ -181,6 +181,48 @@ const TargetingModal = ({ effect, gameState, onResolve, onCancel, onGodDiscard, 
     );
   }
 
+  if (effect.type === 'steal_ether_total') {
+    return (
+      <StealEtherTotalContent
+        effect={effect}
+        gameState={gameState}
+        onResolve={onResolve}
+      />
+    );
+  }
+
+  if (effect.type === 'steal_card_from_god' && onStealCard) {
+    return (
+      <StealCardFromGodContent
+        effect={effect}
+        gameState={gameState}
+        onSteal={onStealCard}
+        onCancel={onCancel}
+      />
+    );
+  }
+
+  if (effect.type === 'metamorphose_extra' && onMetamorphoseExtra) {
+    return (
+      <MetamorphoseExtraContent
+        effect={effect}
+        gameState={gameState}
+        onSelect={onMetamorphoseExtra}
+        onCancel={onCancel}
+      />
+    );
+  }
+
+  if (effect.type === 'move_incapacitations' && onMoveIncapacitations) {
+    return (
+      <MoveIncapacitationsContent
+        effect={effect}
+        gameState={gameState}
+        onConfirm={onMoveIncapacitations}
+      />
+    );
+  }
+
   return null;
 };
 
