@@ -2,6 +2,7 @@ import { Mortal, Player, GameState } from '@/types/game';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { isMortalInvulnerable, isMortalRetired } from '@/engine/mortalStatuses';
+import { getHaloType, HALO_STYLES } from '@/engine/mortalHalos';
 import { Shield } from 'lucide-react';
 
 interface VenusLayoutProps {
@@ -13,98 +14,53 @@ interface VenusLayoutProps {
   onMortalHover?: (mortal: Mortal | null) => void;
 }
 
-// Positions based on the Venus diagram reference
 const POSITIONS: Record<string, { x: number; y: number }> = {
-  'VEN-03': { x: 14, y: 10 },   // Égérie (top-left)
-  'VEN-02': { x: 38, y: 8 },    // Aréthuse (top-center)
-  'VEN-04': { x: 82, y: 10 },   // Oiseaux (top-right)
-  'VEN-05': { x: 22, y: 35 },   // Byblis (center-left, hub blue)
-  'VEN-10': { x: 10, y: 62 },   // Anaxarète (mid-left)
-  'VEN-01': { x: 50, y: 58 },   // Philomène/Iphigénie (center)
-  'VEN-08': { x: 78, y: 50 },   // Coronis (center-right)
-  'VEN-09': { x: 22, y: 85 },   // Héliades (bottom-left)
-  'VEN-07': { x: 52, y: 85 },   // Actéon (bottom-center)
-  'VEN-06': { x: 80, y: 85 },   // Iphigénie (bottom-right)
+  'VEN-03': { x: 14, y: 10 },
+  'VEN-02': { x: 38, y: 8 },
+  'VEN-04': { x: 82, y: 10 },
+  'VEN-05': { x: 22, y: 35 },
+  'VEN-10': { x: 10, y: 62 },
+  'VEN-01': { x: 50, y: 58 },
+  'VEN-08': { x: 78, y: 50 },
+  'VEN-09': { x: 22, y: 85 },
+  'VEN-07': { x: 52, y: 85 },
+  'VEN-06': { x: 80, y: 85 },
 };
 
-// Blue synergy connections (via VEN-05 hub)
 const BLUE_CONNECTIONS: [string, string][] = [
-  ['VEN-05', 'VEN-03'],
-  ['VEN-05', 'VEN-02'],
+  ['VEN-05', 'VEN-03'], ['VEN-05', 'VEN-02'],
 ];
 
-// Red synergy connections
 const RED_CONNECTIONS: [string, string][] = [
-  ['VEN-01', 'VEN-08'],
-  ['VEN-07', 'VEN-06'],
+  ['VEN-01', 'VEN-08'], ['VEN-07', 'VEN-06'],
 ];
 
-const TOKEN_SIZE = 150;
+const TOKEN_SIZE = 130;
 const PADDING = 25;
 
 const VenusLayout = ({ mortals, owner, gameState, selectable, onMortalClick, onMortalHover }: VenusLayoutProps) => {
   return (
     <div className="relative w-full h-full" style={{ padding: PADDING }}>
       <div className="relative w-full h-full">
-        {/* SVG connection lines */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
           {BLUE_CONNECTIONS.map(([from, to], i) => {
-            const pFrom = POSITIONS[from];
-            const pTo = POSITIONS[to];
+            const pFrom = POSITIONS[from]; const pTo = POSITIONS[to];
             if (!pFrom || !pTo) return null;
-            return (
-              <line
-                key={`blue-${i}`}
-                x1={`${pFrom.x}%`} y1={`${pFrom.y}%`}
-                x2={`${pTo.x}%`} y2={`${pTo.y}%`}
-                stroke="hsl(210 70% 50%)"
-                strokeWidth="5"
-                strokeOpacity="0.55"
-                strokeLinecap="round"
-              />
-            );
+            return <line key={`blue-${i}`} x1={`${pFrom.x}%`} y1={`${pFrom.y}%`} x2={`${pTo.x}%`} y2={`${pTo.y}%`} stroke="hsl(210 70% 50%)" strokeWidth="5" strokeOpacity="0.55" strokeLinecap="round" />;
           })}
           {RED_CONNECTIONS.map(([from, to], i) => {
-            const pFrom = POSITIONS[from];
-            const pTo = POSITIONS[to];
+            const pFrom = POSITIONS[from]; const pTo = POSITIONS[to];
             if (!pFrom || !pTo) return null;
-            return (
-              <line
-                key={`red-${i}`}
-                x1={`${pFrom.x}%`} y1={`${pFrom.y}%`}
-                x2={`${pTo.x}%`} y2={`${pTo.y}%`}
-                stroke="hsl(0 70% 50%)"
-                strokeWidth="5"
-                strokeOpacity="0.55"
-                strokeLinecap="round"
-              />
-            );
+            return <line key={`red-${i}`} x1={`${pFrom.x}%`} y1={`${pFrom.y}%`} x2={`${pTo.x}%`} y2={`${pTo.y}%`} stroke="hsl(0 70% 50%)" strokeWidth="5" strokeOpacity="0.55" strokeLinecap="round" />;
           })}
         </svg>
 
-        {/* Mortal tokens */}
         {mortals.map((mortal) => {
           const pos = POSITIONS[mortal.code];
           if (!pos) return null;
           return (
-            <div
-              key={mortal.id}
-              className="absolute"
-              style={{
-                left: `${pos.x}%`,
-                top: `${pos.y}%`,
-                transform: 'translate(-50%, -50%)',
-                zIndex: 2,
-              }}
-            >
-              <VenusToken
-                mortal={mortal}
-                owner={owner}
-                gameState={gameState}
-                selectable={selectable}
-                onClick={onMortalClick}
-                onHover={onMortalHover}
-              />
+            <div key={mortal.id} className="absolute" style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)', zIndex: 2 }}>
+              <VenusToken mortal={mortal} owner={owner} gameState={gameState} selectable={selectable} onClick={onMortalClick} onHover={onMortalHover} />
             </div>
           );
         })}
@@ -122,11 +78,13 @@ function VenusToken({
   const [imgFailed, setImgFailed] = useState(false);
   const imageSrc = mortal.isMetamorphosed ? mortal.imageVerso : mortal.imageRecto;
   const displayName = mortal.isMetamorphosed ? mortal.nameVerso : mortal.nameRecto;
-  const hasPermanentEffect = mortal.isMetamorphosed && !!mortal.effectPermanent;
   const isIncapacitated = mortal.status === 'incapacite';
   const isRetired = isMortalRetired(mortal);
   const isInvulnerable = isMortalInvulnerable(mortal, owner, gameState);
   const showImage = imageSrc && !imgFailed;
+
+  const haloType = getHaloType(mortal);
+  const haloStyle = haloType !== 'none' ? HALO_STYLES[haloType] : null;
 
   return (
     <motion.div
@@ -160,10 +118,11 @@ function VenusToken({
         </div>
       )}
 
-      {hasPermanentEffect && !isIncapacitated && (
-        <motion.div className="absolute -inset-1 rounded-full pointer-events-none"
-          style={{ background: 'radial-gradient(circle, hsl(var(--divine-glow) / 0.3) 0%, hsl(var(--divine) / 0.15) 50%, transparent 70%)', boxShadow: '0 0 12px hsl(var(--divine) / 0.4)' }}
-          animate={{ opacity: [0.5, 0.9, 0.5], scale: [1, 1.05, 1] }}
+      {/* Effect-type halo */}
+      {haloStyle && !isIncapacitated && !isRetired && (
+        <motion.div className="absolute -inset-2 rounded-full pointer-events-none"
+          style={{ background: haloStyle.gradient, boxShadow: haloStyle.boxShadow }}
+          animate={{ opacity: [0.5, 1, 0.5], scale: [1, 1.06, 1] }}
           transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
         />
       )}
@@ -186,11 +145,6 @@ function VenusToken({
           animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 2, repeat: Infinity }}>
           <Shield className="w-3 h-3 text-white" />
         </motion.div>
-      )}
-      {mortal.isMetamorphosed && !hasPermanentEffect && !isIncapacitated && !isRetired && (
-        <motion.div className="absolute inset-0 rounded-full pointer-events-none"
-          style={{ background: 'radial-gradient(circle, hsl(var(--ether) / 0.15) 0%, transparent 70%)' }}
-          animate={{ opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 2, repeat: Infinity }} />
       )}
     </motion.div>
   );

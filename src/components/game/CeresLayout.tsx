@@ -2,6 +2,7 @@ import { Mortal, Player, GameState } from '@/types/game';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { isMortalInvulnerable, isMortalRetired } from '@/engine/mortalStatuses';
+import { getHaloType, HALO_STYLES } from '@/engine/mortalHalos';
 import { Shield } from 'lucide-react';
 
 interface CeresLayoutProps {
@@ -13,103 +14,54 @@ interface CeresLayoutProps {
   onMortalHover?: (mortal: Mortal | null) => void;
 }
 
-// Positions as % of container — based on the diagram
-// Brown cluster (CER-02 hub = Bêtes sauvages, connected to animals)
-// Blue cluster (CER-04 hub = Lac, connected to vegetals)
 const POSITIONS: Record<string, { x: number; y: number }> = {
-  'CER-06': { x: 12, y: 12 },   // Fourmilière (top-left)
-  'CER-05': { x: 38, y: 8 },    // Enfant (top-center)
-  'CER-01': { x: 65, y: 10 },   // Lyncus (top-right)
-  'CER-02': { x: 25, y: 40 },   // Bêtes sauvages (center-left hub)
-  'CER-09': { x: 8, y: 62 },    // Picus (mid-left)
-  'CER-04': { x: 55, y: 48 },   // Cyané/Lac (center-right hub)
-  'CER-10': { x: 85, y: 38 },   // Cadavre de Leucothée (right)
-  'CER-03': { x: 18, y: 85 },   // Ascalaphus (bottom-left)
-  'CER-07': { x: 48, y: 82 },   // Arbre aux fruits blancs (bottom-center)
-  'CER-08': { x: 78, y: 78 },   // Dryope (bottom-right)
+  'CER-06': { x: 12, y: 12 },
+  'CER-05': { x: 38, y: 8 },
+  'CER-01': { x: 65, y: 10 },
+  'CER-02': { x: 25, y: 40 },
+  'CER-09': { x: 8, y: 62 },
+  'CER-04': { x: 55, y: 48 },
+  'CER-10': { x: 85, y: 38 },
+  'CER-03': { x: 18, y: 85 },
+  'CER-07': { x: 48, y: 82 },
+  'CER-08': { x: 78, y: 78 },
 };
 
-// Synergy connections
 const BROWN_CONNECTIONS: [string, string][] = [
-  ['CER-02', 'CER-06'],
-  ['CER-02', 'CER-05'],
-  ['CER-02', 'CER-01'],
-  ['CER-02', 'CER-09'],
-  ['CER-02', 'CER-03'],
+  ['CER-02', 'CER-06'], ['CER-02', 'CER-05'], ['CER-02', 'CER-01'],
+  ['CER-02', 'CER-09'], ['CER-02', 'CER-03'],
 ];
 
 const BLUE_CONNECTIONS: [string, string][] = [
-  ['CER-04', 'CER-10'],
-  ['CER-04', 'CER-07'],
-  ['CER-04', 'CER-08'],
+  ['CER-04', 'CER-10'], ['CER-04', 'CER-07'], ['CER-04', 'CER-08'],
 ];
 
-const TOKEN_SIZE = 150;
+const TOKEN_SIZE = 130;
 const PADDING = 25;
 
 const CeresLayout = ({ mortals, owner, gameState, selectable, onMortalClick, onMortalHover }: CeresLayoutProps) => {
   return (
     <div className="relative w-full h-full" style={{ padding: PADDING }}>
       <div className="relative w-full h-full">
-        {/* SVG connection lines */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
           {BROWN_CONNECTIONS.map(([from, to], i) => {
-            const pFrom = POSITIONS[from];
-            const pTo = POSITIONS[to];
+            const pFrom = POSITIONS[from]; const pTo = POSITIONS[to];
             if (!pFrom || !pTo) return null;
-            return (
-              <line
-                key={`brown-${i}`}
-                x1={`${pFrom.x}%`} y1={`${pFrom.y}%`}
-                x2={`${pTo.x}%`} y2={`${pTo.y}%`}
-                stroke="hsl(25 60% 40%)"
-                strokeWidth="5"
-                strokeOpacity="0.55"
-                strokeLinecap="round"
-              />
-            );
+            return <line key={`brown-${i}`} x1={`${pFrom.x}%`} y1={`${pFrom.y}%`} x2={`${pTo.x}%`} y2={`${pTo.y}%`} stroke="hsl(25 60% 40%)" strokeWidth="5" strokeOpacity="0.55" strokeLinecap="round" />;
           })}
           {BLUE_CONNECTIONS.map(([from, to], i) => {
-            const pFrom = POSITIONS[from];
-            const pTo = POSITIONS[to];
+            const pFrom = POSITIONS[from]; const pTo = POSITIONS[to];
             if (!pFrom || !pTo) return null;
-            return (
-              <line
-                key={`blue-${i}`}
-                x1={`${pFrom.x}%`} y1={`${pFrom.y}%`}
-                x2={`${pTo.x}%`} y2={`${pTo.y}%`}
-                stroke="hsl(210 70% 50%)"
-                strokeWidth="5"
-                strokeOpacity="0.55"
-                strokeLinecap="round"
-              />
-            );
+            return <line key={`blue-${i}`} x1={`${pFrom.x}%`} y1={`${pFrom.y}%`} x2={`${pTo.x}%`} y2={`${pTo.y}%`} stroke="hsl(210 70% 50%)" strokeWidth="5" strokeOpacity="0.55" strokeLinecap="round" />;
           })}
         </svg>
 
-        {/* Mortal tokens */}
         {mortals.map((mortal) => {
           const pos = POSITIONS[mortal.code];
           if (!pos) return null;
           return (
-            <div
-              key={mortal.id}
-              className="absolute"
-              style={{
-                left: `${pos.x}%`,
-                top: `${pos.y}%`,
-                transform: 'translate(-50%, -50%)',
-                zIndex: 2,
-              }}
-            >
-              <CeresToken
-                mortal={mortal}
-                owner={owner}
-                gameState={gameState}
-                selectable={selectable && (mortal.isMetamorphosed || !mortal.isMetamorphosed)}
-                onClick={onMortalClick}
-                onHover={onMortalHover}
-              />
+            <div key={mortal.id} className="absolute" style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)', zIndex: 2 }}>
+              <CeresToken mortal={mortal} owner={owner} gameState={gameState} selectable={selectable} onClick={onMortalClick} onHover={onMortalHover} />
             </div>
           );
         })}
@@ -127,12 +79,13 @@ function CeresToken({
   const [imgFailed, setImgFailed] = useState(false);
   const imageSrc = mortal.isMetamorphosed ? mortal.imageVerso : mortal.imageRecto;
   const displayName = mortal.isMetamorphosed ? mortal.nameVerso : mortal.nameRecto;
-  const hasPermanentEffect = mortal.isMetamorphosed && !!mortal.effectPermanent;
   const isIncapacitated = mortal.status === 'incapacite';
   const isRetired = isMortalRetired(mortal);
   const isInvulnerable = isMortalInvulnerable(mortal, owner, gameState);
   const showImage = imageSrc && !imgFailed;
-  const size = TOKEN_SIZE;
+
+  const haloType = getHaloType(mortal);
+  const haloStyle = haloType !== 'none' ? HALO_STYLES[haloType] : null;
 
   return (
     <motion.div
@@ -143,7 +96,7 @@ function CeresToken({
         ${isIncapacitated && !isRetired ? 'grayscale opacity-60' : ''}
         ${selectable ? 'ring-2 ring-divine/70 cursor-pointer' : ''}
       `}
-      style={{ width: size, height: size }}
+      style={{ width: TOKEN_SIZE, height: TOKEN_SIZE }}
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{
         opacity: 1, scale: 1,
@@ -166,10 +119,11 @@ function CeresToken({
         </div>
       )}
 
-      {hasPermanentEffect && !isIncapacitated && (
-        <motion.div className="absolute -inset-1 rounded-full pointer-events-none"
-          style={{ background: 'radial-gradient(circle, hsl(var(--divine-glow) / 0.3) 0%, hsl(var(--divine) / 0.15) 50%, transparent 70%)', boxShadow: '0 0 12px hsl(var(--divine) / 0.4)' }}
-          animate={{ opacity: [0.5, 0.9, 0.5], scale: [1, 1.05, 1] }}
+      {/* Effect-type halo */}
+      {haloStyle && !isIncapacitated && !isRetired && (
+        <motion.div className="absolute -inset-2 rounded-full pointer-events-none"
+          style={{ background: haloStyle.gradient, boxShadow: haloStyle.boxShadow }}
+          animate={{ opacity: [0.5, 1, 0.5], scale: [1, 1.06, 1] }}
           transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
         />
       )}
@@ -192,11 +146,6 @@ function CeresToken({
           animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 2, repeat: Infinity }}>
           <Shield className="w-3 h-3 text-white" />
         </motion.div>
-      )}
-      {mortal.isMetamorphosed && !hasPermanentEffect && !isIncapacitated && !isRetired && (
-        <motion.div className="absolute inset-0 rounded-full pointer-events-none"
-          style={{ background: 'radial-gradient(circle, hsl(var(--ether) / 0.15) 0%, transparent 70%)' }}
-          animate={{ opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 2, repeat: Infinity }} />
       )}
     </motion.div>
   );

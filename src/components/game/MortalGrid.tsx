@@ -2,6 +2,7 @@ import { Mortal, Player, GameState } from '@/types/game';
 import { motion } from 'framer-motion';
 import { useState, useRef } from 'react';
 import { isMortalInvulnerable, isMortalRetired } from '@/engine/mortalStatuses';
+import { getHaloType, HALO_STYLES } from '@/engine/mortalHalos';
 import { Shield } from 'lucide-react';
 
 interface MortalGridProps {
@@ -16,7 +17,9 @@ interface MortalGridProps {
   containerRef?: React.RefObject<HTMLDivElement>;
 }
 
-const MortalGrid = ({ mortals, owner, gameState, tokenSize = 80, selectable = false, targetingMode = false, onMortalClick, onMortalHover }: MortalGridProps) => {
+const TOKEN_SIZE = 130;
+
+const MortalGrid = ({ mortals, owner, gameState, tokenSize = TOKEN_SIZE, selectable = false, targetingMode = false, onMortalClick, onMortalHover }: MortalGridProps) => {
   return (
     <>
       {mortals.map((mortal, i) => (
@@ -37,33 +40,23 @@ const MortalGrid = ({ mortals, owner, gameState, tokenSize = 80, selectable = fa
 };
 
 function MortalToken({
-  mortal,
-  owner,
-  gameState,
-  size,
-  index,
-  selectable,
-  onClick,
-  onHover,
+  mortal, owner, gameState, size, index, selectable, onClick, onHover,
 }: {
-  mortal: Mortal;
-  owner?: Player;
-  gameState?: GameState;
-  size: number;
-  index: number;
-  selectable: boolean;
-  onClick?: (id: string) => void;
-  onHover?: (mortal: Mortal | null) => void;
+  mortal: Mortal; owner?: Player; gameState?: GameState;
+  size: number; index: number; selectable: boolean;
+  onClick?: (id: string) => void; onHover?: (mortal: Mortal | null) => void;
 }) {
   const [imgFailed, setImgFailed] = useState(false);
   const imageSrc = mortal.isMetamorphosed ? mortal.imageVerso : mortal.imageRecto;
   const displayName = mortal.isMetamorphosed ? mortal.nameVerso : mortal.nameRecto;
-  const hasPermanentEffect = mortal.isMetamorphosed && !!mortal.effectPermanent;
   const isIncapacitated = mortal.status === 'incapacite';
   const isRetired = isMortalRetired(mortal);
   const isInvulnerable = owner && gameState ? isMortalInvulnerable(mortal, owner, gameState) : false;
   const showImage = imageSrc && !imgFailed;
   const fontSize = size < 60 ? 'text-xs' : size < 100 ? 'text-sm' : 'text-lg';
+
+  const haloType = getHaloType(mortal);
+  const haloStyle = haloType !== 'none' ? HALO_STYLES[haloType] : null;
 
   return (
     <div className="relative">
@@ -78,8 +71,7 @@ function MortalToken({
         style={{ width: size, height: size }}
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{
-          opacity: 1,
-          scale: 1,
+          opacity: 1, scale: 1,
           ...(selectable ? { boxShadow: ['0 0 0px hsl(270 50% 55% / 0)', '0 0 16px hsl(270 50% 55% / 0.5)', '0 0 0px hsl(270 50% 55% / 0)'] } : {}),
         }}
         transition={selectable ? { boxShadow: { duration: 1.5, repeat: Infinity } } : { delay: index * 0.03 }}
@@ -89,35 +81,21 @@ function MortalToken({
         onMouseLeave={() => onHover?.(null)}
       >
         {showImage ? (
-          <img
-            src={imageSrc}
-            alt={displayName}
-            className="absolute inset-0 w-full h-full object-cover rounded-full"
-            onError={() => setImgFailed(true)}
-          />
+          <img src={imageSrc} alt={displayName} className="absolute inset-0 w-full h-full object-cover rounded-full" onError={() => setImgFailed(true)} />
         ) : (
-          <div
-            className="absolute inset-0 flex items-center justify-center"
-            style={{
-              background: mortal.isMetamorphosed
-                ? `linear-gradient(135deg, hsl(var(--ether-dim)), hsl(var(--card)))`
-                : `linear-gradient(135deg, hsl(var(--card)), hsl(var(--secondary)))`,
-            }}
-          >
+          <div className="absolute inset-0 flex items-center justify-center"
+            style={{ background: mortal.isMetamorphosed ? 'linear-gradient(135deg, hsl(var(--ether-dim)), hsl(var(--card)))' : 'linear-gradient(135deg, hsl(var(--card)), hsl(var(--secondary)))' }}>
             <span className={`font-display font-bold ${fontSize} text-muted-foreground`}>
               {mortal.isMetamorphosed ? mortal.etherProduction : mortal.nameRecto.charAt(0)}
             </span>
           </div>
         )}
 
-        {hasPermanentEffect && !isIncapacitated && (
-          <motion.div
-            className="absolute -inset-1 rounded-full pointer-events-none"
-            style={{
-              background: `radial-gradient(circle, hsl(var(--divine-glow) / 0.3) 0%, hsl(var(--divine) / 0.15) 50%, transparent 70%)`,
-              boxShadow: '0 0 12px hsl(var(--divine) / 0.4), 0 0 24px hsl(var(--divine) / 0.2)',
-            }}
-            animate={{ opacity: [0.5, 0.9, 0.5], scale: [1, 1.05, 1] }}
+        {/* Effect-type halo */}
+        {haloStyle && !isIncapacitated && !isRetired && (
+          <motion.div className="absolute -inset-2 rounded-full pointer-events-none"
+            style={{ background: haloStyle.gradient, boxShadow: haloStyle.boxShadow }}
+            animate={{ opacity: [0.5, 1, 0.5], scale: [1, 1.06, 1] }}
             transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
           />
         )}
@@ -127,44 +105,21 @@ function MortalToken({
             <span className="text-lg">🚫</span>
           </div>
         )}
-
         {isIncapacitated && !isRetired && (
           <div className="absolute inset-0 rounded-full flex items-center justify-center bg-background/40">
-            <motion.div
-              className="w-full h-full rounded-full flex items-center justify-center"
-              style={{
-                background: 'radial-gradient(circle, hsl(0 0% 20% / 0.6) 30%, hsl(0 0% 10% / 0.3) 70%)',
-                boxShadow: 'inset 0 0 12px hsl(270 30% 15% / 0.5)',
-              }}
-              animate={{ opacity: [0.7, 0.9, 0.7] }}
-              transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-            >
+            <motion.div className="w-full h-full rounded-full flex items-center justify-center"
+              style={{ background: 'radial-gradient(circle, hsl(0 0% 20% / 0.6) 30%, hsl(0 0% 10% / 0.3) 70%)', boxShadow: 'inset 0 0 12px hsl(270 30% 15% / 0.5)' }}
+              animate={{ opacity: [0.7, 0.9, 0.7] }} transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}>
               <span className="text-lg font-display font-bold" style={{ color: 'hsl(270 40% 65%)' }}>💤</span>
             </motion.div>
           </div>
         )}
-
         {isInvulnerable && !isRetired && (
-          <motion.div
-            className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
-            style={{
-              background: 'linear-gradient(135deg, hsl(45 90% 55%), hsl(35 80% 45%))',
-              boxShadow: '0 0 8px hsl(45 90% 55% / 0.6)',
-            }}
-            animate={{ scale: [1, 1.15, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          >
+          <motion.div className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
+            style={{ background: 'linear-gradient(135deg, hsl(45 90% 55%), hsl(35 80% 45%))', boxShadow: '0 0 8px hsl(45 90% 55% / 0.6)' }}
+            animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 2, repeat: Infinity }}>
             <Shield className="w-3 h-3 text-white" />
           </motion.div>
-        )}
-
-        {mortal.isMetamorphosed && !hasPermanentEffect && !isIncapacitated && !isRetired && (
-          <motion.div
-            className="absolute inset-0 rounded-full pointer-events-none"
-            style={{ background: `radial-gradient(circle, hsl(var(--ether) / 0.15) 0%, transparent 70%)` }}
-            animate={{ opacity: [0.3, 0.6, 0.3] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
         )}
       </motion.div>
     </div>
