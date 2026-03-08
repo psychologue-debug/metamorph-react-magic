@@ -103,7 +103,7 @@ function CeresToken({
         ...(selectable ? { boxShadow: ['0 0 0px hsl(270 50% 55% / 0)', '0 0 16px hsl(270 50% 55% / 0.5)', '0 0 0px hsl(270 50% 55% / 0)'] } : {}),
       }}
       transition={selectable ? { boxShadow: { duration: 1.5, repeat: Infinity } } : { duration: 0.3 }}
-      whileHover={{ scale: 1.15, zIndex: 10 }}
+      whileHover={{ zIndex: 10 }}
       onClick={() => onClick?.(mortal.id)}
       onMouseEnter={() => onHover?.(mortal)}
       onMouseLeave={() => onHover?.(null)}
