@@ -997,6 +997,8 @@ export function useGameLogic() {
 
       let updatedPlayers = [...prev.players];
       const newLog = [...prev.log];
+      let updatedDeck = [...prev.deck];
+      let updatedDiscardPile = [...prev.discardPile];
 
       // Handle mortal targeting (incapacitate / remove)
       if (result.targetMortals && result.targetMortals.length > 0) {
