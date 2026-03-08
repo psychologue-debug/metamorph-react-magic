@@ -200,10 +200,10 @@ export function getEffectiveEtherProduction(
 
   let production = mortal.etherProduction;
 
-  // DIA-01 (Alcyon): 0 if 3+ metamorphosed
+  // DIA-01 (Alcyon): generates 3 when 1-3 metamorphosed, 0 when 4+
   if (mortal.code === 'DIA-01') {
     const metamorphosedCount = owner.mortals.filter(m => m.isMetamorphosed).length;
-    if (metamorphosedCount >= 3) return 0;
+    if (metamorphosedCount >= 4) return 0;
   }
 
   // DIA-04 (Deux serpents): always generates 3 for Diane

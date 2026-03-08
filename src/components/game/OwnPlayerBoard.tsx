@@ -74,26 +74,37 @@ const OwnPlayerBoard = ({
       )}
 
       {/* Mortals grid + fixed tooltip zone */}
-      <div className="flex-1 relative overflow-hidden">
+      <div className="flex-1 relative overflow-hidden" onMouseEnter={() => setHoveredSpell(null)}>
         <div
-          className="absolute inset-0 grid grid-cols-5 place-content-center gap-2 p-4"
+          className="absolute inset-0"
           style={{
-            background: 'linear-gradient(135deg, hsl(30 15% 92%), hsl(30 10% 96%), hsl(30 15% 90%))',
-            backgroundImage: `
-              linear-gradient(135deg, hsl(30 15% 92%), hsl(30 10% 96%), hsl(30 15% 90%)),
-              url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E")
-            `,
+            backgroundImage: `url('/textures/marble-white.webp')`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
           }}
         >
-          <MortalGrid
-            mortals={player.mortals}
-            owner={player}
-            gameState={gameState}
-            tokenSize={80}
-            selectable={isMetaMode || isActivateMode || !!onTargetMortalClick}
-            onMortalClick={isMetaMode ? onMortalClick : isActivateMode ? onMortalClick : onTargetMortalClick ? onTargetMortalClick : undefined}
-            onMortalHover={setHoveredMortal}
-          />
+          {player.divinity === 'ceres' ? (
+            <CeresLayout
+              mortals={player.mortals}
+              owner={player}
+              gameState={gameState}
+              selectable={isMetaMode || isActivateMode || !!onTargetMortalClick}
+              onMortalClick={isMetaMode ? onMortalClick : isActivateMode ? onMortalClick : onTargetMortalClick ? onTargetMortalClick : undefined}
+              onMortalHover={setHoveredMortal}
+            />
+          ) : (
+            <div className="w-full h-full grid grid-cols-5 place-content-center gap-2 p-4">
+              <MortalGrid
+                mortals={player.mortals}
+                owner={player}
+                gameState={gameState}
+                tokenSize={80}
+                selectable={isMetaMode || isActivateMode || !!onTargetMortalClick}
+                onMortalClick={isMetaMode ? onMortalClick : isActivateMode ? onMortalClick : onTargetMortalClick ? onTargetMortalClick : undefined}
+                onMortalHover={setHoveredMortal}
+              />
+            </div>
+          )}
         </div>
 
         {/* Fixed tooltip zone — top-right of mortal area */}
