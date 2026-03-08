@@ -51,7 +51,7 @@ export function getActivatedEffect(
             metamorphosedCount: pl.mortals.filter(m => m.id !== mortal.id && m.isMetamorphosed).length,
           }),
         }),
-        logMessage: `a rétromorphosé ${mortal.nameVerso} et généré 8 Éther`,
+        logMessage: `a rétromorphosé ${mortal.nameVerso} et généré 12 Éther`,
       };
     }
 

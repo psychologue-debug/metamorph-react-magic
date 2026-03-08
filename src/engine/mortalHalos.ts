@@ -1,46 +1,61 @@
 // === Mortal Halo Types ===
-// Determines the visual halo around metamorphosed mortals based on their effect type.
+// Determines the visual halo ring around metamorphosed mortals based on their effect type.
+// Uses explicit code lists provided by the game designer.
 
 import { Mortal } from '@/types/game';
-import { ACTIVATABLE_MORTALS } from './activatedEffects';
 
-export type HaloType = 'ether' | 'activatable' | 'passive' | 'none';
+export type HaloType = 'ether' | 'activatable' | 'permanent' | 'none';
+
+/** Violet halo: mortals that generate Ether */
+const ETHER_CODES = new Set([
+  'APO-05', 'DIA-05', 'VEN-02', 'VEN-03', 'VEN-05', 'VEN-09',
+  'MIN-03', 'MIN-04', 'MIN-05', 'MIN-07',
+  'DIA-01', 'DIA-04',
+  'NEP-01', 'NEP-03', 'NEP-04', 'NEP-08',
+  'CER-02', 'CER-04', 'CER-06',
+]);
+
+/** Yellow halo: mortals with manually activatable effects */
+const ACTIVATABLE_CODES = new Set([
+  'APO-06', 'VEN-01', 'BAC-01', 'BAC-10',
+  'MIN-02', 'MIN-08',
+  'DIA-02', 'DIA-08', 'DIA-10',
+  'NEP-02', 'NEP-05', 'NEP-06', 'NEP-10',
+  'CER-01', 'CER-07', 'CER-10',
+]);
+
+/** Red halo: mortals with permanent passive effects (not activatable, not ether) */
+const PERMANENT_CODES = new Set([
+  'APO-07', 'APO-08', 'APO-09', 'APO-10',
+  'VEN-04',
+  'BAC-09',
+  'DIA-07',
+  'NEP-09',
+]);
 
 /**
- * Returns the halo type for a metamorphosed mortal:
- * - 'activatable' (yellow): mortal has a manually activatable effect
- * - 'ether' (purple): mortal generates ether (etherProduction > 0) but is not activatable
- * - 'passive' (grey): mortal has a permanent effect but is not activatable and doesn't generate ether
- * - 'none': no ongoing power (flip-only effects or no effect)
+ * Returns the halo type for a metamorphosed mortal using explicit code lists.
+ * Priority: ether > activatable > permanent > none
  */
 export function getHaloType(mortal: Mortal): HaloType {
   if (!mortal.isMetamorphosed) return 'none';
-
-  const isActivatable = ACTIVATABLE_MORTALS.includes(mortal.code);
-  if (isActivatable) return 'activatable';
-
-  if (mortal.etherProduction > 0) return 'ether';
-
-  if (mortal.effectPermanent) return 'passive';
-
+  if (ETHER_CODES.has(mortal.code)) return 'ether';
+  if (ACTIVATABLE_CODES.has(mortal.code)) return 'activatable';
+  if (PERMANENT_CODES.has(mortal.code)) return 'permanent';
   return 'none';
 }
 
-/** Halo style config per type */
+/** Halo style config per type — ring + glow via box-shadow */
 export const HALO_STYLES: Record<Exclude<HaloType, 'none'>, {
-  gradient: string;
   boxShadow: string;
 }> = {
   ether: {
-    gradient: 'radial-gradient(circle, hsl(270 60% 55% / 0.4) 0%, hsl(270 50% 45% / 0.2) 50%, transparent 70%)',
-    boxShadow: '0 0 16px hsl(270 60% 55% / 0.5), 0 0 32px hsl(270 50% 45% / 0.25)',
+    boxShadow: '0 0 0 4px hsl(270 70% 60%), 0 0 14px 6px hsl(270 70% 55% / 0.7), 0 0 30px 10px hsl(270 60% 50% / 0.35)',
   },
   activatable: {
-    gradient: 'radial-gradient(circle, hsl(45 90% 55% / 0.4) 0%, hsl(45 80% 45% / 0.2) 50%, transparent 70%)',
-    boxShadow: '0 0 16px hsl(45 90% 55% / 0.5), 0 0 32px hsl(45 80% 45% / 0.25)',
+    boxShadow: '0 0 0 4px hsl(45 95% 55%), 0 0 14px 6px hsl(45 95% 55% / 0.7), 0 0 30px 10px hsl(45 85% 45% / 0.35)',
   },
-  passive: {
-    gradient: 'radial-gradient(circle, hsl(0 0% 70% / 0.35) 0%, hsl(0 0% 55% / 0.15) 50%, transparent 70%)',
-    boxShadow: '0 0 14px hsl(0 0% 70% / 0.4), 0 0 28px hsl(0 0% 55% / 0.2)',
+  permanent: {
+    boxShadow: '0 0 0 4px hsl(0 75% 55%), 0 0 14px 6px hsl(0 75% 55% / 0.7), 0 0 30px 10px hsl(0 65% 45% / 0.35)',
   },
 };

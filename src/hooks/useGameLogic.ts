@@ -1117,6 +1117,8 @@ export function useGameLogic() {
       return {
         ...prev,
         players: updatedPlayers,
+        deck: updatedDeck,
+        discardPile: updatedDiscardPile,
         log: newLog,
       };
     });
