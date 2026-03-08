@@ -209,14 +209,14 @@ const OwnPlayerBoard = ({
                   boxShadow: `0 0 20px hsl(var(--${hoveredSpell.type === 'reaction' ? 'reaction' : 'divine'}) / 0.2)`,
                 }}
               >
-                <div className="font-display text-base font-bold text-foreground mb-1">{hoveredSpell.name}</div>
+                <div className="font-display text-lg font-bold text-foreground mb-1">{hoveredSpell.name}</div>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-sm font-display text-ether font-bold">{getEffectiveCardCost(hoveredSpell, player)} Éther</span>
-                  <span className="text-xs text-muted-foreground uppercase">{hoveredSpell.type === 'reaction' ? 'Réaction' : 'Sortilège'}</span>
+                  <span className="text-base font-display text-ether font-bold">{getEffectiveCardCost(hoveredSpell, player)} Éther</span>
+                  <span className="text-sm text-muted-foreground uppercase">{hoveredSpell.type === 'reaction' ? 'Réaction' : 'Sortilège'}</span>
                 </div>
-                <p className="text-sm text-muted-foreground leading-relaxed">{hoveredSpell.description}</p>
+                <p className="text-base text-foreground leading-relaxed">{hoveredSpell.description}</p>
                 {hoveredSpell.activationCondition && (
-                  <p className="text-xs mt-1 italic" style={{ color: 'hsl(30 80% 60%)' }}>Condition : {hoveredSpell.activationCondition}</p>
+                  <p className="text-sm mt-1.5 italic" style={{ color: 'hsl(30 80% 60%)' }}>Condition : {hoveredSpell.activationCondition}</p>
                 )}
               </motion.div>
             </div>

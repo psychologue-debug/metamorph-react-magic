@@ -10,8 +10,6 @@ interface MortalTooltipProps {
 }
 
 const MortalTooltip = ({ mortal, owner, gameState }: MortalTooltipProps) => {
-  const tooltipImage = mortal.imageVerso;
-  const tooltipName = mortal.nameVerso;
   const effectiveCost = owner && gameState
     ? getEffectiveMetamorphosisCost(mortal, owner, gameState)
     : mortal.cost;
@@ -29,29 +27,47 @@ const MortalTooltip = ({ mortal, owner, gameState }: MortalTooltipProps) => {
       style={{
         background: 'hsl(var(--card))',
         border: '1px solid hsl(var(--border))',
-        width: '240px',
+        width: '280px',
       }}
     >
-      {tooltipImage && (
-        <img src={tooltipImage} alt={tooltipName} className="w-full object-contain" style={{ maxHeight: '260px' }} />
-      )}
-      <div className="p-2.5">
-        <div className="font-display text-sm font-bold text-foreground">{tooltipName}</div>
-        <div className="flex items-center gap-2 mt-1">
-          <span className={`text-xs font-display font-semibold ${costModified ? 'text-divine' : 'text-ether'}`}>
-            Coût: {effectiveCost}⚡
-            {costModified && <span className="text-muted-foreground line-through ml-1 text-[10px]">{mortal.cost}</span>}
-          </span>
-          <span className="text-xs text-muted-foreground">|</span>
-          <span className="text-xs text-ether font-display">+{effectiveProduction}/cycle</span>
+      <div className="p-3">
+        {/* Nom recto */}
+        <div className="font-display text-base font-bold text-foreground">{mortal.nameRecto}</div>
+
+        {/* Production */}
+        <div className="text-sm text-ether font-display font-semibold mt-1">
+          +{effectiveProduction}/cycle
         </div>
+
+        {/* Coût de métamorphose */}
+        <div className="text-sm text-foreground mt-1.5 font-display">
+          Coût de métamorphose :{' '}
+          <span className={`font-bold ${costModified ? 'text-divine' : 'text-ether'}`}>
+            {effectiveCost}⚡
+          </span>
+          {costModified && (
+            <span className="text-muted-foreground line-through ml-1 text-xs">{mortal.cost}</span>
+          )}
+          {' '}en :
+        </div>
+      </div>
+
+      {/* Image verso */}
+      {mortal.imageVerso && (
+        <img src={mortal.imageVerso} alt={mortal.nameVerso} className="w-full object-contain" style={{ maxHeight: '280px' }} />
+      )}
+
+      <div className="p-3 pt-2">
+        {/* Nom verso */}
+        <div className="font-display text-sm font-bold text-foreground mb-1.5">{mortal.nameVerso}</div>
+
         {mortal.effectOnMetamorphose && (
-          <div className="text-xs text-foreground mt-1.5 flex gap-1.5">
+          <div className="text-sm text-foreground leading-relaxed flex gap-1.5">
             <span>⚡</span><span>{mortal.effectOnMetamorphose}</span>
           </div>
         )}
         {mortal.effectPermanent && (
-          <div className="text-xs mt-1 flex gap-1.5" style={{ color: 'hsl(var(--divine))' }}>
+          <div className="text-sm leading-relaxed flex gap-1.5 mt-1" style={{ color: 'hsl(var(--divine-glow))' }}>
             <span>🔮</span><span>{mortal.effectPermanent}</span>
           </div>
         )}
