@@ -1264,6 +1264,11 @@ export function useGameLogic() {
           return prev;
         }
       } else if (isIncapacitate) {
+        // Guard against double-click: if already incapacitated, reject
+        if (mortal.status === 'incapacite') {
+          toast.error('Ce mortel est déjà incapacité');
+          return prev;
+        }
         if (!canBeIncapacitatedCheck(mortal, targetPlayer, prev)) {
           toast.error('Ce mortel ne peut pas être incapacité', {
             style: { background: 'hsl(0 70% 20%)', border: '1px solid hsl(0 70% 40%)', color: 'white', fontSize: '16px' },
