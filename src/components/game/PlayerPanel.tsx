@@ -36,7 +36,7 @@ const PlayerPanel = ({ player, gameState, isActive, index, compact = false, onMo
         {/* Header row */}
         <div className="flex items-center gap-2 mb-2 shrink-0">
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center border-2 shrink-0 overflow-hidden"
+            className="w-8 h-10 rounded-md flex items-center justify-center border-2 shrink-0 overflow-hidden"
             style={{
               borderColor: isActive ? 'hsl(var(--ether))' : 'hsl(var(--border) / 0.5)',
               background: `linear-gradient(135deg, hsl(${divinity.color} / 0.3), hsl(var(--card)))`,
