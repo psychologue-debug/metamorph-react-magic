@@ -3,6 +3,7 @@ import { InteractionMode, canPlayCard } from '@/hooks/useGameLogic';
 import { getEffectiveCardCost } from '@/engine/costModifiers';
 import EtherCounter from './EtherCounter';
 import MortalGrid from './MortalGrid';
+import CeresLayout from './CeresLayout';
 import MortalTooltip from './MortalTooltip';
 import GameCard from './GameCard';
 import { motion, AnimatePresence } from 'framer-motion';
