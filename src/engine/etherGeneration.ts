@@ -54,18 +54,19 @@ export function calculateCycleEtherGeneration(
           }
         }
 
-        // DIA-04 (Deux serpents): generates 1 per enemy god (replaces base production)
+        // DIA-04 (Deux serpents): always generates 3 for Diane
+        // (enemies each get +1, handled separately after main loop)
         if (mortal.code === 'DIA-04') {
-          production = enemyCount;
-          bonusDetails.push(`Deux serpents: ${enemyCount} (${enemyCount} ennemis)`);
+          production = 3;
+          bonusDetails.push(`Deux serpents: 3 (fixe) + 1 par ennemi`);
         }
 
-        // NEP-04 (Ecueil): +1 per mineral metamorphosed in entire game
+        // NEP-04 (Ecueil): +1 per mineral metamorphosed in entire game (incapacitated count too)
         if (mortal.code === 'NEP-04') {
           let mineralCount = 0;
           for (const p of gameState.players) {
             for (const m of p.mortals) {
-              if (m.isMetamorphosed && m.type === 'mineral' && m.status !== 'incapacite' && m.id !== mortal.id) {
+              if (m.isMetamorphosed && m.type === 'mineral' && m.id !== mortal.id) {
                 mineralCount++;
               }
             }
@@ -129,6 +130,27 @@ export function calculateCycleEtherGeneration(
     return { ...player, ether: player.ether + etherGain };
   });
 
+  // DIA-04 (Deux serpents): give +1 ether to each enemy god
+  for (let pIdx = 0; pIdx < updatedPlayers.length; pIdx++) {
+    const p = updatedPlayers[pIdx];
+    const hasDIA04 = p.mortals.some(
+      m => m.code === 'DIA-04' && m.isMetamorphosed && m.status !== 'incapacite'
+    );
+    if (hasDIA04) {
+      updatedPlayers = updatedPlayers.map((ep, i) => {
+        if (i === pIdx) return ep;
+        return { ...ep, ether: ep.ether + 1 };
+      });
+      logs.push({
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        playerName: 'Système',
+        action: 'Deux serpents',
+        detail: `Chaque dieu ennemi reçoit +1 Éther (compensation)`,
+      });
+    }
+  }
+
   // MIN-03 (Perdrie): steal ether from richest enemy god
   for (const steal of stolenFromEnemy) {
     // Find richest enemy
@@ -183,17 +205,17 @@ export function getEffectiveEtherProduction(
     if (metamorphosedCount >= 3) return 0;
   }
 
-  // DIA-04 (Deux serpents): generates 1 per enemy god (replaces base production)
+  // DIA-04 (Deux serpents): always generates 3 for Diane
   if (mortal.code === 'DIA-04') {
-    production = gameState.players.length - 1;
+    production = 3;
   }
 
-  // NEP-04 (Ecueil): +1 per mineral metamorphosed
+  // NEP-04 (Ecueil): +1 per mineral metamorphosed (incapacitated count too)
   if (mortal.code === 'NEP-04') {
     let mineralCount = 0;
     for (const p of gameState.players) {
       for (const m of p.mortals) {
-        if (m.isMetamorphosed && m.type === 'mineral' && m.status !== 'incapacite' && m.id !== mortal.id) {
+        if (m.isMetamorphosed && m.type === 'mineral' && m.id !== mortal.id) {
           mineralCount++;
         }
       }

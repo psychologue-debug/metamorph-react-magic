@@ -262,22 +262,20 @@ const Index = () => {
         style={{ background: `linear-gradient(90deg, hsl(var(--card)), hsl(var(--background)))` }}
       >
         <div className="flex items-center gap-4">
-          {/* Chroniques button — prominent */}
-          <button
-            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-lg font-display font-bold tracking-wider transition-colors ${logOpen ? 'bg-ether/20 text-ether' : 'text-foreground hover:text-ether'}`}
-            onMouseEnter={() => setLogOpen(true)}
-            onMouseLeave={() => setLogOpen(false)}
-          >
-            <ScrollText className="w-5 h-5" />
-            Chroniques
-          </button>
-
           <CentralZone gameState={gameState} />
         </div>
         <div className="flex items-center gap-4">
           <span className="font-body text-base text-muted-foreground italic">
             Cycle {gameState.turnCount} — {gameState.players.length} dieux
           </span>
+          {/* Chroniques button — next to quit */}
+          <button
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-lg font-display font-bold tracking-wider transition-colors ${logOpen ? 'bg-ether/20 text-ether' : 'text-foreground hover:text-ether'}`}
+            onClick={() => setLogOpen(prev => !prev)}
+          >
+            <ScrollText className="w-5 h-5" />
+            Chroniques
+          </button>
           <motion.button
             className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-display font-semibold border border-destructive/40 text-destructive transition-all"
             style={{ background: 'hsl(var(--destructive) / 0.1)' }}
@@ -326,12 +324,9 @@ const Index = () => {
         {/* RIGHT: Opponents */}
         <div
           className="w-1/2 flex flex-col min-h-0 overflow-hidden relative"
-          onMouseLeave={() => setLogOpen(false)}
         >
-          {/* GameLog panel — anchored below header on the right */}
-          <div onMouseEnter={() => setLogOpen(true)} onMouseLeave={() => setLogOpen(false)}>
-            <GameLog entries={gameState.log} open={logOpen} />
-          </div>
+          {/* GameLog panel — anchored below header on the right, click to toggle */}
+          <GameLog entries={gameState.log} open={logOpen} />
 
           {/* Active enemy — fills the main area */}
           {activeEnemy && (

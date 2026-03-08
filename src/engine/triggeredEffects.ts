@@ -31,12 +31,15 @@ export function onMortalMetamorphosed(
   const result: TriggeredResult = { etherChanges: [], drawCards: [] };
 
   // VEN-03 (Fontaine intarissable): +1 ether when any mortal is metamorphosed
-  const ven03 = findActiveEffect(players, 'VEN-03');
-  if (ven03) {
-    result.etherChanges.push({
-      playerIndex: ven03.playerIndex, amount: 1,
-      reason: 'mortel métamorphosé', mortalName: ven03.mortalName,
-    });
+  // Does NOT trigger when VEN-03 itself is being metamorphosed (it wasn't active before)
+  if (mortalCode !== 'VEN-03') {
+    const ven03 = findActiveEffect(players, 'VEN-03');
+    if (ven03) {
+      result.etherChanges.push({
+        playerIndex: ven03.playerIndex, amount: 1,
+        reason: 'mortel métamorphosé', mortalName: ven03.mortalName,
+      });
+    }
   }
 
   // NEP-03 (Naïade des mers): +1 ether + draw 1 when a vegetal mortal is metamorphosed
