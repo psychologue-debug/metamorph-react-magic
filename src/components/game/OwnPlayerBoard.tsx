@@ -41,7 +41,7 @@ const OwnPlayerBoard = ({
       {/* Player info header */}
       <div className="flex items-center gap-3 p-3 border-b shrink-0" style={{ borderColor: 'hsl(var(--border) / 0.3)' }}>
         <div
-          className="w-12 h-12 rounded-full flex items-center justify-center border-2 overflow-hidden shrink-0"
+          className="w-12 h-16 rounded-lg flex items-center justify-center border-2 overflow-hidden shrink-0"
           style={{
             borderColor: `hsl(${divinity.color})`,
             background: `linear-gradient(135deg, hsl(${divinity.color} / 0.2), hsl(var(--card)))`,
