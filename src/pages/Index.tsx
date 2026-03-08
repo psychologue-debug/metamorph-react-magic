@@ -8,17 +8,21 @@ import ActionBar from '@/components/game/ActionBar';
 import GameLog from '@/components/game/GameLog';
 import VictoryModal from '@/components/game/VictoryModal';
 import DiscardModal from '@/components/game/DiscardModal';
-// ReactionDialog removed — reactions are now placed face down directly
 import GodSelectionScreen from '@/components/game/GodSelectionScreen';
 import TargetingModal from '@/components/game/TargetingModal';
 import ReactionWindow from '@/components/game/ReactionWindow';
-import { DivinityId } from '@/types/game';
-import { motion } from 'framer-motion';
-import { Scroll, Plus, LogIn } from 'lucide-react';
+import MortalTooltip from '@/components/game/MortalTooltip';
+import { DivinityId, Mortal, Player as PlayerType, GameState as GameStateType, DIVINITIES as DIV } from '@/types/game';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Scroll, Plus, LogIn, ScrollText, RefreshCw } from 'lucide-react';
+import EtherCounter from '@/components/game/EtherCounter';
+import MortalGrid from '@/components/game/MortalGrid';
 import heroBg from '@/assets/hero-bg.jpg';
 
 const Index = () => {
   const [godSelectionCount, setGodSelectionCount] = useState<number | null>(null);
+  const [logOpen, setLogOpen] = useState(false);
+  const [hoveredEnemyMortal, setHoveredEnemyMortal] = useState<{ mortal: Mortal; owner: PlayerType } | null>(null);
 
   const {
     gameState,
@@ -86,7 +90,7 @@ const Index = () => {
     pendingEffect.type === 'pay_multiple_enemy_discard'
   );
 
-  // Handle auto-heal-all (MIN-09 second metamorphosis)
+  // Handle auto-heal-all
   useEffect(() => {
     if (!pendingEffect || pendingEffect.type !== 'mortal_heal') return;
     if (!('autoHealAll' in pendingEffect) || !(pendingEffect as any).autoHealAll) return;
@@ -105,7 +109,7 @@ const Index = () => {
     });
   }, [pendingEffect, gameState, cancelEffect, healAllOwnMortals]);
 
-  // Show targeting toast when mortal targeting is active
+  // Show targeting toast
   useEffect(() => {
     if (!isMortalTargeting || !pendingEffect) return;
     if ('autoHealAll' in pendingEffect && (pendingEffect as any).autoHealAll) return;
@@ -224,12 +228,18 @@ const Index = () => {
   const opponents = gameState.players
     .map((player, index) => ({ player, index }))
     .filter(({ index }) => index !== currentPlayerIndex);
-  const activeEnemy = !isOwnTurn
-    ? opponents.find(({ index }) => index === gameState.activePlayerIndex)
-    : null;
-  const otherEnemies = activeEnemy
+  const activeEnemy = opponents.find(({ index }) => index === gameState.activePlayerIndex) || null;
+  const inactiveEnemies = activeEnemy
     ? opponents.filter(({ index }) => index !== gameState.activePlayerIndex)
     : opponents;
+
+  const handleEnemyMortalHover = (mortal: Mortal | null, owner: PlayerType) => {
+    if (mortal) {
+      setHoveredEnemyMortal({ mortal, owner });
+    } else {
+      setHoveredEnemyMortal(null);
+    }
+  };
 
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden">
@@ -243,6 +253,17 @@ const Index = () => {
             <Scroll className="w-5 h-5 text-ether" />
             <h1 className="font-display text-lg font-bold text-foreground tracking-wider">MÉTAMORPHOSES</h1>
           </div>
+
+          {/* Chroniques button */}
+          <button
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-display font-semibold transition-colors ${logOpen ? 'bg-ether/20 text-ether' : 'text-muted-foreground hover:text-foreground'}`}
+            onMouseEnter={() => setLogOpen(true)}
+            onMouseLeave={() => setLogOpen(false)}
+          >
+            <ScrollText className="w-4 h-4" />
+            Chroniques
+          </button>
+
           <CentralZone gameState={gameState} />
         </div>
         <div className="flex items-center gap-4">
@@ -265,7 +286,7 @@ const Index = () => {
       <div className="flex-1 flex min-h-0">
         {/* LEFT: Own board */}
         <div
-          className="w-1/2 flex flex-col border-r"
+          className="w-1/2 flex flex-col border-r overflow-hidden"
           style={{
             borderColor: 'hsl(var(--border) / 0.3)',
             background: 'linear-gradient(180deg, hsl(40 15% 92% / 0.08) 0%, hsl(var(--background)) 100%)',
@@ -295,56 +316,70 @@ const Index = () => {
         </div>
 
         {/* RIGHT: Opponents */}
-        <div className="w-1/2 flex flex-col min-h-0 relative">
-          <GameLog entries={gameState.log} />
+        <div
+          className="w-1/2 flex flex-col min-h-0 overflow-hidden relative"
+          onMouseLeave={() => setLogOpen(false)}
+        >
+          {/* GameLog panel — anchored below header on the right */}
+          <div onMouseEnter={() => setLogOpen(true)} onMouseLeave={() => setLogOpen(false)}>
+            <GameLog entries={gameState.log} open={logOpen} />
+          </div>
 
-          {isOwnTurn || !activeEnemy ? (
-            /* Our turn: all enemies share space equally */
-            <div className="flex-1 flex flex-wrap gap-2 p-2 overflow-auto content-start">
-              {opponents.map(({ player, index: playerIndex }) => (
-                <PlayerPanel
+          {/* Active enemy — fills the main area */}
+          {activeEnemy && (
+            <div className="flex-1 p-2 overflow-hidden">
+              <PlayerPanel
+                key={activeEnemy.player.id}
+                player={activeEnemy.player}
+                gameState={gameState}
+                isActive={true}
+                index={activeEnemy.index}
+                compact={false}
+                onMortalClick={isMortalTargeting ? (mortalId: string) => handleTargetMortalClick(activeEnemy.player.id, mortalId) : undefined}
+                onMortalHover={(m) => handleEnemyMortalHover(m, activeEnemy.player)}
+              />
+            </div>
+          )}
+
+          {/* Inactive enemies — fixed height mini panels at bottom */}
+          {inactiveEnemies.length > 0 && (
+            <div
+              className="flex gap-1.5 px-2 py-1.5 border-t shrink-0 overflow-hidden"
+              style={{
+                borderColor: 'hsl(var(--border) / 0.3)',
+                height: activeEnemy ? '110px' : undefined,
+                flex: activeEnemy ? undefined : '1',
+                flexWrap: 'wrap',
+                alignContent: activeEnemy ? 'center' : 'start',
+                paddingTop: activeEnemy ? undefined : '8px',
+              }}
+            >
+              {inactiveEnemies.map(({ player, index: playerIndex }) => (
+                <OpponentMini
                   key={player.id}
                   player={player}
                   gameState={gameState}
-                  isActive={playerIndex === gameState.activePlayerIndex}
-                  index={playerIndex}
-                  compact={opponents.length >= 3}
+                  playerIndex={playerIndex}
                   onMortalClick={isMortalTargeting ? (mortalId: string) => handleTargetMortalClick(player.id, mortalId) : undefined}
+                  onMortalHover={(m) => handleEnemyMortalHover(m, player)}
+                  fillSpace={!activeEnemy}
                 />
               ))}
             </div>
-          ) : (
-            /* Enemy turn: active enemy expanded + others compact at bottom */
-            <div className="flex-1 flex flex-col min-h-0">
-              {/* Active enemy — expanded */}
-              <div className="flex-1 p-2 overflow-auto">
-                <PlayerPanel
-                  key={activeEnemy.player.id}
-                  player={activeEnemy.player}
+          )}
+
+          {/* Fixed enemy tooltip zone — bottom-right of right panel */}
+          <AnimatePresence>
+            {hoveredEnemyMortal && (
+              <div className="absolute bottom-28 right-2 z-[99999] pointer-events-none">
+                <MortalTooltip
+                  mortal={hoveredEnemyMortal.mortal}
+                  owner={hoveredEnemyMortal.owner}
                   gameState={gameState}
-                  isActive={true}
-                  index={activeEnemy.index}
-                  compact={false}
-                  onMortalClick={isMortalTargeting ? (mortalId: string) => handleTargetMortalClick(activeEnemy.player.id, mortalId) : undefined}
                 />
               </div>
-
-              {/* Other enemies — compact at bottom */}
-              {otherEnemies.length > 0 && (
-                <div className="flex flex-wrap gap-2 p-2 border-t shrink-0" style={{ borderColor: 'hsl(var(--border) / 0.3)' }}>
-                  {otherEnemies.map(({ player, index: playerIndex }) => (
-                    <OpponentMini
-                      key={player.id}
-                      player={player}
-                      gameState={gameState}
-                      playerIndex={playerIndex}
-                      onMortalClick={isMortalTargeting ? (mortalId: string) => handleTargetMortalClick(player.id, mortalId) : undefined}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
@@ -360,8 +395,6 @@ const Index = () => {
           onCancel={cancelDiscard}
         />
       )}
-
-      {/* Reaction dialog removed — reactions auto-place face down */}
 
       {/* Choice panel */}
       {pendingEffect && pendingEffect.type === 'choice' && pendingEffect.choices && (
@@ -418,91 +451,65 @@ const Index = () => {
   );
 };
 
-// === Compact opponent mini-panel (expandable on hover) ===
-import { Player as PlayerType, GameState as GameStateType, DIVINITIES as DIV } from '@/types/game';
-import EtherCounter from '@/components/game/EtherCounter';
-import MortalGrid from '@/components/game/MortalGrid';
-import { RefreshCw, Shield } from 'lucide-react';
-
+// === Compact opponent mini-panel ===
 function OpponentMini({
   player,
   gameState,
   playerIndex,
   onMortalClick,
+  onMortalHover,
+  fillSpace,
 }: {
   player: PlayerType;
   gameState: GameStateType;
   playerIndex: number;
   onMortalClick?: (mortalId: string) => void;
+  onMortalHover?: (mortal: Mortal | null) => void;
+  fillSpace?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
   const divinity = DIV[player.divinity];
 
   return (
-    <motion.div
-      className="relative rounded-lg overflow-hidden border border-border/30 transition-all"
+    <div
+      className="rounded-lg border border-border/30 overflow-hidden flex flex-col"
       style={{
         background: `linear-gradient(135deg, hsl(var(--card) / 0.95), hsl(var(--secondary) / 0.9))`,
-        flex: expanded ? '1 1 100%' : '1 1 30%',
-        minWidth: expanded ? '100%' : '140px',
-        maxWidth: expanded ? '100%' : '200px',
+        width: fillSpace ? undefined : '150px',
+        height: fillSpace ? undefined : '100px',
+        flex: fillSpace ? '1 1 200px' : '0 0 150px',
+        maxWidth: fillSpace ? '300px' : '150px',
       }}
-      onMouseEnter={() => setExpanded(true)}
-      onMouseLeave={() => setExpanded(false)}
-      layout
     >
-      {/* Compact view */}
-      <div className="flex items-center gap-2 p-2">
+      {/* Compact header */}
+      <div className="flex items-center gap-1.5 px-2 py-1 shrink-0">
         <div
-          className="w-6 h-6 rounded-full overflow-hidden border shrink-0"
+          className="w-5 h-5 rounded-full overflow-hidden border shrink-0"
           style={{ borderColor: `hsl(${divinity.color})` }}
         >
           {divinity.image ? (
             <img src={divinity.image} alt={divinity.name} className="w-full h-full object-cover" />
           ) : (
-            <span className="text-xs font-bold">{player.avatar}</span>
+            <span className="text-[10px] font-bold">{player.avatar}</span>
           )}
         </div>
-        <span className="font-display text-sm font-bold text-foreground truncate">{player.name}</span>
-        <span className="text-xs text-ether font-bold ml-auto">{player.ether}⚡</span>
-        <span className="text-xs text-muted-foreground">{player.metamorphosedCount}/10</span>
+        <span className="font-display text-xs font-bold text-foreground truncate flex-1">{player.name}</span>
+        <span className="text-[10px] text-ether font-bold">{player.ether}⚡</span>
+        <span className="text-[10px] text-muted-foreground">{player.metamorphosedCount}/10</span>
       </div>
 
-      {/* Expanded view */}
-      {expanded && (
-        <motion.div
-          className="p-2 pt-0"
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          exit={{ opacity: 0, height: 0 }}
-        >
-          <div className="flex items-center gap-2 mb-2 text-xs">
-            <div className="flex items-center gap-1">
-              {[0, 1].map((slot) => (
-                <div
-                  key={slot}
-                  className="w-4 h-6 rounded-sm border"
-                  style={
-                    slot < player.reactions.length
-                      ? { background: 'linear-gradient(135deg, hsl(var(--reaction)), hsl(var(--reaction) / 0.7))', border: '1px solid hsl(var(--reaction) / 0.8)' }
-                      : { background: 'hsl(var(--secondary) / 0.4)', border: '1px dashed hsl(var(--reaction) / 0.3)' }
-                  }
-                />
-              ))}
-            </div>
-            <span className="text-muted-foreground">{player.hand.length} cartes</span>
-          </div>
-          <MortalGrid
-            mortals={player.mortals}
-            owner={player}
-            gameState={gameState}
-            tokenSize={48}
-            targetingMode={!!onMortalClick}
-            onMortalClick={onMortalClick}
-          />
-        </motion.div>
-      )}
-    </motion.div>
+      {/* Tiny mortals grid */}
+      <div className="flex-1 flex flex-wrap gap-0.5 px-1.5 pb-1 items-center justify-center overflow-hidden">
+        <MortalGrid
+          mortals={player.mortals}
+          owner={player}
+          gameState={gameState}
+          tokenSize={fillSpace ? 32 : 24}
+          targetingMode={!!onMortalClick}
+          onMortalClick={onMortalClick}
+          onMortalHover={onMortalHover}
+        />
+      </div>
+    </div>
   );
 }
 
