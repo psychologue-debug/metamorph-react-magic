@@ -60,21 +60,24 @@ function MortalToken({
 
   return (
     <div className="relative">
+      {selectable && (
+        <motion.div
+          className="absolute inset-[-3px] rounded-full pointer-events-none"
+          animate={{ boxShadow: ['0 0 0px hsl(270 50% 55% / 0)', '0 0 18px hsl(270 50% 55% / 0.6)', '0 0 0px hsl(270 50% 55% / 0)'] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+        />
+      )}
       <motion.div
         className={`mortal-token
           rounded-full relative cursor-pointer transition-all duration-300 overflow-hidden
-          ${mortal.isMetamorphosed ? 'ring-2 ring-ether/60' : 'ring-1 ring-border/40'}
+          ${!haloStyle && mortal.isMetamorphosed ? 'ring-2 ring-ether/60' : !mortal.isMetamorphosed ? 'ring-1 ring-border/40' : ''}
           ${isRetired ? 'grayscale opacity-40 pointer-events-none' : ''}
           ${isIncapacitated && !isRetired ? 'grayscale opacity-60' : ''}
-          ${selectable ? 'ring-2 ring-divine/70 cursor-pointer' : ''}
         `}
-        style={{ width: size, height: size }}
+        style={{ width: size, height: size, ...(haloStyle ? { boxShadow: haloStyle.boxShadow } : {}) }}
         initial={{ opacity: 0, scale: 0.8 }}
-        animate={{
-          opacity: 1, scale: 1,
-          ...(selectable ? { boxShadow: ['0 0 0px hsl(270 50% 55% / 0)', '0 0 16px hsl(270 50% 55% / 0.5)', '0 0 0px hsl(270 50% 55% / 0)'] } : {}),
-        }}
-        transition={selectable ? { boxShadow: { duration: 1.5, repeat: Infinity } } : { delay: index * 0.03 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: index * 0.03 }}
         whileHover={{ scale: 1.1, zIndex: 10 }}
         onClick={() => onClick?.(mortal.id)}
         onMouseEnter={() => onHover?.(mortal)}
@@ -89,15 +92,6 @@ function MortalToken({
               {mortal.isMetamorphosed ? mortal.etherProduction : mortal.nameRecto.charAt(0)}
             </span>
           </div>
-        )}
-
-        {/* Effect-type halo */}
-        {haloStyle && !isIncapacitated && !isRetired && (
-          <motion.div className="absolute -inset-2 rounded-full pointer-events-none"
-            style={{ background: haloStyle.gradient, boxShadow: haloStyle.boxShadow }}
-            animate={{ opacity: [0.5, 1, 0.5], scale: [1, 1.06, 1] }}
-            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-          />
         )}
 
         {isRetired && (
