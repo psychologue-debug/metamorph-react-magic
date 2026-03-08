@@ -28,7 +28,7 @@ const ActionBar = ({
 
   return (
     <motion.div
-      className="flex items-center gap-3 px-4 py-2 rounded-lg border border-border/50"
+      className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border/50"
       style={{
         background: `linear-gradient(90deg, hsl(var(--card) / 0.9), hsl(var(--secondary) / 0.7))`,
         backdropFilter: 'blur(8px)',
@@ -37,13 +37,14 @@ const ActionBar = ({
       animate={{ opacity: 1, y: 0 }}
     >
       {isSleeping && (
-        <div className="flex items-center gap-2 px-4 py-2 rounded-lg text-base font-display font-bold" style={{ background: 'hsl(260 40% 20%)', color: 'hsl(260 70% 80%)', border: '1px solid hsl(260 50% 40%)' }}>
-          💤 Tour sauté (Sommeil)
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-display font-bold" style={{ background: 'hsl(260 40% 20%)', color: 'hsl(260 70% 80%)', border: '1px solid hsl(260 50% 40%)' }}>
+          💤 Tour sauté
         </div>
       )}
 
+      {/* All action buttons share: h-9 px-4 rounded-lg text-sm font-display font-semibold */}
       <motion.button
-        className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-base font-display font-semibold transition-all ${
+        className={`flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-display font-semibold transition-all ${
           isMetaMode ? 'ring-2 ring-ether' : ''
         } ${isSleeping ? 'opacity-30 pointer-events-none' : ''}`}
         style={{
@@ -56,12 +57,12 @@ const ActionBar = ({
         whileTap={isSleeping ? {} : { scale: 0.95 }}
         onClick={isSleeping ? undefined : onToggleMetamorphose}
       >
-        {isMetaMode ? <X className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
+        {isMetaMode ? <X className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
         {isMetaMode ? 'Annuler' : 'Métamorphoser'}
       </motion.button>
 
       <motion.button
-        className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-base font-display font-semibold border border-divine/30 text-foreground transition-all ${
+        className={`flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-display font-semibold border border-divine/30 text-foreground transition-all ${
           isSpellMode ? 'ring-2 ring-divine' : ''
         } ${isSleeping ? 'opacity-30 pointer-events-none' : ''}`}
         style={{ background: isSpellMode ? 'hsl(var(--divine) / 0.2)' : 'hsl(var(--divine) / 0.1)' }}
@@ -69,12 +70,12 @@ const ActionBar = ({
         whileTap={isSleeping ? {} : { scale: 0.95 }}
         onClick={isSleeping ? undefined : onToggleSpell}
       >
-        {isSpellMode ? <X className="w-5 h-5 text-divine" /> : <Hand className="w-5 h-5 text-divine" />}
+        {isSpellMode ? <X className="w-4 h-4 text-divine" /> : <Hand className="w-4 h-4 text-divine" />}
         {isSpellMode ? 'Annuler' : 'Jouer un Sort'}
       </motion.button>
 
       <motion.button
-        className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-base font-display font-semibold border border-amber-500/30 text-foreground transition-all ${
+        className={`flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-display font-semibold border border-amber-500/30 text-foreground transition-all ${
           isActivateMode ? 'ring-2 ring-amber-500' : ''
         } ${isSleeping ? 'opacity-30 pointer-events-none' : ''}`}
         style={{ background: isActivateMode ? 'hsl(30 60% 20% / 0.4)' : 'hsl(30 60% 20% / 0.15)' }}
@@ -82,20 +83,20 @@ const ActionBar = ({
         whileTap={isSleeping ? {} : { scale: 0.95 }}
         onClick={isSleeping ? undefined : onToggleActivate}
       >
-        {isActivateMode ? <X className="w-5 h-5 text-amber-400" /> : <Flame className="w-5 h-5 text-amber-400" />}
+        {isActivateMode ? <X className="w-4 h-4 text-amber-400" /> : <Flame className="w-4 h-4 text-amber-400" />}
         {isActivateMode ? 'Annuler' : 'Activer un Effet'}
       </motion.button>
 
       <div className="flex-1" />
 
       <motion.button
-        className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-base font-display font-semibold text-foreground transition-all border border-border/50"
+        className="flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-display font-semibold text-foreground transition-all border border-border/50"
         style={{ background: 'hsl(var(--muted))' }}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={onEndTurn}
       >
-        <SkipForward className="w-5 h-5" />
+        <SkipForward className="w-4 h-4" />
         Fin du Tour
       </motion.button>
     </motion.div>
