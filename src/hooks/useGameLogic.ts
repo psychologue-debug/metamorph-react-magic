@@ -29,6 +29,7 @@ export function useGameLogic() {
   const metamorphoseReactionInfoRef = useRef<{ trigger: ReactionTrigger; reactors: string[] } | null>(null);
   const savedMortalSnapshotRef = useRef<{ mortal: Mortal; playerId: string } | null>(null);
   const prevGameStateRef = useRef<GameState | null>(null);
+  const targetingLockRef = useRef(false);
   const [metamorphoseEffectUndo, setMetamorphoseEffectUndo] = useState<{
     playerId: string;
     mortalId: string;
