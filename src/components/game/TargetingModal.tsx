@@ -19,6 +19,9 @@ interface TargetingModalProps {
   onSelectGod?: (targetPlayerId: string) => void;
   onPlaySpellAtDiscount?: (cardId: string) => void;
   onPayMultipleEnemyDiscard?: (multiplier: number) => void;
+  onStealCard?: (targetPlayerId: string, cardId: string) => void;
+  onMetamorphoseExtra?: (mortalId: string) => void;
+  onMoveIncapacitations?: (moves: { fromMortalId: string; toMortalId: string; fromPlayerId: string; toPlayerId: string }[]) => void;
 }
 
 export interface TargetingResult {
