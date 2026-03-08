@@ -14,7 +14,7 @@ import ReactionWindow from '@/components/game/ReactionWindow';
 import MortalTooltip from '@/components/game/MortalTooltip';
 import { DivinityId, Mortal, Player as PlayerType, GameState as GameStateType, DIVINITIES as DIV } from '@/types/game';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, LogIn, ScrollText, RefreshCw } from 'lucide-react';
+import { Scroll, Plus, LogIn, ScrollText, RefreshCw } from 'lucide-react';
 import EtherCounter from '@/components/game/EtherCounter';
 import MortalGrid from '@/components/game/MortalGrid';
 import heroBg from '@/assets/hero-bg.jpg';
