@@ -2017,7 +2017,7 @@ export function useGameLogic() {
     toast.info('Le sort est joué à coût réduit. Ses effets doivent être résolus manuellement si nécessaire.');
   }, [pendingEffect]);
 
-  // === CER-05 (Monstre de Gila): Pay multiple of 3, enemies discard ===
+  // === CER-05 (Monstre de Gila): Pay multiple of 3, enemies discard (hand + reactions) ===
   const resolvePayMultipleEnemyDiscard = useCallback((multiplier: number) => {
     if (!pendingEffect) return;
     const cost = multiplier * 3;
@@ -2030,13 +2030,21 @@ export function useGameLogic() {
       const allDiscarded: SpellCard[] = [];
       const updatedPlayers = prev.players.map((p, i) => {
         if (i === pi) return { ...p, ether: p.ether - cost };
-        // Each enemy discards 'multiplier' cards from hand
-        const discardCount = Math.min(multiplier, p.hand.length);
-        const discarded = p.hand.slice(-discardCount);
+        // Each enemy discards 'multiplier' cards from hand + reactions combined
+        const totalCards = [...p.hand, ...p.reactions];
+        const discardCount = Math.min(multiplier, totalCards.length);
+        // Discard from hand first, then reactions
+        let remaining = discardCount;
+        const discardedFromHand = p.hand.slice(-Math.min(remaining, p.hand.length));
+        remaining -= discardedFromHand.length;
+        const discardedFromReactions = remaining > 0 ? p.reactions.slice(-remaining) : [];
+        const discarded = [...discardedFromHand, ...discardedFromReactions];
         allDiscarded.push(...discarded);
+        const discardedIds = new Set(discarded.map(c => c.id));
         return {
           ...p,
-          hand: discardCount > 0 ? p.hand.slice(0, -discardCount) : p.hand,
+          hand: p.hand.filter(c => !discardedIds.has(c.id)),
+          reactions: p.reactions.filter(c => !discardedIds.has(c.id)),
         };
       });
 
@@ -2049,7 +2057,7 @@ export function useGameLogic() {
           timestamp: Date.now(),
           playerName: player.name,
           action: pendingEffect.sourceMortalName,
-          detail: `a payé ${cost} Éther — chaque ennemi défausse ${multiplier} carte(s)`,
+          detail: `a payé ${cost} Éther — chaque ennemi défausse ${multiplier} carte(s) (main + réactions)`,
         }, ...prev.log],
       };
     });
