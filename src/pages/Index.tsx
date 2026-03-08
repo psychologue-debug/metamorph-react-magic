@@ -441,6 +441,9 @@ const Index = () => {
           onSelectGod={resolveSelectGod}
           onPlaySpellAtDiscount={resolvePlaySpellAtDiscount}
           onPayMultipleEnemyDiscard={resolvePayMultipleEnemyDiscard}
+          onStealCard={resolveStealCard}
+          onMetamorphoseExtra={resolveMetamorphoseExtra}
+          onMoveIncapacitations={resolveMoveIncapacitations}
         />
       )}
 
