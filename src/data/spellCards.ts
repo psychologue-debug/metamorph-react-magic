@@ -33,7 +33,7 @@ export const SPELL_TEMPLATES: SpellTemplate[] = [
   {
     name: 'Règne',
     type: 'sortilege',
-    quantity: 4,
+    quantity: 6,
     cost: 2,
     targets: '',
     effect: 'Jusqu\'à la fin de votre tour, aucune réaction ne peut être jouée',

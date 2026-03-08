@@ -504,6 +504,7 @@ function OpponentMini({
           )}
         </div>
         <span className="font-display text-xs font-bold text-foreground truncate flex-1">{player.name}</span>
+        <span className="text-[10px] font-display text-muted-foreground">{player.metamorphosedCount}/10</span>
         <EtherCounter amount={player.ether} size="sm" />
         {/* Reaction slots */}
         <div className="flex items-center gap-0.5 relative">

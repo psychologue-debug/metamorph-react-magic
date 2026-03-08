@@ -451,8 +451,8 @@ function EtherDestroyContent({
           {enemies.map(enemy => (
             <div key={enemy.id} className="flex items-center gap-4 p-3 rounded-lg" style={{ background: 'hsl(var(--secondary) / 0.5)' }}>
               <div className="flex-1">
-                <span className="font-display font-semibold text-foreground">{enemy.name}</span>
-                <span className="text-muted-foreground ml-2">({enemy.ether} Éther)</span>
+              <span className="font-display font-semibold text-foreground">{enemy.name}</span>
+                <span className="text-muted-foreground ml-2">({enemy.ether} Éther — {enemy.metamorphosedCount}/10)</span>
               </div>
               <div className="flex items-center gap-2">
                 <motion.button
