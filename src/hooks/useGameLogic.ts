@@ -30,6 +30,8 @@ export function useGameLogic() {
   const savedMortalSnapshotRef = useRef<{ mortal: Mortal; playerId: string } | null>(null);
   const prevGameStateRef = useRef<GameState | null>(null);
   const targetingLockRef = useRef(false);
+  const pendingEffectRef = useRef<PendingEffect | null>(null);
+  const targetsConsumedRef = useRef(0);
   const [metamorphoseEffectUndo, setMetamorphoseEffectUndo] = useState<{
     playerId: string;
     mortalId: string;
@@ -269,9 +271,11 @@ export function useGameLogic() {
     }
   }, [discardRequired, handleEndTurn]);
 
-  // Reset targeting lock when pendingEffect changes
+  // Sync pendingEffect ref and reset targeting counters when pendingEffect changes
   useEffect(() => {
+    pendingEffectRef.current = pendingEffect;
     targetingLockRef.current = false;
+    targetsConsumedRef.current = 0;
   }, [pendingEffect]);
 
   // === Sommeil auto-skip: when active player has skipNextTurn, auto-end after delay ===
@@ -1193,20 +1197,27 @@ export function useGameLogic() {
 
   /** Handle mortal targeting clicks from the board (bubble mode) */
   const handleTargetMortalClick = useCallback((playerId: string, mortalId: string) => {
-    if (!pendingEffect) return;
+    // Use ref to always read the LATEST pendingEffect (avoids stale closure)
+    const currentEffect = pendingEffectRef.current;
+    if (!currentEffect) return;
     if (targetingLockRef.current) return;
-    const isIncapacitate = pendingEffect.type === 'enemy_mortal_incapacitate';
-    const isRemove = pendingEffect.type === 'enemy_mortal_remove';
-    const isHeal = pendingEffect.type === 'mortal_heal';
-    const isRetroOwn = pendingEffect.type === 'retro_own_mortal';
-    const isRetroEnemy = pendingEffect.type === 'retro_enemy_mortal';
+    
+    // Check if we've already consumed all allowed targets for this effect
+    const maxAllowed = currentEffect.maxTargets || 1;
+    if (targetsConsumedRef.current >= maxAllowed) return;
+    
+    const isIncapacitate = currentEffect.type === 'enemy_mortal_incapacitate';
+    const isRemove = currentEffect.type === 'enemy_mortal_remove';
+    const isHeal = currentEffect.type === 'mortal_heal';
+    const isRetroOwn = currentEffect.type === 'retro_own_mortal';
+    const isRetroEnemy = currentEffect.type === 'retro_enemy_mortal';
     if (!isIncapacitate && !isRemove && !isHeal && !isRetroOwn && !isRetroEnemy) return;
 
     // Track whether the click was valid so we only clear pendingEffect on success
     let targetValid = false;
 
     setGameState((prev) => {
-      if (!prev || !pendingEffect) return prev;
+      if (!prev || !currentEffect) return prev;
       const targetPlayer = prev.players.find(p => p.id === playerId);
       if (!targetPlayer) return prev;
       const mortal = targetPlayer.mortals.find(m => m.id === mortalId);
@@ -1220,16 +1231,15 @@ export function useGameLogic() {
           });
           return prev;
         }
-        // Check etherCostToActivate for heal (CER-07)
-        if (pendingEffect.etherCostToActivate) {
-          const src = prev.players[pendingEffect.sourcePlayerIndex];
-          if (src.ether < pendingEffect.etherCostToActivate) {
-            toast.error(`Pas assez d'Éther (${pendingEffect.etherCostToActivate} requis)`);
+        if (currentEffect.etherCostToActivate) {
+          const src = prev.players[currentEffect.sourcePlayerIndex];
+          if (src.ether < currentEffect.etherCostToActivate) {
+            toast.error(`Pas assez d'Éther (${currentEffect.etherCostToActivate} requis)`);
             return prev;
           }
         }
       } else if (isRetroOwn) {
-        const sourcePlayerId = prev.players[pendingEffect.sourcePlayerIndex]?.id;
+        const sourcePlayerId = prev.players[currentEffect.sourcePlayerIndex]?.id;
         if (playerId !== sourcePlayerId) {
           toast.error('Vous devez cibler un de vos propres mortels', {
             style: { background: 'hsl(0 70% 20%)', border: '1px solid hsl(0 70% 40%)', color: 'white', fontSize: '16px' },
@@ -1242,15 +1252,14 @@ export function useGameLogic() {
           });
           return prev;
         }
-        // Check filterType (e.g. 'animal' for APO-06)
-        if (pendingEffect.filterType && mortal.type !== pendingEffect.filterType) {
-          toast.error(`Ce mortel n'est pas de type ${pendingEffect.filterType}`, {
+        if (currentEffect.filterType && mortal.type !== currentEffect.filterType) {
+          toast.error(`Ce mortel n'est pas de type ${currentEffect.filterType}`, {
             style: { background: 'hsl(0 70% 20%)', border: '1px solid hsl(0 70% 40%)', color: 'white', fontSize: '16px' },
           });
           return prev;
         }
       } else if (isRetroEnemy) {
-        const sourcePlayerId = prev.players[pendingEffect.sourcePlayerIndex]?.id;
+        const sourcePlayerId = prev.players[currentEffect.sourcePlayerIndex]?.id;
         if (playerId === sourcePlayerId) {
           toast.error('Vous devez cibler un mortel ennemi', {
             style: { background: 'hsl(0 70% 20%)', border: '1px solid hsl(0 70% 40%)', color: 'white', fontSize: '16px' },
@@ -1277,7 +1286,6 @@ export function useGameLogic() {
           return prev;
         }
       } else if (isIncapacitate) {
-        // Guard against double-click: if already incapacitated, reject
         if (mortal.status === 'incapacite') {
           toast.error('Ce mortel est déjà incapacité');
           return prev;
@@ -1292,11 +1300,20 @@ export function useGameLogic() {
 
       // Valid target — apply effect
       targetValid = true;
+      // IMMEDIATELY increment consumed counter and lock to prevent any further clicks
+      targetsConsumedRef.current += 1;
+      const newConsumed = targetsConsumedRef.current;
+      const effectMaxTargets = currentEffect.maxTargets || 1;
+      // If we've consumed all targets, lock immediately
+      if (newConsumed >= effectMaxTargets) {
+        targetingLockRef.current = true;
+      }
+      
       // Save snapshot for potential Compassion/Parade undo
       if (isIncapacitate || isRemove || isRetroEnemy) {
         savedMortalSnapshotRef.current = { mortal: { ...mortal }, playerId };
       }
-      const sourcePlayer = prev.players[pendingEffect.sourcePlayerIndex];
+      const sourcePlayer = prev.players[currentEffect.sourcePlayerIndex];
 
       let newStatus: 'incapacite' | 'retired' | 'normal';
       let actionLabel: string;
@@ -1307,8 +1324,6 @@ export function useGameLogic() {
         actionLabel = 'Guérison';
         actionDetail = `a levé l'incapacité de ${mortal.nameVerso || mortal.nameRecto} de ${targetPlayer.name}`;
       } else if (isRetroOwn || isRetroEnemy) {
-        // NEP-09 (Cénée): substitution — if enemy retro targets this player's mortal
-        // and Cénée is active and the target isn't Cénée itself, retro Cénée instead
         let actualRetroMortalId = mortalId;
         let actualRetroPlayerId = playerId;
         if (isRetroEnemy) {
@@ -1327,7 +1342,6 @@ export function useGameLogic() {
           }
         }
 
-        // Retrometamorphosis: flip back to recto
         const retroTarget = prev.players.find(p => p.id === actualRetroPlayerId)?.mortals.find(m => m.id === actualRetroMortalId);
         let updatedPlayers = prev.players.map(p => {
           if (p.id !== actualRetroPlayerId) return p;
@@ -1344,15 +1358,13 @@ export function useGameLogic() {
         let newDiscardPile = [...prev.discardPile];
         const extraLogs: GameLogEntry[] = [];
 
-        // Handle thenGenerate (e.g. APO-06: +6 ether after retro)
-        if (pendingEffect.thenGenerate) {
+        if (currentEffect.thenGenerate) {
           updatedPlayers = updatedPlayers.map((p, i) =>
-            i === pendingEffect.sourcePlayerIndex
-              ? { ...p, ether: p.ether + pendingEffect.thenGenerate! }
+            i === currentEffect.sourcePlayerIndex
+              ? { ...p, ether: p.ether + currentEffect.thenGenerate! }
               : p
           );
-          // Trigger APO-05 (Source d'eau) for out-of-cycle ether generation
-          const oocResult = onOutOfCycleEtherGenerated(updatedPlayers, pendingEffect.sourcePlayerIndex, pendingEffect.sourceMortalCode);
+          const oocResult = onOutOfCycleEtherGenerated(updatedPlayers, currentEffect.sourcePlayerIndex, currentEffect.sourceMortalCode);
           if (oocResult.etherChanges.length > 0 || oocResult.drawCards.length > 0) {
             const oocApplied = applyTriggeredResult({ ...prev, players: updatedPlayers, deck: newDeck, discardPile: newDiscardPile }, oocResult);
             updatedPlayers = oocApplied.players;
@@ -1362,10 +1374,9 @@ export function useGameLogic() {
           }
         }
 
-        // Handle thenDraw (e.g. APO-06: draw 1 card after retro)
-        if (pendingEffect.thenDraw && pendingEffect.thenDraw > 0) {
+        if (currentEffect.thenDraw && currentEffect.thenDraw > 0) {
           const drawnCards: any[] = [];
-          for (let i = 0; i < pendingEffect.thenDraw; i++) {
+          for (let i = 0; i < currentEffect.thenDraw; i++) {
             if (newDeck.length === 0 && newDiscardPile.length > 0) {
               newDeck = [...newDiscardPile].sort(() => Math.random() - 0.5);
               newDiscardPile = [];
@@ -1375,7 +1386,7 @@ export function useGameLogic() {
           }
           if (drawnCards.length > 0) {
             updatedPlayers = updatedPlayers.map((p, i) =>
-              i === pendingEffect.sourcePlayerIndex
+              i === currentEffect.sourcePlayerIndex
                 ? { ...p, hand: [...p.hand, ...drawnCards] }
                 : p
             );
@@ -1383,7 +1394,7 @@ export function useGameLogic() {
         }
 
         const retroName = retroTarget?.nameVerso || retroTarget?.nameRecto || mortal.nameVerso || mortal.nameRecto;
-        toast.success(`${retroName} rétromorphosé !${pendingEffect.thenGenerate ? ` +${pendingEffect.thenGenerate} Éther` : ''}${pendingEffect.thenDraw ? ` +${pendingEffect.thenDraw} carte(s)` : ''}`, {
+        toast.success(`${retroName} rétromorphosé !${currentEffect.thenGenerate ? ` +${currentEffect.thenGenerate} Éther` : ''}${currentEffect.thenDraw ? ` +${currentEffect.thenDraw} carte(s)` : ''}`, {
           style: { background: 'hsl(30 50% 20%)', border: '1px solid hsl(30 60% 40%)', color: 'white', fontSize: '16px' },
         });
 
@@ -1399,7 +1410,7 @@ export function useGameLogic() {
               timestamp: Date.now(),
               playerName: sourcePlayer?.name || 'Système',
               action: 'Rétromorphose',
-              detail: `a rétromorphosé ${retroName} de ${targetPlayer.name}${pendingEffect.thenGenerate ? ` (+${pendingEffect.thenGenerate} Éther)` : ''}${pendingEffect.thenDraw ? ` (+${pendingEffect.thenDraw} carte)` : ''}`,
+              detail: `a rétromorphosé ${retroName} de ${targetPlayer.name}${currentEffect.thenGenerate ? ` (+${currentEffect.thenGenerate} Éther)` : ''}${currentEffect.thenDraw ? ` (+${currentEffect.thenDraw} carte)` : ''}`,
             },
             ...prev.log,
           ],
@@ -1409,11 +1420,10 @@ export function useGameLogic() {
         actionLabel = 'Retrait du jeu';
         actionDetail = `a retiré du jeu ${mortal.nameVerso || mortal.nameRecto} de ${targetPlayer.name}`;
       } else {
-        // Incapacitate — handle etherCostToActivate (CER-07)
-        if (pendingEffect.etherCostToActivate) {
-          const src = prev.players[pendingEffect.sourcePlayerIndex];
-          if (src.ether < pendingEffect.etherCostToActivate) {
-            toast.error(`Pas assez d'Éther (${pendingEffect.etherCostToActivate} requis)`);
+        if (currentEffect.etherCostToActivate) {
+          const src = prev.players[currentEffect.sourcePlayerIndex];
+          if (src.ether < currentEffect.etherCostToActivate) {
+            toast.error(`Pas assez d'Éther (${currentEffect.etherCostToActivate} requis)`);
             return prev;
           }
         }
@@ -1432,11 +1442,10 @@ export function useGameLogic() {
         };
       });
 
-      // Deduct etherCostToActivate if present (CER-07)
-      if (pendingEffect.etherCostToActivate) {
+      if (currentEffect.etherCostToActivate) {
         updatedPlayers = updatedPlayers.map((p, i) =>
-          i === pendingEffect.sourcePlayerIndex
-            ? { ...p, ether: p.ether - pendingEffect.etherCostToActivate! }
+          i === currentEffect.sourcePlayerIndex
+            ? { ...p, ether: p.ether - currentEffect.etherCostToActivate! }
             : p
         );
       }
@@ -1448,8 +1457,6 @@ export function useGameLogic() {
         style: { background: 'hsl(270 40% 20%)', border: '1px solid hsl(270 50% 40%)', color: 'white', fontSize: '16px' },
       });
 
-      // VEN-09 (Pins) trigger is deferred — will fire after reaction resolution
-      // or immediately below if no reaction window opens
       let finalDeck = [...prev.deck];
       let finalDiscardPile = [...prev.discardPile];
 
@@ -1473,17 +1480,16 @@ export function useGameLogic() {
 
     // Only clear pending effect if the target was valid
     if (targetValid) {
-      targetingLockRef.current = true;
       // Check if Compassion/Parade reaction window should open for hostile targeting
       const isHostileEnemyEffect = (isIncapacitate || isRemove || isRetroEnemy);
-      const srcPlayerId = gameState?.players[pendingEffect.sourcePlayerIndex]?.id;
+      const srcPlayerId = gameState?.players[currentEffect.sourcePlayerIndex]?.id;
       const isEnemyAction = srcPlayerId !== playerId;
 
       if (isHostileEnemyEffect && isEnemyAction && gameState) {
-        const triggerType = pendingEffect.fromMetamorphose ? 'mortal_effect'
-          : pendingEffect.sourceMortalCode?.startsWith('SPELL-') ? 'spell_effect'
+        const triggerType = currentEffect.fromMetamorphose ? 'mortal_effect'
+          : currentEffect.sourceMortalCode?.startsWith('SPELL-') ? 'spell_effect'
           : 'mortal_effect';
-        const baseTrigger = pendingEffect.fromMetamorphose && metamorphoseReactionInfoRef.current
+        const baseTrigger = currentEffect.fromMetamorphose && metamorphoseReactionInfoRef.current
           ? metamorphoseReactionInfoRef.current.trigger
           : { type: triggerType as any, sourcePlayerId: srcPlayerId! };
 
@@ -1504,19 +1510,19 @@ export function useGameLogic() {
               playerId: snapshot.playerId,
               mortalId: snapshot.mortal.id,
               mortalSnapshot: snapshot.mortal,
-              effectType: pendingEffect.type,
+              effectType: currentEffect.type,
             });
           }
           const targetPlayer = gameState.players.find(p => p.id === playerId);
           const targetMortal = targetPlayer?.mortals.find(m => m.id === mortalId);
-          const actionLabel = pendingEffect.type === 'enemy_mortal_remove' ? 'retirer du jeu'
-            : pendingEffect.type === 'mortal_heal' ? 'lever l\'incapacité de'
-            : pendingEffect.type === 'retro_own_mortal' || pendingEffect.type === 'retro_enemy_mortal' ? 'rétromorphoser'
+          const actionLabel = currentEffect.type === 'enemy_mortal_remove' ? 'retirer du jeu'
+            : currentEffect.type === 'mortal_heal' ? 'lever l\'incapacité de'
+            : currentEffect.type === 'retro_own_mortal' || currentEffect.type === 'retro_enemy_mortal' ? 'rétromorphoser'
             : 'incapaciter';
           setReactionWindow({
             trigger: {
               ...trigger,
-              effectDescription: `${pendingEffect.sourceMortalName} va ${actionLabel} ${targetMortal?.nameVerso || targetMortal?.nameRecto || 'un mortel'} de ${targetPlayer?.name || 'un joueur'}`,
+              effectDescription: `${currentEffect.sourceMortalName} va ${actionLabel} ${targetMortal?.nameVerso || targetMortal?.nameRecto || 'un mortel'} de ${targetPlayer?.name || 'un joueur'}`,
             },
             reactorQueue: reactors,
             currentReactorIndex: 0,
@@ -1524,6 +1530,9 @@ export function useGameLogic() {
             responses: [],
             timerStartedAt: Date.now(),
           });
+          // Lock and clear immediately
+          targetingLockRef.current = true;
+          pendingEffectRef.current = null;
           setPendingEffect(null);
           return;
         }
@@ -1549,12 +1558,19 @@ export function useGameLogic() {
       }
 
       // Support multi-target: decrement maxTargets
-      if (pendingEffect.maxTargets && pendingEffect.maxTargets > 1) {
+      const effectMaxTargets = currentEffect.maxTargets || 1;
+      if (effectMaxTargets > 1 && targetsConsumedRef.current < effectMaxTargets) {
+        // Still more targets allowed — update the effect with decremented maxTargets
         setPendingEffect(prev => prev ? { ...prev, maxTargets: prev.maxTargets - 1, optional: true } : null);
-      } else if (pendingEffect.thenEffect) {
-        // Chain to next effect
-        setPendingEffect(pendingEffect.thenEffect);
+      } else if (targetsConsumedRef.current >= effectMaxTargets && currentEffect.thenEffect) {
+        // All targets consumed, chain to next effect
+        targetingLockRef.current = false;
+        pendingEffectRef.current = currentEffect.thenEffect;
+        setPendingEffect(currentEffect.thenEffect);
       } else {
+        // All targets consumed, no chain — clear
+        targetingLockRef.current = true;
+        pendingEffectRef.current = null;
         setPendingEffect(null);
       }
     }
