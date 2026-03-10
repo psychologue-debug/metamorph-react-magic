@@ -271,9 +271,11 @@ export function useGameLogic() {
     }
   }, [discardRequired, handleEndTurn]);
 
-  // Reset targeting lock when pendingEffect changes
+  // Sync pendingEffect ref and reset targeting counters when pendingEffect changes
   useEffect(() => {
+    pendingEffectRef.current = pendingEffect;
     targetingLockRef.current = false;
+    targetsConsumedRef.current = 0;
   }, [pendingEffect]);
 
   // === Sommeil auto-skip: when active player has skipNextTurn, auto-end after delay ===
