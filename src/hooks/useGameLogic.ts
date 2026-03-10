@@ -1197,13 +1197,20 @@ export function useGameLogic() {
 
   /** Handle mortal targeting clicks from the board (bubble mode) */
   const handleTargetMortalClick = useCallback((playerId: string, mortalId: string) => {
-    if (!pendingEffect) return;
+    // Use ref to always read the LATEST pendingEffect (avoids stale closure)
+    const currentEffect = pendingEffectRef.current;
+    if (!currentEffect) return;
     if (targetingLockRef.current) return;
-    const isIncapacitate = pendingEffect.type === 'enemy_mortal_incapacitate';
-    const isRemove = pendingEffect.type === 'enemy_mortal_remove';
-    const isHeal = pendingEffect.type === 'mortal_heal';
-    const isRetroOwn = pendingEffect.type === 'retro_own_mortal';
-    const isRetroEnemy = pendingEffect.type === 'retro_enemy_mortal';
+    
+    // Check if we've already consumed all allowed targets for this effect
+    const maxAllowed = currentEffect.maxTargets || 1;
+    if (targetsConsumedRef.current >= maxAllowed) return;
+    
+    const isIncapacitate = currentEffect.type === 'enemy_mortal_incapacitate';
+    const isRemove = currentEffect.type === 'enemy_mortal_remove';
+    const isHeal = currentEffect.type === 'mortal_heal';
+    const isRetroOwn = currentEffect.type === 'retro_own_mortal';
+    const isRetroEnemy = currentEffect.type === 'retro_enemy_mortal';
     if (!isIncapacitate && !isRemove && !isHeal && !isRetroOwn && !isRetroEnemy) return;
 
     // Track whether the click was valid so we only clear pendingEffect on success
