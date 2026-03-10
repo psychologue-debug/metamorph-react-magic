@@ -30,6 +30,8 @@ export function useGameLogic() {
   const savedMortalSnapshotRef = useRef<{ mortal: Mortal; playerId: string } | null>(null);
   const prevGameStateRef = useRef<GameState | null>(null);
   const targetingLockRef = useRef(false);
+  const pendingEffectRef = useRef<PendingEffect | null>(null);
+  const targetsConsumedRef = useRef(0);
   const [metamorphoseEffectUndo, setMetamorphoseEffectUndo] = useState<{
     playerId: string;
     mortalId: string;
