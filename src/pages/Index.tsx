@@ -370,39 +370,6 @@ const Index = () => {
       </div>
     );
   }
-            <motion.button
-              className="flex items-center gap-3 px-8 py-4 rounded-xl font-display text-sm font-bold uppercase tracking-widest transition-all w-64 border border-ether/30"
-              style={{ background: 'hsl(var(--card) / 0.9)', color: 'hsl(var(--foreground))' }}
-              whileHover={{ scale: 1.05, borderColor: 'hsl(var(--ether) / 0.6)' }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {}}
-            >
-              <LogIn className="w-5 h-5 text-ether" />
-              Rejoindre une Partie
-            </motion.button>
-          </motion.div>
-
-          <motion.div className="mt-8 pt-6 border-t border-border/30" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}>
-            <p className="text-xs text-muted-foreground font-display uppercase tracking-wider mb-3">Mode test solo — choisissez le nombre de dieux</p>
-            <div className="flex justify-center gap-2">
-              {[2, 3, 4, 5, 6, 7].map((count) => (
-                <motion.button
-                  key={count}
-                  className="w-12 h-12 rounded-lg font-display font-bold text-base border border-border/50 text-foreground transition-all"
-                  style={{ background: 'hsl(var(--card))' }}
-                  whileHover={{ scale: 1.1, borderColor: 'hsl(var(--ether) / 0.5)', background: 'hsl(var(--ether) / 0.15)' }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setGodSelectionCount(count)}
-                >
-                  {count}
-                </motion.button>
-              ))}
-            </div>
-          </motion.div>
-        </motion.div>
-      </div>
-    );
-  }
 
   const currentPlayer = gameState.players[currentPlayerIndex];
   const isOwnTurn = currentPlayerIndex === gameState.activePlayerIndex;
