@@ -188,7 +188,8 @@ const Index = () => {
             const players = multiplayer.lobby.players;
             const gods = players.map(p => p.divinity!);
             const names = players.map(p => p.name);
-            startGame(players.length, gods, names);
+            const ids = players.map(p => p.id);
+            startGame(players.length, gods, names, ids);
           }
         }}
         onLeave={() => {
