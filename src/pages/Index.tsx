@@ -92,12 +92,8 @@ const Index = () => {
 
   // Multiplayer sync: persist gameState to DB & receive Realtime updates
   const onGameStartedFromRemote = useCallback(() => {
-    // Non-host players: when host starts the game, auto-transition to game view
-    if (!gameStarted) {
-      // We need to manually trigger game started since startGame wasn't called locally
-      // setGameState is already called by the sync hook
-    }
-  }, [gameStarted]);
+    setGameStarted(true);
+  }, [setGameStarted]);
 
   const { loadGameState } = useMultiplayerSync({
     sessionId: multiplayerConfig?.sessionId || null,
