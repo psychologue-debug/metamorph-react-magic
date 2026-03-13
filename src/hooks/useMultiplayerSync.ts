@@ -72,7 +72,7 @@ export function useMultiplayerSync({
 
           // If game just started (status changed to 'playing' and game_state appeared)
           if (row.status === 'playing' && row.game_state) {
-            const remoteState = row.game_state as GameState;
+            const remoteState = row.game_state as unknown as GameState;
             const remoteSerialized = JSON.stringify(remoteState);
 
             if (remoteSerialized !== lastWrittenRef.current) {
