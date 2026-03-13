@@ -2751,6 +2751,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
 
   return {
     gameState,
+    setGameState,
     currentPlayerIndex,
     gameStarted,
     interactionMode,
