@@ -2,6 +2,7 @@
 // Validates and resolves reaction card activations during the reaction window.
 
 import { SpellCard, Player, GameState, ReactionTrigger } from '@/types/game';
+import { isMortalInvulnerable } from './mortalStatuses';
 import { generateUUID } from '@/lib/uuid';
 
 /**
