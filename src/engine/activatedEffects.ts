@@ -6,6 +6,8 @@ import { PendingEffect } from './metamorphoseEffects';
 import { canBeIncapacitated, canBeRetroMetamorphosed, canBeRemovedFromGame } from './mortalStatuses';
 import { generateUUID } from '@/lib/uuid';
 
+const crypto = { randomUUID: generateUUID } as const;
+
 /** List of mortal codes that have manually activated effects */
 export const ACTIVATABLE_MORTALS = [
   'APO-06', 'VEN-01', 'VEN-09', 'BAC-01', 'BAC-10', 'MIN-02', 'MIN-08',
