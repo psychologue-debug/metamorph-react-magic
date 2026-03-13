@@ -1,4 +1,5 @@
 import { Mortal, DivinityId } from '@/types/game';
+import { generateUUID } from '@/lib/uuid';
 
 export interface MortalTemplate {
   god: DivinityId;
