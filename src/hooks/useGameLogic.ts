@@ -41,6 +41,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
   const savedMortalSnapshotRef = useRef<{ mortal: Mortal; playerId: string } | null>(null);
   const prevGameStateRef = useRef<GameState | null>(null);
   const targetingLockRef = useRef(false);
+  const metamorphoseTriggeredRef = useRef<Set<string>>(new Set());
   const pendingEffectRef = useRef<PendingEffect | null>(null);
   const targetsConsumedRef = useRef(0);
   const [metamorphoseEffectUndo, setMetamorphoseEffectUndo] = useState<{
@@ -171,6 +172,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
             ...prev,
             players: updatedPlayers,
             log: newLog,
+            gameOver: true,
           };
         }
 
@@ -2423,6 +2425,10 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
 
         // New metamorphose detected
         if (!oldM.isMetamorphosed && newM.isMetamorphosed) {
+          // Dedup: prevent triggered effects from firing twice for the same mortal
+          if (metamorphoseTriggeredRef.current.has(newM.id)) continue;
+          metamorphoseTriggeredRef.current.add(newM.id);
+
           const trigResult = onMortalMetamorphosed(gameState.players, newM.code, newM.type, i);
           if (trigResult.etherChanges.length > 0 || trigResult.drawCards.length > 0) {
             setGameState(gs => {
@@ -2483,6 +2489,9 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
 
         // Retro-metamorphosis detected (CER-06 Myrmidons)
         if (oldM.isMetamorphosed && !newM.isMetamorphosed) {
+          // Clear dedup ref so re-metamorphose can trigger effects again
+          metamorphoseTriggeredRef.current.delete(newM.id);
+
           const trigResult = onMortalRetroMetamorphosed(gameState.players);
           if (trigResult.etherChanges.length > 0) {
             setGameState(gs => {
@@ -2510,7 +2519,16 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     }
   }, [gameState, reactionWindow]);
 
-  // === MIN-01 (Grenouilles) auto-discard: when effect fires as 'none', apply forced discard ===
+  // === Victory detection for all players (multiplayer sync) ===
+  useEffect(() => {
+    if (!gameState?.gameOver || winners.length > 0) return;
+    const victorious = gameState.players.filter(p => p.metamorphosedCount >= 10);
+    if (victorious.length > 0) {
+      setWinners(victorious);
+    }
+  }, [gameState?.gameOver, winners.length]);
+
+
   useEffect(() => {
     if (!pendingEffect || pendingEffect.sourceMortalCode !== 'MIN-01' || pendingEffect.type !== 'none') return;
     if (!gameState) return;

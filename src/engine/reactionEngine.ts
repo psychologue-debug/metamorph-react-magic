@@ -2,6 +2,7 @@
 // Validates and resolves reaction card activations during the reaction window.
 
 import { SpellCard, Player, GameState, ReactionTrigger } from '@/types/game';
+import { isMortalInvulnerable } from './mortalStatuses';
 import { generateUUID } from '@/lib/uuid';
 
 /**
@@ -46,6 +47,10 @@ export function canActivateReaction(
       const mortal = targetPlayer?.mortals.find(m => m.id === trigger.targetMortalId);
       if (!mortal?.effectOnMetamorphose) {
         return { valid: false, reason: 'Ce mortel n\'a pas d\'effet de métamorphose à bloquer' };
+      }
+      // Invulnerable mortals cannot have their effects blocked by Parade
+      if (targetPlayer && isMortalInvulnerable(mortal, targetPlayer, gameState)) {
+        return { valid: false, reason: 'Ce mortel est invulnérable — Parade ne peut pas bloquer son effet' };
       }
       return { valid: true };
     }

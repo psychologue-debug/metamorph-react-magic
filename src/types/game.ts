@@ -140,6 +140,7 @@ export interface GameState {
   // Reaction intervention system
   reactionWindow?: ReactionWindowState | null;
   pendingMetamorphoseEffect?: any; // Stored effect to apply after reaction resolution
+  gameOver?: boolean; // Set when victory condition is met at end of cycle
 }
 
 export interface GameLogEntry {

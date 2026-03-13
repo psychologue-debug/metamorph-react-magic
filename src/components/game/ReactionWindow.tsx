@@ -27,9 +27,31 @@ const ReactionWindow = ({
 }: ReactionWindowProps) => {
   const [timeLeft, setTimeLeft] = useState(REACTION_TIMER_SECONDS);
   const [choosing, setChoosing] = useState(false);
+  const [autoPassDone, setAutoPassDone] = useState(false);
 
   const currentReactorId = reactionWindow.reactorQueue[reactionWindow.currentReactorIndex];
   const currentReactor = gameState.players.find(p => p.id === currentReactorId);
+
+  // Filter reaction cards to only show those that can actually be activated
+  const validReactions = currentReactor?.reactions.filter(card => {
+    const check = canActivateReaction(card, reactionWindow.trigger, currentReactor, gameState);
+    return check.valid;
+  }) || [];
+
+  // Auto-pass if no valid reactions available
+  useEffect(() => {
+    if (autoPassDone) return;
+    if (currentReactorId && validReactions.length === 0 && currentReactor && 
+        (reactionWindow.phase === 'waiting_ready' || reactionWindow.phase === 'asking')) {
+      setAutoPassDone(true);
+      onPass(currentReactorId);
+    }
+  }, [currentReactorId, validReactions.length, reactionWindow.phase, onPass, autoPassDone, currentReactor]);
+
+  // Reset auto-pass flag when reactor changes
+  useEffect(() => {
+    setAutoPassDone(false);
+  }, [reactionWindow.currentReactorIndex]);
 
   // Timer countdown
   useEffect(() => {
@@ -210,7 +232,7 @@ const ReactionWindow = ({
           <div>
             <p className="font-display text-base text-foreground mb-3">Choisissez une réaction :</p>
             <div className="flex flex-col gap-2 mb-3">
-              {currentReactor.reactions.map(card => (
+              {validReactions.map(card => (
                 <motion.button
                   key={card.id}
                   className="flex items-center justify-between px-4 py-3 rounded-xl border text-left"
