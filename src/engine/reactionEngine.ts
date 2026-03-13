@@ -48,6 +48,10 @@ export function canActivateReaction(
       if (!mortal?.effectOnMetamorphose) {
         return { valid: false, reason: 'Ce mortel n\'a pas d\'effet de métamorphose à bloquer' };
       }
+      // Invulnerable mortals cannot have their effects blocked by Parade
+      if (targetPlayer && isMortalInvulnerable(mortal, targetPlayer, gameState)) {
+        return { valid: false, reason: 'Ce mortel est invulnérable — Parade ne peut pas bloquer son effet' };
+      }
       return { valid: true };
     }
 
