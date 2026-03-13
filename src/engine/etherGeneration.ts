@@ -142,7 +142,7 @@ export function calculateCycleEtherGeneration(
       updatedPlayers = updatedPlayers.map((ep, i) => {
         if (i === pIdx) return ep;
         logs.push({
-          id: crypto.randomUUID(),
+          id: generateUUID(),
           timestamp: Date.now(),
           playerName: 'Système',
           action: 'Deux serpents',
