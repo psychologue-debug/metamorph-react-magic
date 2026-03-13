@@ -442,7 +442,12 @@ const Index = () => {
             style={{ background: 'hsl(var(--destructive) / 0.1)' }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={resetGame}
+            onClick={() => {
+              if (multiplayer.lobby) {
+                multiplayer.leaveSession();
+              }
+              resetGame();
+            }}
           >
             Quitter
           </motion.button>
