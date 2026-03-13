@@ -46,6 +46,7 @@ const Index = () => {
     setGameState,
     currentPlayerIndex,
     gameStarted,
+    setGameStarted,
     interactionMode,
     winners,
     discardRequired,
