@@ -17,7 +17,7 @@ interface MortalGridProps {
   containerRef?: React.RefObject<HTMLDivElement>;
 }
 
-const TOKEN_SIZE = 130;
+const TOKEN_SIZE = 140;
 
 const MortalGrid = ({ mortals, owner, gameState, tokenSize = TOKEN_SIZE, selectable = false, targetingMode = false, onMortalClick, onMortalHover }: MortalGridProps) => {
   return (

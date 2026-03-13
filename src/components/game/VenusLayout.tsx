@@ -35,7 +35,7 @@ const RED_CONNECTIONS: [string, string][] = [
   ['VEN-01', 'VEN-08'], ['VEN-07', 'VEN-06'],
 ];
 
-const TOKEN_SIZE = 130;
+const TOKEN_SIZE = 140;
 const PADDING = 25;
 
 const VenusLayout = ({ mortals, owner, gameState, selectable, onMortalClick, onMortalHover }: VenusLayoutProps) => {
