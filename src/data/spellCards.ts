@@ -1,4 +1,5 @@
 import { SpellCard } from '@/types/game';
+import { generateUUID } from '@/lib/uuid';
 
 // Spell card templates from CSV data
 export interface SpellTemplate {

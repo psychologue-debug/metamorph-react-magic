@@ -2,6 +2,7 @@
 // Handles modified ether generation at cycle start based on mortal effects
 
 import { Player, GameState, GameLogEntry } from '@/types/game';
+import { generateUUID } from '@/lib/uuid';
 
 interface EtherGenerationResult {
   updatedPlayers: Player[];
