@@ -2,6 +2,7 @@ import { GameState, Player, SpellCard, DivinityId, DIVINITIES } from '@/types/ga
 import { createMortalsForGod } from './mortals';
 import { createDeck } from './spellCards';
 import { calculateCycleEtherGeneration } from '@/engine/etherGeneration';
+import { generateUUID } from '@/lib/uuid';
 
 export function createMockGameState(playerCount: number = 4, selectedGods?: DivinityId[]): GameState {
   const defaultDivinities: DivinityId[] = ['apollon', 'venus', 'bacchus', 'minerve', 'diane', 'neptune', 'ceres'];

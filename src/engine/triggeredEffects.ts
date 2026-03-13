@@ -2,6 +2,7 @@
 // Passive mortal effects that fire in response to game events.
 
 import { Player, GameState, GameLogEntry, SpellCard } from '@/types/game';
+import { generateUUID } from '@/lib/uuid';
 
 export interface TriggeredResult {
   etherChanges: { playerIndex: number; amount: number; reason: string; mortalName: string }[];

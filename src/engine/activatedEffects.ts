@@ -4,6 +4,7 @@
 import { Mortal, Player, GameState } from '@/types/game';
 import { PendingEffect } from './metamorphoseEffects';
 import { canBeIncapacitated, canBeRetroMetamorphosed, canBeRemovedFromGame } from './mortalStatuses';
+import { generateUUID } from '@/lib/uuid';
 
 /** List of mortal codes that have manually activated effects */
 export const ACTIVATABLE_MORTALS = [
