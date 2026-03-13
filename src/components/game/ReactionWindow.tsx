@@ -27,8 +27,31 @@ const ReactionWindow = ({
 }: ReactionWindowProps) => {
   const [timeLeft, setTimeLeft] = useState(REACTION_TIMER_SECONDS);
   const [choosing, setChoosing] = useState(false);
+  const [autoPassDone, setAutoPassDone] = useState(false);
 
   const currentReactorId = reactionWindow.reactorQueue[reactionWindow.currentReactorIndex];
+  const currentReactor = gameState.players.find(p => p.id === currentReactorId);
+
+  // Filter reaction cards to only show those that can actually be activated
+  const validReactions = currentReactor?.reactions.filter(card => {
+    const check = canActivateReaction(card, reactionWindow.trigger, currentReactor, gameState);
+    return check.valid;
+  }) || [];
+
+  // Auto-pass if no valid reactions available
+  useEffect(() => {
+    if (autoPassDone) return;
+    if (currentReactorId && validReactions.length === 0 && currentReactor && 
+        (reactionWindow.phase === 'waiting_ready' || reactionWindow.phase === 'asking')) {
+      setAutoPassDone(true);
+      onPass(currentReactorId);
+    }
+  }, [currentReactorId, validReactions.length, reactionWindow.phase, onPass, autoPassDone, currentReactor]);
+
+  // Reset auto-pass flag when reactor changes
+  useEffect(() => {
+    setAutoPassDone(false);
+  }, [reactionWindow.currentReactorIndex]);
   const currentReactor = gameState.players.find(p => p.id === currentReactorId);
 
   // Timer countdown
