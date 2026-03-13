@@ -55,7 +55,7 @@ export function createMockGameState(playerCount: number = 4, selectedGods?: Divi
   const genResult = calculateCycleEtherGeneration(state);
   state.players = genResult.updatedPlayers;
   state.log.unshift({
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     timestamp: Date.now(),
     playerName: 'Système',
     action: 'Cycle 1',
