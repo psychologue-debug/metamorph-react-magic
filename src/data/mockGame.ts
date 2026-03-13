@@ -71,7 +71,7 @@ export function createMockGameState(playerCount: number = 4, selectedGods?: Divi
   state.players[0].hand = drawnCards;
   if (drawnCards.length > 0) {
     state.log.unshift({
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       timestamp: Date.now(),
       playerName: state.players[0].name,
       action: 'Pioche',
