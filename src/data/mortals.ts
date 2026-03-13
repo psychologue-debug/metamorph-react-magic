@@ -425,7 +425,7 @@ export function createMortalsForGod(god: DivinityId): Mortal[] {
     return Array.from({ length: 10 }, (_, i) => {
       const code = `${god.toUpperCase().slice(0, 3)}-${String(i + 1).padStart(2, '0')}`;
       return {
-        id: `mortal-${god}-${i}-${crypto.randomUUID().slice(0, 6)}`,
+        id: `mortal-${god}-${i}-${generateUUID().slice(0, 6)}`,
         code,
         god,
         nameRecto: `Mortel ${i + 1}`,
