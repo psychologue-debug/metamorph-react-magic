@@ -16,10 +16,18 @@ const crypto = { randomUUID: generateUUID } as const;
 
 export type InteractionMode = 'idle' | 'metamorphosing' | 'playing_spell' | 'activating_effect';
 
-export function useGameLogic() {
+export interface MultiplayerConfig {
+  sessionId: string;
+  localPlayerId: string; // the player's UUID from localStorage
+}
+
+export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
   const [gameState, setGameState] = useState<GameState | null>(null);
-  // currentPlayerIndex is derived from gameState.activePlayerIndex to avoid desync
-  const currentPlayerIndex = gameState?.activePlayerIndex ?? 0;
+  // In multiplayer, currentPlayerIndex = local player's index (for board view)
+  // In solo, currentPlayerIndex = activePlayerIndex (hot-seat)
+  const currentPlayerIndex = multiplayerConfig && gameState
+    ? gameState.players.findIndex(p => p.id === multiplayerConfig.localPlayerId)
+    : (gameState?.activePlayerIndex ?? 0);
   const [gameStarted, setGameStarted] = useState(false);
   const [interactionMode, setInteractionMode] = useState<InteractionMode>('idle');
   const [winners, setWinners] = useState<Player[]>([]);
