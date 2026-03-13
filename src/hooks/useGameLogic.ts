@@ -172,6 +172,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
             ...prev,
             players: updatedPlayers,
             log: newLog,
+            gameOver: true,
           };
         }
 
