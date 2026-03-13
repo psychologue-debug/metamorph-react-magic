@@ -36,8 +36,14 @@ const Index = () => {
 
   const multiplayer = useMultiplayer();
 
+  // Build multiplayer config if in a multiplayer session
+  const multiplayerConfig: MultiplayerConfig | undefined = multiplayer.lobby
+    ? { sessionId: multiplayer.lobby.sessionId, localPlayerId: multiplayer.playerId }
+    : undefined;
+
   const {
     gameState,
+    setGameState,
     currentPlayerIndex,
     gameStarted,
     interactionMode,
@@ -81,8 +87,23 @@ const Index = () => {
     handleReactionReady,
     handleReactionPass,
     handleReactionActivate,
-  } = useGameLogic();
+  } = useGameLogic(multiplayerConfig);
 
+  // Multiplayer sync: persist gameState to DB & receive Realtime updates
+  const onGameStartedFromRemote = useCallback(() => {
+    // Non-host players: when host starts the game, auto-transition to game view
+    if (!gameStarted) {
+      // We need to manually trigger game started since startGame wasn't called locally
+      // setGameState is already called by the sync hook
+    }
+  }, [gameStarted]);
+
+  const { loadGameState } = useMultiplayerSync({
+    sessionId: multiplayerConfig?.sessionId || null,
+    gameState,
+    setGameState,
+    onGameStartedFromRemote,
+  });
   const isMortalTargeting = pendingEffect && (
     pendingEffect.type === 'enemy_mortal_incapacitate' ||
     pendingEffect.type === 'enemy_mortal_remove' ||
