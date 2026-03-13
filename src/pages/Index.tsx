@@ -479,6 +479,7 @@ const Index = () => {
             <ActionBar
               gameState={gameState}
               interactionMode={interactionMode}
+              isOwnTurn={isOwnTurn}
               onEndTurn={handleEndTurn}
               onToggleMetamorphose={toggleMetamorphoseMode}
               onToggleSpell={toggleSpellMode}

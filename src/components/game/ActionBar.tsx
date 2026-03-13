@@ -6,6 +6,7 @@ import { SkipForward, Sparkles, Hand, X, Flame } from 'lucide-react';
 interface ActionBarProps {
   gameState: GameState;
   interactionMode: InteractionMode;
+  isOwnTurn?: boolean; // multiplayer: false when not your turn
   onEndTurn: () => void;
   onToggleMetamorphose: () => void;
   onToggleSpell: () => void;
@@ -15,6 +16,7 @@ interface ActionBarProps {
 const ActionBar = ({
   gameState,
   interactionMode,
+  isOwnTurn = true,
   onEndTurn,
   onToggleMetamorphose,
   onToggleSpell,
@@ -25,6 +27,7 @@ const ActionBar = ({
   const isSpellMode = interactionMode === 'playing_spell';
   const isActivateMode = interactionMode === 'activating_effect';
   const isSleeping = activePlayer.skipNextTurn;
+  const disabled = !isOwnTurn || isSleeping;
 
   return (
     <motion.div
