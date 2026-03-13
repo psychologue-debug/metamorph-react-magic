@@ -2519,7 +2519,16 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     }
   }, [gameState, reactionWindow]);
 
-  // === MIN-01 (Grenouilles) auto-discard: when effect fires as 'none', apply forced discard ===
+  // === Victory detection for all players (multiplayer sync) ===
+  useEffect(() => {
+    if (!gameState?.gameOver || winners.length > 0) return;
+    const victorious = gameState.players.filter(p => p.metamorphosedCount >= 10);
+    if (victorious.length > 0) {
+      setWinners(victorious);
+    }
+  }, [gameState?.gameOver, winners.length]);
+
+
   useEffect(() => {
     if (!pendingEffect || pendingEffect.sourceMortalCode !== 'MIN-01' || pendingEffect.type !== 'none') return;
     if (!gameState) return;
