@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useGameLogic } from '@/hooks/useGameLogic';
+import { useMultiplayer } from '@/hooks/useMultiplayer';
 import { toast } from 'sonner';
 import PlayerPanel from '@/components/game/PlayerPanel';
 import OwnPlayerBoard from '@/components/game/OwnPlayerBoard';
@@ -9,6 +10,7 @@ import GameLog from '@/components/game/GameLog';
 import VictoryModal from '@/components/game/VictoryModal';
 import DiscardModal from '@/components/game/DiscardModal';
 import GodSelectionScreen from '@/components/game/GodSelectionScreen';
+import LobbyScreen from '@/components/game/LobbyScreen';
 import TargetingModal from '@/components/game/TargetingModal';
 import ReactionWindow from '@/components/game/ReactionWindow';
 import MortalTooltip from '@/components/game/MortalTooltip';
@@ -19,10 +21,19 @@ import EtherCounter from '@/components/game/EtherCounter';
 import MortalGrid from '@/components/game/MortalGrid';
 import heroBg from '@/assets/hero-bg.jpg';
 
+type MenuMode = 'home' | 'create' | 'join';
+
 const Index = () => {
   const [godSelectionCount, setGodSelectionCount] = useState<number | null>(null);
   const [logOpen, setLogOpen] = useState(false);
   const [hoveredEnemyMortal, setHoveredEnemyMortal] = useState<{ mortal: Mortal; owner: PlayerType } | null>(null);
+  const [menuMode, setMenuMode] = useState<MenuMode>('home');
+  const [createName, setCreateName] = useState('');
+  const [createMaxPlayers, setCreateMaxPlayers] = useState(4);
+  const [joinCode, setJoinCode] = useState('');
+  const [joinName, setJoinName] = useState('');
+
+  const multiplayer = useMultiplayer();
 
   const {
     gameState,
