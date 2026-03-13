@@ -295,7 +295,7 @@ export function applyTriggeredResult(
         i === draw.playerIndex ? { ...p, hand: [...p.hand, ...drawnCards] } : p
       );
       logs.push({
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         timestamp: Date.now(),
         playerName: players[draw.playerIndex].name,
         action: draw.mortalName,

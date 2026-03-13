@@ -174,7 +174,7 @@ export function calculateCycleEtherGeneration(
           return p;
         });
         logs.push({
-          id: crypto.randomUUID(),
+          id: generateUUID(),
           timestamp: Date.now(),
           playerName: updatedPlayers[steal.ownerIndex].name,
           action: steal.mortalName,
