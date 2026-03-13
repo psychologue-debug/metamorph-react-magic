@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
-import { useGameLogic } from '@/hooks/useGameLogic';
+import { useState, useEffect, useCallback } from 'react';
+import { useGameLogic, MultiplayerConfig } from '@/hooks/useGameLogic';
 import { useMultiplayer } from '@/hooks/useMultiplayer';
+import { useMultiplayerSync } from '@/hooks/useMultiplayerSync';
 import { toast } from 'sonner';
 import PlayerPanel from '@/components/game/PlayerPanel';
 import OwnPlayerBoard from '@/components/game/OwnPlayerBoard';
