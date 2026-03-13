@@ -443,7 +443,7 @@ export function createMortalsForGod(god: DivinityId): Mortal[] {
   }
 
   return templates.map((t, i) => ({
-    id: `mortal-${t.code}-${crypto.randomUUID().slice(0, 6)}`,
+    id: `mortal-${t.code}-${generateUUID().slice(0, 6)}`,
     code: t.code,
     god: t.god,
     nameRecto: t.nameRecto,
