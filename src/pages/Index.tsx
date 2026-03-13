@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
-import { useGameLogic } from '@/hooks/useGameLogic';
+import { useState, useEffect, useCallback } from 'react';
+import { useGameLogic, MultiplayerConfig } from '@/hooks/useGameLogic';
 import { useMultiplayer } from '@/hooks/useMultiplayer';
+import { useMultiplayerSync } from '@/hooks/useMultiplayerSync';
 import { toast } from 'sonner';
 import PlayerPanel from '@/components/game/PlayerPanel';
 import OwnPlayerBoard from '@/components/game/OwnPlayerBoard';
@@ -35,10 +36,17 @@ const Index = () => {
 
   const multiplayer = useMultiplayer();
 
+  // Build multiplayer config if in a multiplayer session
+  const multiplayerConfig: MultiplayerConfig | undefined = multiplayer.lobby
+    ? { sessionId: multiplayer.lobby.sessionId, localPlayerId: multiplayer.playerId }
+    : undefined;
+
   const {
     gameState,
+    setGameState,
     currentPlayerIndex,
     gameStarted,
+    setGameStarted,
     interactionMode,
     winners,
     discardRequired,
@@ -80,8 +88,19 @@ const Index = () => {
     handleReactionReady,
     handleReactionPass,
     handleReactionActivate,
-  } = useGameLogic();
+  } = useGameLogic(multiplayerConfig);
 
+  // Multiplayer sync: persist gameState to DB & receive Realtime updates
+  const onGameStartedFromRemote = useCallback(() => {
+    setGameStarted(true);
+  }, [setGameStarted]);
+
+  const { loadGameState } = useMultiplayerSync({
+    sessionId: multiplayerConfig?.sessionId || null,
+    gameState,
+    setGameState,
+    onGameStartedFromRemote,
+  });
   const isMortalTargeting = pendingEffect && (
     pendingEffect.type === 'enemy_mortal_incapacitate' ||
     pendingEffect.type === 'enemy_mortal_remove' ||
@@ -151,7 +170,7 @@ const Index = () => {
   }, [isMortalTargeting, pendingEffect, cancelEffect]);
 
   // Lobby screen (multiplayer)
-  if (multiplayer.lobby && (!gameStarted || !gameState)) {
+  if (multiplayer.lobby && multiplayer.lobby.status === 'lobby' && (!gameStarted || !gameState)) {
     return (
       <LobbyScreen
         lobby={multiplayer.lobby}
@@ -166,7 +185,8 @@ const Index = () => {
             const players = multiplayer.lobby.players;
             const gods = players.map(p => p.divinity!);
             const names = players.map(p => p.name);
-            startGame(players.length, gods, names);
+            const ids = players.map(p => p.id);
+            startGame(players.length, gods, names, ids);
           }
         }}
         onLeave={() => {
@@ -422,7 +442,12 @@ const Index = () => {
             style={{ background: 'hsl(var(--destructive) / 0.1)' }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={resetGame}
+            onClick={() => {
+              if (multiplayer.lobby) {
+                multiplayer.leaveSession();
+              }
+              resetGame();
+            }}
           >
             Quitter
           </motion.button>
@@ -454,6 +479,7 @@ const Index = () => {
             <ActionBar
               gameState={gameState}
               interactionMode={interactionMode}
+              isOwnTurn={isOwnTurn}
               onEndTurn={handleEndTurn}
               onToggleMetamorphose={toggleMetamorphoseMode}
               onToggleSpell={toggleSpellMode}

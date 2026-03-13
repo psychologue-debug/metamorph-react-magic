@@ -4,7 +4,7 @@ import { createDeck } from './spellCards';
 import { calculateCycleEtherGeneration } from '@/engine/etherGeneration';
 import { generateUUID } from '@/lib/uuid';
 
-export function createMockGameState(playerCount: number = 4, selectedGods?: DivinityId[]): GameState {
+export function createMockGameState(playerCount: number = 4, selectedGods?: DivinityId[], playerIds?: string[]): GameState {
   const defaultDivinities: DivinityId[] = ['apollon', 'venus', 'bacchus', 'minerve', 'diane', 'neptune', 'ceres'];
   const deck = createDeck();
 
@@ -14,7 +14,7 @@ export function createMockGameState(playerCount: number = 4, selectedGods?: Divi
     const mortals = createMortalsForGod(divId);
 
     return {
-      id: `player-${i}`,
+      id: playerIds ? playerIds[i] : `player-${i}`,
       name: div.name,
       divinity: divId,
       divinityName: div.name,
