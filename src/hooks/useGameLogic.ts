@@ -2425,6 +2425,10 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
 
         // New metamorphose detected
         if (!oldM.isMetamorphosed && newM.isMetamorphosed) {
+          // Dedup: prevent triggered effects from firing twice for the same mortal
+          if (metamorphoseTriggeredRef.current.has(newM.id)) continue;
+          metamorphoseTriggeredRef.current.add(newM.id);
+
           const trigResult = onMortalMetamorphosed(gameState.players, newM.code, newM.type, i);
           if (trigResult.etherChanges.length > 0 || trigResult.drawCards.length > 0) {
             setGameState(gs => {
