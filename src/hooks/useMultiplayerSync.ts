@@ -108,7 +108,7 @@ export function useMultiplayerSync({
 
     if (data?.status === 'playing' && data.game_state) {
       isRemoteUpdate.current = true;
-      const state = data.game_state as GameState;
+      const state = data.game_state as unknown as GameState;
       lastWrittenRef.current = JSON.stringify(state);
       setGameState(state);
       onGameStartedFromRemote?.();
