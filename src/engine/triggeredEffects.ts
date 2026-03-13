@@ -272,7 +272,7 @@ export function applyTriggeredResult(
       i === change.playerIndex ? { ...p, ether: p.ether + change.amount } : p
     );
     logs.push({
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       timestamp: Date.now(),
       playerName: players[change.playerIndex].name,
       action: change.mortalName,
