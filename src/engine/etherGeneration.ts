@@ -120,7 +120,7 @@ export function calculateCycleEtherGeneration(
 
     if (bonusDetails.length > 0) {
       logs.push({
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         timestamp: Date.now(),
         playerName: player.name,
         action: 'Effets de génération',
