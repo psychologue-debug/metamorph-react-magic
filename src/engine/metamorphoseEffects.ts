@@ -6,6 +6,8 @@ import { Mortal, Player, GameState } from '@/types/game';
 import { canBeIncapacitated, canBeRemovedFromGame } from './mortalStatuses';
 import { generateUUID } from '@/lib/uuid';
 
+const crypto = { randomUUID: generateUUID } as const;
+
 export type EffectTargetType =
   | 'enemy_mortal_incapacitate'    // Select an enemy mortal to incapacitate
   | 'enemy_mortal_remove'          // Select an enemy metamorphosed mortal to remove from game

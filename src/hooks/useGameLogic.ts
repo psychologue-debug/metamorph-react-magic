@@ -12,6 +12,8 @@ import { getActivatedEffect, hasActivatedEffect } from '@/engine/activatedEffect
 import { getEligibleReactors, resolveReaction } from '@/engine/reactionEngine';
 import { onMortalMetamorphosed, onMortalIncapacitated, onEtherDestroyed, onReactionPlayed, onMortalRetroMetamorphosed, onForcedDiscard, onOutOfCycleEtherGenerated, onOutOfPhaseCardDrawn, onMortalEffectGeneratedEther, onMortalRetired, applyTriggeredResult } from '@/engine/triggeredEffects';
 
+const crypto = { randomUUID: generateUUID } as const;
+
 export type InteractionMode = 'idle' | 'metamorphosing' | 'playing_spell' | 'activating_effect';
 
 export function useGameLogic() {
