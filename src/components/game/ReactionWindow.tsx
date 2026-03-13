@@ -233,7 +233,7 @@ const ReactionWindow = ({
           <div>
             <p className="font-display text-base text-foreground mb-3">Choisissez une réaction :</p>
             <div className="flex flex-col gap-2 mb-3">
-              {currentReactor.reactions.map(card => (
+              {validReactions.map(card => (
                 <motion.button
                   key={card.id}
                   className="flex items-center justify-between px-4 py-3 rounded-xl border text-left"
