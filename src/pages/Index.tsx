@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useGameLogic } from '@/hooks/useGameLogic';
+import { useMultiplayer } from '@/hooks/useMultiplayer';
 import { toast } from 'sonner';
 import PlayerPanel from '@/components/game/PlayerPanel';
 import OwnPlayerBoard from '@/components/game/OwnPlayerBoard';
@@ -9,6 +10,7 @@ import GameLog from '@/components/game/GameLog';
 import VictoryModal from '@/components/game/VictoryModal';
 import DiscardModal from '@/components/game/DiscardModal';
 import GodSelectionScreen from '@/components/game/GodSelectionScreen';
+import LobbyScreen from '@/components/game/LobbyScreen';
 import TargetingModal from '@/components/game/TargetingModal';
 import ReactionWindow from '@/components/game/ReactionWindow';
 import MortalTooltip from '@/components/game/MortalTooltip';
@@ -19,10 +21,19 @@ import EtherCounter from '@/components/game/EtherCounter';
 import MortalGrid from '@/components/game/MortalGrid';
 import heroBg from '@/assets/hero-bg.jpg';
 
+type MenuMode = 'home' | 'create' | 'join';
+
 const Index = () => {
   const [godSelectionCount, setGodSelectionCount] = useState<number | null>(null);
   const [logOpen, setLogOpen] = useState(false);
   const [hoveredEnemyMortal, setHoveredEnemyMortal] = useState<{ mortal: Mortal; owner: PlayerType } | null>(null);
+  const [menuMode, setMenuMode] = useState<MenuMode>('home');
+  const [createName, setCreateName] = useState('');
+  const [createMaxPlayers, setCreateMaxPlayers] = useState(4);
+  const [joinCode, setJoinCode] = useState('');
+  const [joinName, setJoinName] = useState('');
+
+  const multiplayer = useMultiplayer();
 
   const {
     gameState,
@@ -139,7 +150,33 @@ const Index = () => {
     return () => { toast.dismiss('targeting-bubble'); };
   }, [isMortalTargeting, pendingEffect, cancelEffect]);
 
-  // God selection screen
+  // Lobby screen (multiplayer)
+  if (multiplayer.lobby && (!gameStarted || !gameState)) {
+    return (
+      <LobbyScreen
+        lobby={multiplayer.lobby}
+        playerId={multiplayer.playerId}
+        isHost={multiplayer.isHost}
+        myPlayer={multiplayer.myPlayer}
+        onSelectDivinity={multiplayer.selectDivinity}
+        onToggleReady={multiplayer.toggleReady}
+        onStartGame={async () => {
+          const ok = await multiplayer.startMultiplayerGame();
+          if (ok && multiplayer.lobby) {
+            const players = multiplayer.lobby.players;
+            const gods = players.map(p => p.divinity!);
+            const names = players.map(p => p.name);
+            startGame(players.length, gods, names);
+          }
+        }}
+        onLeave={() => {
+          multiplayer.leaveSession();
+        }}
+      />
+    );
+  }
+
+  // God selection screen (solo)
   if (godSelectionCount !== null && (!gameStarted || !gameState)) {
     return (
       <GodSelectionScreen
@@ -180,51 +217,155 @@ const Index = () => {
             <p className="font-body text-lg text-muted-foreground italic">Un jeu de stratégie inspiré de la mythologie romaine</p>
           </motion.div>
 
-          <motion.div className="mt-10 flex flex-col gap-4 items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
-            <motion.button
-              className="flex items-center gap-3 px-8 py-4 rounded-xl font-display text-sm font-bold uppercase tracking-widest transition-all w-64"
-              style={{
-                background: `linear-gradient(135deg, hsl(var(--ether)), hsl(var(--ether-dim)))`,
-                color: 'hsl(var(--primary-foreground))',
-                boxShadow: '0 0 30px hsl(var(--ether) / 0.3)',
-              }}
-              whileHover={{ scale: 1.05, boxShadow: '0 0 50px hsl(var(--ether) / 0.5)' }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {}}
-            >
-              <Plus className="w-5 h-5" />
-              Créer une Partie
-            </motion.button>
-
-            <motion.button
-              className="flex items-center gap-3 px-8 py-4 rounded-xl font-display text-sm font-bold uppercase tracking-widest transition-all w-64 border border-ether/30"
-              style={{ background: 'hsl(var(--card) / 0.9)', color: 'hsl(var(--foreground))' }}
-              whileHover={{ scale: 1.05, borderColor: 'hsl(var(--ether) / 0.6)' }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {}}
-            >
-              <LogIn className="w-5 h-5 text-ether" />
-              Rejoindre une Partie
-            </motion.button>
-          </motion.div>
-
-          <motion.div className="mt-8 pt-6 border-t border-border/30" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}>
-            <p className="text-xs text-muted-foreground font-display uppercase tracking-wider mb-3">Mode test solo — choisissez le nombre de dieux</p>
-            <div className="flex justify-center gap-2">
-              {[2, 3, 4, 5, 6, 7].map((count) => (
+          <AnimatePresence mode="wait">
+            {menuMode === 'home' && (
+              <motion.div key="home" className="mt-10 flex flex-col gap-4 items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 <motion.button
-                  key={count}
-                  className="w-12 h-12 rounded-lg font-display font-bold text-base border border-border/50 text-foreground transition-all"
-                  style={{ background: 'hsl(var(--card))' }}
-                  whileHover={{ scale: 1.1, borderColor: 'hsl(var(--ether) / 0.5)', background: 'hsl(var(--ether) / 0.15)' }}
+                  className="flex items-center gap-3 px-8 py-4 rounded-xl font-display text-sm font-bold uppercase tracking-widest transition-all w-64"
+                  style={{
+                    background: `linear-gradient(135deg, hsl(var(--ether)), hsl(var(--ether-dim)))`,
+                    color: 'hsl(var(--primary-foreground))',
+                    boxShadow: '0 0 30px hsl(var(--ether) / 0.3)',
+                  }}
+                  whileHover={{ scale: 1.05, boxShadow: '0 0 50px hsl(var(--ether) / 0.5)' }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => setGodSelectionCount(count)}
+                  onClick={() => setMenuMode('create')}
                 >
-                  {count}
+                  <Plus className="w-5 h-5" />
+                  Créer une Partie
                 </motion.button>
-              ))}
-            </div>
-          </motion.div>
+
+                <motion.button
+                  className="flex items-center gap-3 px-8 py-4 rounded-xl font-display text-sm font-bold uppercase tracking-widest transition-all w-64 border border-ether/30"
+                  style={{ background: 'hsl(var(--card) / 0.9)', color: 'hsl(var(--foreground))' }}
+                  whileHover={{ scale: 1.05, borderColor: 'hsl(var(--ether) / 0.6)' }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setMenuMode('join')}
+                >
+                  <LogIn className="w-5 h-5 text-ether" />
+                  Rejoindre une Partie
+                </motion.button>
+
+                <motion.div className="mt-8 pt-6 border-t border-border/30 w-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}>
+                  <p className="text-xs text-muted-foreground font-display uppercase tracking-wider mb-3">Mode test solo — choisissez le nombre de dieux</p>
+                  <div className="flex justify-center gap-2">
+                    {[2, 3, 4, 5, 6, 7].map((count) => (
+                      <motion.button
+                        key={count}
+                        className="w-12 h-12 rounded-lg font-display font-bold text-base border border-border/50 text-foreground transition-all"
+                        style={{ background: 'hsl(var(--card))' }}
+                        whileHover={{ scale: 1.1, borderColor: 'hsl(var(--ether) / 0.5)', background: 'hsl(var(--ether) / 0.15)' }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setGodSelectionCount(count)}
+                      >
+                        {count}
+                      </motion.button>
+                    ))}
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+
+            {menuMode === 'create' && (
+              <motion.div key="create" className="mt-10 flex flex-col gap-4 items-center max-w-xs mx-auto" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}>
+                <p className="font-display text-sm text-foreground uppercase tracking-wider">Créer une partie</p>
+                <input
+                  type="text"
+                  placeholder="Votre pseudo"
+                  value={createName}
+                  onChange={(e) => setCreateName(e.target.value)}
+                  maxLength={15}
+                  className="w-full px-4 py-3 rounded-xl text-center font-display text-sm border border-border/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ether/60"
+                  style={{ background: 'hsl(var(--card) / 0.9)' }}
+                />
+                <div className="w-full">
+                  <p className="text-xs text-muted-foreground font-display mb-2">Nombre de joueurs</p>
+                  <div className="flex justify-center gap-2">
+                    {[2, 3, 4, 5, 6, 7].map((n) => (
+                      <motion.button
+                        key={n}
+                        className={`w-10 h-10 rounded-lg font-display font-bold text-sm border transition-all ${
+                          createMaxPlayers === n ? 'border-ether text-ether' : 'border-border/50 text-foreground'
+                        }`}
+                        style={{ background: createMaxPlayers === n ? 'hsl(var(--ether) / 0.15)' : 'hsl(var(--card))' }}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setCreateMaxPlayers(n)}
+                      >
+                        {n}
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+                <motion.button
+                  className="w-full px-6 py-3 rounded-xl font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
+                  style={{
+                    background: `linear-gradient(135deg, hsl(var(--ether)), hsl(var(--ether-dim)))`,
+                    color: 'hsl(var(--primary-foreground))',
+                  }}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  disabled={!createName.trim() || multiplayer.loading}
+                  onClick={async () => {
+                    await multiplayer.createSession(createMaxPlayers, createName.trim());
+                  }}
+                >
+                  {multiplayer.loading ? 'Création...' : 'Créer le salon'}
+                </motion.button>
+                <motion.button
+                  className="text-sm text-muted-foreground hover:text-foreground font-display transition-colors"
+                  onClick={() => setMenuMode('home')}
+                >
+                  ← Retour
+                </motion.button>
+              </motion.div>
+            )}
+
+            {menuMode === 'join' && (
+              <motion.div key="join" className="mt-10 flex flex-col gap-4 items-center max-w-xs mx-auto" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}>
+                <p className="font-display text-sm text-foreground uppercase tracking-wider">Rejoindre une partie</p>
+                <input
+                  type="text"
+                  placeholder="Votre pseudo"
+                  value={joinName}
+                  onChange={(e) => setJoinName(e.target.value)}
+                  maxLength={15}
+                  className="w-full px-4 py-3 rounded-xl text-center font-display text-sm border border-border/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ether/60"
+                  style={{ background: 'hsl(var(--card) / 0.9)' }}
+                />
+                <input
+                  type="text"
+                  placeholder="Code de la partie"
+                  value={joinCode}
+                  onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                  maxLength={6}
+                  className="w-full px-4 py-3 rounded-xl text-center font-display text-lg tracking-[0.3em] border border-border/50 text-foreground placeholder:text-muted-foreground placeholder:tracking-normal placeholder:text-sm focus:outline-none focus:border-ether/60"
+                  style={{ background: 'hsl(var(--card) / 0.9)' }}
+                />
+                <motion.button
+                  className="w-full px-6 py-3 rounded-xl font-display text-sm font-bold uppercase tracking-widest disabled:opacity-40"
+                  style={{
+                    background: `linear-gradient(135deg, hsl(var(--ether)), hsl(var(--ether-dim)))`,
+                    color: 'hsl(var(--primary-foreground))',
+                  }}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  disabled={!joinName.trim() || joinCode.length < 4 || multiplayer.loading}
+                  onClick={async () => {
+                    await multiplayer.joinSession(joinCode, joinName.trim());
+                  }}
+                >
+                  {multiplayer.loading ? 'Connexion...' : 'Rejoindre'}
+                </motion.button>
+                <motion.button
+                  className="text-sm text-muted-foreground hover:text-foreground font-display transition-colors"
+                  onClick={() => setMenuMode('home')}
+                >
+                  ← Retour
+                </motion.button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       </div>
     );
