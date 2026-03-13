@@ -36,7 +36,7 @@ const BLUE_CONNECTIONS: [string, string][] = [
   ['CER-04', 'CER-10'], ['CER-04', 'CER-07'], ['CER-04', 'CER-08'],
 ];
 
-const TOKEN_SIZE = 130;
+const TOKEN_SIZE = 140;
 const PADDING = 25;
 
 const CeresLayout = ({ mortals, owner, gameState, selectable, onMortalClick, onMortalHover }: CeresLayoutProps) => {
