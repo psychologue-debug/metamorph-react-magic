@@ -52,7 +52,6 @@ const ReactionWindow = ({
   useEffect(() => {
     setAutoPassDone(false);
   }, [reactionWindow.currentReactorIndex]);
-  const currentReactor = gameState.players.find(p => p.id === currentReactorId);
 
   // Timer countdown
   useEffect(() => {
