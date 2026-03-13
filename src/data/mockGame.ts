@@ -2,6 +2,7 @@ import { GameState, Player, SpellCard, DivinityId, DIVINITIES } from '@/types/ga
 import { createMortalsForGod } from './mortals';
 import { createDeck } from './spellCards';
 import { calculateCycleEtherGeneration } from '@/engine/etherGeneration';
+import { generateUUID } from '@/lib/uuid';
 
 export function createMockGameState(playerCount: number = 4, selectedGods?: DivinityId[]): GameState {
   const defaultDivinities: DivinityId[] = ['apollon', 'venus', 'bacchus', 'minerve', 'diane', 'neptune', 'ceres'];
@@ -54,7 +55,7 @@ export function createMockGameState(playerCount: number = 4, selectedGods?: Divi
   const genResult = calculateCycleEtherGeneration(state);
   state.players = genResult.updatedPlayers;
   state.log.unshift({
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     timestamp: Date.now(),
     playerName: 'Système',
     action: 'Cycle 1',
@@ -70,7 +71,7 @@ export function createMockGameState(playerCount: number = 4, selectedGods?: Divi
   state.players[0].hand = drawnCards;
   if (drawnCards.length > 0) {
     state.log.unshift({
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       timestamp: Date.now(),
       playerName: state.players[0].name,
       action: 'Pioche',

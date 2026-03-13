@@ -2,6 +2,7 @@
 // Passive mortal effects that fire in response to game events.
 
 import { Player, GameState, GameLogEntry, SpellCard } from '@/types/game';
+import { generateUUID } from '@/lib/uuid';
 
 export interface TriggeredResult {
   etherChanges: { playerIndex: number; amount: number; reason: string; mortalName: string }[];
@@ -271,7 +272,7 @@ export function applyTriggeredResult(
       i === change.playerIndex ? { ...p, ether: p.ether + change.amount } : p
     );
     logs.push({
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       timestamp: Date.now(),
       playerName: players[change.playerIndex].name,
       action: change.mortalName,
@@ -294,7 +295,7 @@ export function applyTriggeredResult(
         i === draw.playerIndex ? { ...p, hand: [...p.hand, ...drawnCards] } : p
       );
       logs.push({
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         timestamp: Date.now(),
         playerName: players[draw.playerIndex].name,
         action: draw.mortalName,

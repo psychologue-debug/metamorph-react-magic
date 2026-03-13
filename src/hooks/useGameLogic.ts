@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { generateUUID } from '@/lib/uuid';
 import { GameState, Player, SpellCard, TurnPhase, DivinityId, Mortal, ReactionTrigger, ReactionWindowState, GameLogEntry } from '@/types/game';
 import { createMockGameState } from '@/data/mockGame';
 import { toast } from 'sonner';

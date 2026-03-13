@@ -4,6 +4,7 @@
 
 import { Mortal, Player, GameState } from '@/types/game';
 import { canBeIncapacitated, canBeRemovedFromGame } from './mortalStatuses';
+import { generateUUID } from '@/lib/uuid';
 
 export type EffectTargetType =
   | 'enemy_mortal_incapacitate'    // Select an enemy mortal to incapacitate

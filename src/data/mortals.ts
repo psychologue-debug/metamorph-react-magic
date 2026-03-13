@@ -1,4 +1,5 @@
 import { Mortal, DivinityId } from '@/types/game';
+import { generateUUID } from '@/lib/uuid';
 
 export interface MortalTemplate {
   god: DivinityId;
@@ -424,7 +425,7 @@ export function createMortalsForGod(god: DivinityId): Mortal[] {
     return Array.from({ length: 10 }, (_, i) => {
       const code = `${god.toUpperCase().slice(0, 3)}-${String(i + 1).padStart(2, '0')}`;
       return {
-        id: `mortal-${god}-${i}-${crypto.randomUUID().slice(0, 6)}`,
+        id: `mortal-${god}-${i}-${generateUUID().slice(0, 6)}`,
         code,
         god,
         nameRecto: `Mortel ${i + 1}`,
@@ -442,7 +443,7 @@ export function createMortalsForGod(god: DivinityId): Mortal[] {
   }
 
   return templates.map((t, i) => ({
-    id: `mortal-${t.code}-${crypto.randomUUID().slice(0, 6)}`,
+    id: `mortal-${t.code}-${generateUUID().slice(0, 6)}`,
     code: t.code,
     god: t.god,
     nameRecto: t.nameRecto,

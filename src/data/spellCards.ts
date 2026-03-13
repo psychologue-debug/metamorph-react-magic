@@ -1,4 +1,5 @@
 import { SpellCard } from '@/types/game';
+import { generateUUID } from '@/lib/uuid';
 
 // Spell card templates from CSV data
 export interface SpellTemplate {
@@ -199,7 +200,7 @@ export function createDeck(): SpellCard[] {
   for (const template of SPELL_TEMPLATES) {
     for (let i = 0; i < template.quantity; i++) {
       deck.push({
-        id: `spell-${template.name}-${i}-${crypto.randomUUID().slice(0, 6)}`,
+        id: `spell-${template.name}-${i}-${generateUUID().slice(0, 6)}`,
         name: template.name,
         type: template.type,
         cost: template.cost,

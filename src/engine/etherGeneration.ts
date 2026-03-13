@@ -2,6 +2,7 @@
 // Handles modified ether generation at cycle start based on mortal effects
 
 import { Player, GameState, GameLogEntry } from '@/types/game';
+import { generateUUID } from '@/lib/uuid';
 
 interface EtherGenerationResult {
   updatedPlayers: Player[];
@@ -110,7 +111,7 @@ export function calculateCycleEtherGeneration(
 
     // Log per-mortal contributions
     logs.push({
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       timestamp: Date.now(),
       playerName: player.name,
       action: 'Génération cycle',
@@ -119,7 +120,7 @@ export function calculateCycleEtherGeneration(
 
     if (bonusDetails.length > 0) {
       logs.push({
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         timestamp: Date.now(),
         playerName: player.name,
         action: 'Effets de génération',
@@ -141,7 +142,7 @@ export function calculateCycleEtherGeneration(
       updatedPlayers = updatedPlayers.map((ep, i) => {
         if (i === pIdx) return ep;
         logs.push({
-          id: crypto.randomUUID(),
+          id: generateUUID(),
           timestamp: Date.now(),
           playerName: 'Système',
           action: 'Deux serpents',
@@ -173,7 +174,7 @@ export function calculateCycleEtherGeneration(
           return p;
         });
         logs.push({
-          id: crypto.randomUUID(),
+          id: generateUUID(),
           timestamp: Date.now(),
           playerName: updatedPlayers[steal.ownerIndex].name,
           action: steal.mortalName,

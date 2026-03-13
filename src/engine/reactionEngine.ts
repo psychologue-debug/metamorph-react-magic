@@ -2,6 +2,7 @@
 // Validates and resolves reaction card activations during the reaction window.
 
 import { SpellCard, Player, GameState, ReactionTrigger } from '@/types/game';
+import { generateUUID } from '@/lib/uuid';
 
 /**
  * Get list of player IDs who have face-down reactions and are not the source player.
