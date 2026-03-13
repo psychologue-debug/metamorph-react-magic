@@ -170,7 +170,7 @@ const Index = () => {
   }, [isMortalTargeting, pendingEffect, cancelEffect]);
 
   // Lobby screen (multiplayer)
-  if (multiplayer.lobby && (!gameStarted || !gameState)) {
+  if (multiplayer.lobby && multiplayer.lobby.status === 'lobby' && (!gameStarted || !gameState)) {
     return (
       <LobbyScreen
         lobby={multiplayer.lobby}
