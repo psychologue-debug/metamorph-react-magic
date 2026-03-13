@@ -111,7 +111,7 @@ export function calculateCycleEtherGeneration(
 
     // Log per-mortal contributions
     logs.push({
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       timestamp: Date.now(),
       playerName: player.name,
       action: 'Génération cycle',
