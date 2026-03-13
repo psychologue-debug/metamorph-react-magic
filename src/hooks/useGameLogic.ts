@@ -50,8 +50,8 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     effectType?: string; // e.g. 'enemy_mortal_remove' to trigger VEN-09 after reaction
   } | null>(null);
 
-  const startGame = useCallback((playerCount: number, selectedGods?: DivinityId[], playerNames?: string[]) => {
-    const state = createMockGameState(playerCount, selectedGods);
+  const startGame = useCallback((playerCount: number, selectedGods?: DivinityId[], playerNames?: string[], playerIds?: string[]) => {
+    const state = createMockGameState(playerCount, selectedGods, playerIds);
     // Apply player names
     if (playerNames) {
       state.players = state.players.map((p, i) => {
