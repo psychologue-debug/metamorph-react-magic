@@ -110,17 +110,23 @@ const PlayerPanel = ({ player, gameState, isActive, index, compact = false, canS
           <span className="text-muted-foreground">{player.hand.length} cartes</span>
         </div>
 
-        {/* Mortal Grid — fills remaining space */}
-        <div className="flex-1 grid grid-cols-5 place-content-center gap-1 overflow-hidden">
-          <MortalGrid
-            mortals={player.mortals}
-            owner={player}
-            gameState={gameState}
-            tokenSize={tokenSize}
-            targetingMode={!!onMortalClick}
-            onMortalClick={onMortalClick}
-            onMortalHover={onMortalHover}
-          />
+        <div className="flex-1 relative overflow-hidden">
+          {(() => {
+            const layoutProps = {
+              mortals: player.mortals,
+              owner: player,
+              gameState: gameState,
+              selectable: !!onMortalClick,
+              onMortalClick,
+              onMortalHover,
+            };
+            const layouts: Record<string, React.FC<any>> = {
+              ceres: CeresLayout, venus: VenusLayout, apollon: ApollonLayout,
+              neptune: NeptuneLayout, minerve: MinerveLayout, diane: DianeLayout, bacchus: BacchusLayout,
+            };
+            const Layout = layouts[player.divinity] || CeresLayout;
+            return <Layout {...layoutProps} />;
+          })()}
         </div>
       </div>
     </motion.div>
