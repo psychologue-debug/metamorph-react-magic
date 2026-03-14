@@ -1,7 +1,13 @@
 import { useState } from 'react';
 import { Player, GameState, DIVINITIES, Mortal } from '@/types/game';
 import EtherCounter from './EtherCounter';
-import MortalGrid from './MortalGrid';
+import CeresLayout from './CeresLayout';
+import VenusLayout from './VenusLayout';
+import ApollonLayout from './ApollonLayout';
+import NeptuneLayout from './NeptuneLayout';
+import MinerveLayout from './MinerveLayout';
+import DianeLayout from './DianeLayout';
+import BacchusLayout from './BacchusLayout';
 import { motion } from 'framer-motion';
 import { Shield, RefreshCw } from 'lucide-react';
 
