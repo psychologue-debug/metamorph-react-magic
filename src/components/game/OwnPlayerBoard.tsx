@@ -2,10 +2,14 @@ import { Player, GameState, DIVINITIES, SpellCard, Mortal } from '@/types/game';
 import { InteractionMode, canPlayCard } from '@/hooks/useGameLogic';
 import { getEffectiveCardCost } from '@/engine/costModifiers';
 import EtherCounter from './EtherCounter';
-import MortalGrid from './MortalGrid';
+import MortalTooltip from './MortalTooltip';
 import CeresLayout from './CeresLayout';
 import VenusLayout from './VenusLayout';
-import MortalTooltip from './MortalTooltip';
+import ApollonLayout from './ApollonLayout';
+import NeptuneLayout from './NeptuneLayout';
+import MinerveLayout from './MinerveLayout';
+import DianeLayout from './DianeLayout';
+import BacchusLayout from './BacchusLayout';
 import GameCard from './GameCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, Zap, Sword, RefreshCw } from 'lucide-react';
@@ -85,37 +89,22 @@ const OwnPlayerBoard = ({
             backgroundPosition: 'center',
           }}
         >
-          {player.divinity === 'ceres' ? (
-            <CeresLayout
-              mortals={player.mortals}
-              owner={player}
-              gameState={gameState}
-              selectable={isMetaMode || isActivateMode || !!onTargetMortalClick}
-              onMortalClick={isMetaMode ? onMortalClick : isActivateMode ? onMortalClick : onTargetMortalClick ? onTargetMortalClick : undefined}
-              onMortalHover={setHoveredMortal}
-            />
-          ) : player.divinity === 'venus' ? (
-            <VenusLayout
-              mortals={player.mortals}
-              owner={player}
-              gameState={gameState}
-              selectable={isMetaMode || isActivateMode || !!onTargetMortalClick}
-              onMortalClick={isMetaMode ? onMortalClick : isActivateMode ? onMortalClick : onTargetMortalClick ? onTargetMortalClick : undefined}
-              onMortalHover={setHoveredMortal}
-            />
-          ) : (
-            <div className="w-full h-full grid grid-cols-5 place-content-center gap-2 p-4">
-              <MortalGrid
-                mortals={player.mortals}
-                owner={player}
-                gameState={gameState}
-                tokenSize={80}
-                selectable={isMetaMode || isActivateMode || !!onTargetMortalClick}
-                onMortalClick={isMetaMode ? onMortalClick : isActivateMode ? onMortalClick : onTargetMortalClick ? onTargetMortalClick : undefined}
-                onMortalHover={setHoveredMortal}
-              />
-            </div>
-          )}
+          {(() => {
+            const layoutProps = {
+              mortals: player.mortals,
+              owner: player,
+              gameState: gameState,
+              selectable: isMetaMode || isActivateMode || !!onTargetMortalClick,
+              onMortalClick: isMetaMode ? onMortalClick : isActivateMode ? onMortalClick : onTargetMortalClick ? onTargetMortalClick : undefined,
+              onMortalHover: setHoveredMortal,
+            };
+            const layouts: Record<string, React.FC<any>> = {
+              ceres: CeresLayout, venus: VenusLayout, apollon: ApollonLayout,
+              neptune: NeptuneLayout, minerve: MinerveLayout, diane: DianeLayout, bacchus: BacchusLayout,
+            };
+            const Layout = layouts[player.divinity] || CeresLayout;
+            return <Layout {...layoutProps} />;
+          })()}
         </div>
 
         {/* Fixed tooltip zone — top-right of mortal area */}
