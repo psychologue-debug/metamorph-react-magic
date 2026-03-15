@@ -24,7 +24,7 @@ const ACTIVATABLE_CODES = new Set([
   'CER-01', 'CER-07', 'CER-10',
 ]);
 
-/** Red halo: mortals with permanent passive effects (not activatable, not ether) */
+/** Green halo: mortals with permanent passive effects (not activatable, not ether) */
 const PERMANENT_CODES = new Set([
   'APO-07', 'APO-08', 'APO-09', 'APO-10',
   'VEN-04',
