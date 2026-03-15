@@ -993,6 +993,10 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     setInteractionMode((prev) => (prev === 'activating_effect' ? 'idle' : 'activating_effect'));
   }, []);
 
+  const togglePlaceReactionMode = useCallback(() => {
+    setInteractionMode((prev) => (prev === 'placing_reaction' ? 'idle' : 'placing_reaction'));
+  }, []);
+
   const handleToggleReactionWindow = useCallback(() => {
     setGameState((prev) => {
       if (!prev) return prev;
