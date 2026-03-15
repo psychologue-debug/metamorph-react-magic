@@ -139,8 +139,8 @@ const OwnPlayerBoard = ({
                 return (
                   <div
                     key={card.id}
-                    className={`relative transition-all ${dimmed ? 'opacity-40' : ''} ${highlighted ? 'ring-1 rounded-lg' : ''}`}
-                    style={highlighted ? { ringColor: isReactionMode ? 'hsl(var(--reaction) / 0.5)' : 'hsl(var(--divine) / 0.5)' } : {}}
+                    className={`relative transition-all ${dimmed ? 'opacity-40' : ''} ${highlighted ? (isReactionMode ? 'ring-1 ring-reaction/50 rounded-lg' : 'ring-1 ring-divine/50 rounded-lg') : ''}`}
+                    onMouseEnter={() => setHoveredSpell(card)}
                     onMouseEnter={() => setHoveredSpell(card)}
                     onMouseLeave={() => setHoveredSpell(null)}
                   >
