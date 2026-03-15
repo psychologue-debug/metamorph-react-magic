@@ -2562,6 +2562,24 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     const isNotFirst = player.metamorphosesThisTurn > 1;
     const cardsPerEnemy = isNotFirst ? 2 : 1;
 
+    // Determine which enemies need choice vs auto-discard BEFORE updating state
+    const queueEntries: { playerId: string; count: number }[] = [];
+    const autoDiscardPlayerIndices: number[] = [];
+
+    for (let i = 0; i < gameState.players.length; i++) {
+      if (i === pi) continue;
+      const p = gameState.players[i];
+      const totalCards = p.hand.length + p.reactions.length;
+      const discardCount = Math.min(cardsPerEnemy, totalCards);
+      if (discardCount === 0) continue;
+
+      if (totalCards > discardCount) {
+        queueEntries.push({ playerId: p.id, count: discardCount });
+      } else {
+        autoDiscardPlayerIndices.push(i);
+      }
+    }
+
     setGameState(prev => {
       if (!prev) return prev;
       let totalDiscarded = 0;
@@ -2569,23 +2587,36 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
       const allDiscarded: SpellCard[] = [];
 
       const updatedPlayers = prev.players.map((p, i) => {
-        if (i === pi) return p; // Skip source player
-        const discardCount = Math.min(cardsPerEnemy, p.hand.length);
-        if (discardCount === 0) return p;
-        const discardedCards = p.hand.slice(-discardCount);
-        allDiscarded.push(...discardedCards);
-        totalDiscarded += discardCount;
+        if (i === pi || !autoDiscardPlayerIndices.includes(i)) return p;
+        const allPlayerCards = [...p.hand, ...p.reactions];
+        allDiscarded.push(...allPlayerCards);
+        totalDiscarded += allPlayerCards.length;
         newLog.unshift({
           id: crypto.randomUUID(),
           timestamp: Date.now(),
           playerName: p.name,
           action: 'Défausse forcée',
-          detail: `a défaussé ${discardCount} carte(s) (Grenouilles)`,
+          detail: `a défaussé ${allPlayerCards.length} carte(s) (Grenouilles)`,
         });
-        return { ...p, hand: p.hand.slice(0, -discardCount) };
+        return { ...p, hand: [], reactions: [] };
       });
 
-      // If isNotFirst, source gains ether equal to total discarded
+      if (queueEntries.length > 0) {
+        return {
+          ...prev,
+          players: updatedPlayers,
+          discardPile: [...allDiscarded, ...prev.discardPile],
+          log: newLog,
+          forcedDiscardQueue: {
+            entries: queueEntries,
+            reason: 'Grenouilles',
+            sourcePlayerIndex: pi,
+            etherBonusPerCard: isNotFirst,
+            totalDiscarded,
+          },
+        };
+      }
+
       let finalPlayers = updatedPlayers;
       if (isNotFirst && totalDiscarded > 0) {
         finalPlayers = updatedPlayers.map((p, i) =>
@@ -2608,26 +2639,130 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
       };
     });
 
-    // Triggered effects: forced discard (VEN-05 Fontaine, NEP-01 Banc de poissons)
-    setGameState(gs => {
-      if (!gs) return gs;
-      let finalState = gs;
-      for (let idx = 0; idx < gs.players.length; idx++) {
-        if (idx === pi) continue;
-        const trigResult = onForcedDiscard(finalState.players, idx, true);
-        if (trigResult.etherChanges.length > 0) {
-          const applied = applyTriggeredResult(finalState, trigResult);
-          finalState = { ...finalState, players: applied.players, log: [...applied.logs, ...finalState.log] };
+    if (queueEntries.length === 0) {
+      // Triggered effects: forced discard (VEN-05 Fontaine, NEP-01 Banc de poissons)
+      setGameState(gs => {
+        if (!gs) return gs;
+        let finalState = gs;
+        for (let idx = 0; idx < gs.players.length; idx++) {
+          if (idx === pi) continue;
+          const trigResult = onForcedDiscard(finalState.players, idx, true);
+          if (trigResult.etherChanges.length > 0) {
+            const applied = applyTriggeredResult(finalState, trigResult);
+            finalState = { ...finalState, players: applied.players, log: [...applied.logs, ...finalState.log] };
+          }
         }
-      }
-      return finalState === gs ? gs : finalState;
-    });
+        return finalState === gs ? gs : finalState;
+      });
+
+      toast.success(`Grenouilles : chaque ennemi défausse ${cardsPerEnemy} carte(s)${isNotFirst ? ' + Éther gagné' : ''}`, {
+        style: { background: 'hsl(200 40% 20%)', border: '1px solid hsl(200 50% 40%)', color: 'white', fontSize: '16px' },
+      });
+    }
 
     setPendingEffect(null);
-    toast.success(`Grenouilles : chaque ennemi défausse ${cardsPerEnemy} carte(s)${isNotFirst ? ' + Éther gagné' : ''}`, {
-      style: { background: 'hsl(200 40% 20%)', border: '1px solid hsl(200 50% 40%)', color: 'white', fontSize: '16px' },
-    });
   }, [pendingEffect, gameState]);
+
+  // === Forced discard queue finalization (Grenouilles) ===
+  const prevForcedDiscardQueueRef = useRef<import('@/types/game').ForcedDiscardQueueState | null>(null);
+  useEffect(() => {
+    const prevQueue = prevForcedDiscardQueueRef.current;
+    const currentQueue = gameState?.forcedDiscardQueue ?? null;
+    prevForcedDiscardQueueRef.current = currentQueue;
+
+    if (prevQueue && !currentQueue) {
+      // Queue just cleared — trigger forced discard effects
+      const pi = prevQueue.sourcePlayerIndex;
+      setGameState(gs => {
+        if (!gs) return gs;
+        let finalState = gs;
+        for (let idx = 0; idx < gs.players.length; idx++) {
+          if (idx === pi) continue;
+          const trigResult = onForcedDiscard(finalState.players, idx, true);
+          if (trigResult.etherChanges.length > 0) {
+            const applied = applyTriggeredResult(finalState, trigResult);
+            finalState = { ...finalState, players: applied.players, log: [...applied.logs, ...finalState.log] };
+          }
+        }
+        return finalState === gs ? gs : finalState;
+      });
+      toast.success(`${prevQueue.reason} terminé${prevQueue.etherBonusPerCard ? ' + Éther gagné' : ''}`, {
+        style: { background: 'hsl(200 40% 20%)', border: '1px solid hsl(200 50% 40%)', color: 'white', fontSize: '16px' },
+      });
+    }
+  }, [gameState?.forcedDiscardQueue]);
+
+  const handleForcedDiscardChoice = useCallback((cardIds: string[]) => {
+    setGameState(prev => {
+      if (!prev || !prev.forcedDiscardQueue) return prev;
+      const queue = prev.forcedDiscardQueue;
+      const entry = queue.entries[0];
+      if (!entry) return prev;
+
+      const playerIdx = prev.players.findIndex(p => p.id === entry.playerId);
+      if (playerIdx === -1) return prev;
+      const player = prev.players[playerIdx];
+
+      const discardedFromHand = player.hand.filter(c => cardIds.includes(c.id));
+      const discardedFromReactions = player.reactions.filter(c => cardIds.includes(c.id));
+      const allDiscarded = [...discardedFromHand, ...discardedFromReactions];
+
+      const updatedPlayers = prev.players.map((p, i) => {
+        if (i !== playerIdx) return p;
+        return {
+          ...p,
+          hand: p.hand.filter(c => !cardIds.includes(c.id)),
+          reactions: p.reactions.filter(c => !cardIds.includes(c.id)),
+        };
+      });
+
+      const newLog = [{
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        playerName: player.name,
+        action: 'Défausse forcée',
+        detail: `a défaussé ${allDiscarded.length} carte(s) (${queue.reason})`,
+      }, ...prev.log];
+
+      const remainingEntries = queue.entries.slice(1);
+      const newTotalDiscarded = queue.totalDiscarded + allDiscarded.length;
+
+      if (remainingEntries.length === 0) {
+        let finalPlayers = updatedPlayers;
+        if (queue.etherBonusPerCard && newTotalDiscarded > 0) {
+          finalPlayers = updatedPlayers.map((p, i) =>
+            i === queue.sourcePlayerIndex ? { ...p, ether: p.ether + newTotalDiscarded } : p
+          );
+          newLog.unshift({
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: prev.players[queue.sourcePlayerIndex].name,
+            action: queue.reason,
+            detail: `a gagné ${newTotalDiscarded} Éther (autant que de cartes défaussées)`,
+          });
+        }
+        return {
+          ...prev,
+          players: finalPlayers,
+          discardPile: [...allDiscarded, ...prev.discardPile],
+          log: newLog,
+          forcedDiscardQueue: null,
+        };
+      }
+
+      return {
+        ...prev,
+        players: updatedPlayers,
+        discardPile: [...allDiscarded, ...prev.discardPile],
+        log: newLog,
+        forcedDiscardQueue: {
+          ...queue,
+          entries: remainingEntries,
+          totalDiscarded: newTotalDiscarded,
+        },
+      };
+    });
+  }, []);
 
   // === BAC-03 (Mouettes): Steal a card from a god ===
   const resolveStealCard = useCallback((targetPlayerId: string, cardId: string) => {
