@@ -141,7 +141,6 @@ const OwnPlayerBoard = ({
                     key={card.id}
                     className={`relative transition-all ${dimmed ? 'opacity-40' : ''} ${highlighted ? (isReactionMode ? 'ring-1 ring-reaction/50 rounded-lg' : 'ring-1 ring-divine/50 rounded-lg') : ''}`}
                     onMouseEnter={() => setHoveredSpell(card)}
-                    onMouseEnter={() => setHoveredSpell(card)}
                     onMouseLeave={() => setHoveredSpell(null)}
                   >
                     <GameCard
