@@ -75,7 +75,6 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     setInteractionMode('idle');
     setPendingEffect(null);
     setPendingReactionCard(null);
-    setReactionWindow(null);
     setStoredMetamorphoseEffect(null);
     setMetamorphoseEffectUndo(null);
     metamorphoseReactionInfoRef.current = null;
