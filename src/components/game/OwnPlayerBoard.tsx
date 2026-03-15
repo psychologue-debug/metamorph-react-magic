@@ -132,10 +132,15 @@ const OwnPlayerBoard = ({
             <div className="flex gap-2 flex-wrap">
               {player.hand.map((card) => {
                 const playable = isSpellMode ? canPlayCard(card, player, gameState) : true;
+                const isReactionCard = card.type === 'reaction';
+                const reactionPlaceable = isReactionMode && isReactionCard && player.reactions.length < 2;
+                const dimmed = (isSpellMode && !playable) || (isReactionMode && !isReactionCard);
+                const highlighted = (isSpellMode && playable) || (isReactionMode && reactionPlaceable);
                 return (
                   <div
                     key={card.id}
-                    className={`relative transition-all ${isSpellMode && !playable ? 'opacity-40' : ''} ${isSpellMode && playable ? 'ring-1 ring-divine/50 rounded-lg' : ''}`}
+                    className={`relative transition-all ${dimmed ? 'opacity-40' : ''} ${highlighted ? 'ring-1 rounded-lg' : ''}`}
+                    style={highlighted ? { ringColor: isReactionMode ? 'hsl(var(--reaction) / 0.5)' : 'hsl(var(--divine) / 0.5)' } : {}}
                     onMouseEnter={() => setHoveredSpell(card)}
                     onMouseLeave={() => setHoveredSpell(null)}
                   >
@@ -143,7 +148,7 @@ const OwnPlayerBoard = ({
                       card={card}
                       effectiveCost={getEffectiveCardCost(card, player)}
                       small
-                      onClick={isSpellMode ? () => onCardClick?.(card.id) : undefined}
+                      onClick={(isSpellMode || isReactionMode) ? () => onCardClick?.(card.id) : undefined}
                     />
                   </div>
                 );
