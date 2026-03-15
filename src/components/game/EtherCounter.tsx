@@ -47,8 +47,11 @@ const EtherCounter = ({ amount, size = 'md' }: EtherCounterProps) => {
 
   return (
     <motion.div
-      className="relative flex items-start justify-center font-display font-bold"
-      style={{ width: dims.w, height: dims.h }}
+      className="relative flex items-start justify-center font-display font-bold rounded-lg"
+      style={{
+        width: dims.w, height: dims.h,
+        boxShadow: '0 0 0 3px hsl(270 70% 60%), 0 0 12px 4px hsl(270 70% 55% / 0.5), 0 0 24px 8px hsl(270 60% 50% / 0.25)',
+      }}
       animate={{
         filter: [
           'drop-shadow(0 0 4px hsl(270 60% 50% / 0.3))',

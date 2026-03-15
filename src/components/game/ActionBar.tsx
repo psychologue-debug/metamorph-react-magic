@@ -85,7 +85,10 @@ const ActionBar = ({
         className={`flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-display font-semibold border border-amber-500/30 text-foreground transition-all ${
           isActivateMode ? 'ring-2 ring-amber-500' : ''
         } ${disabled ? 'opacity-30 pointer-events-none' : ''}`}
-        style={{ background: isActivateMode ? 'hsl(30 60% 20% / 0.4)' : 'hsl(30 60% 20% / 0.15)' }}
+        style={{
+          background: isActivateMode ? 'hsl(30 60% 20% / 0.4)' : 'hsl(30 60% 20% / 0.15)',
+          boxShadow: '0 0 0 3px hsl(45 95% 55%), 0 0 12px 4px hsl(45 95% 55% / 0.5), 0 0 24px 8px hsl(45 85% 45% / 0.25)',
+        }}
         whileHover={disabled ? {} : { scale: 1.05 }}
         whileTap={disabled ? {} : { scale: 0.95 }}
         onClick={disabled ? undefined : onToggleActivate}
