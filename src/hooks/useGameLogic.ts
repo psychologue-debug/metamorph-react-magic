@@ -14,7 +14,7 @@ import { onMortalMetamorphosed, onMortalIncapacitated, onEtherDestroyed, onReact
 
 const crypto = { randomUUID: generateUUID } as const;
 
-export type InteractionMode = 'idle' | 'metamorphosing' | 'playing_spell' | 'activating_effect';
+export type InteractionMode = 'idle' | 'metamorphosing' | 'playing_spell' | 'activating_effect' | 'placing_reaction';
 
 export interface MultiplayerConfig {
   sessionId: string;
