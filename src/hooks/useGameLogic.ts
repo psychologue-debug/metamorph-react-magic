@@ -109,7 +109,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     setPendingReactionCard(null);
     setStoredMetamorphoseEffect(null);
     setMetamorphoseEffectUndo(null);
-    setReactionWindow(null);
+    setGameState(prev => prev ? { ...prev, reactionWindow: null, forcedDiscardQueue: null } : prev);
     metamorphoseReactionInfoRef.current = null;
     savedMortalSnapshotRef.current = null;
     setInteractionMode('idle');
