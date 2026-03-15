@@ -56,6 +56,6 @@ export const HALO_STYLES: Record<Exclude<HaloType, 'none'>, {
     boxShadow: '0 0 0 4px hsl(45 95% 55%), 0 0 14px 6px hsl(45 95% 55% / 0.7), 0 0 30px 10px hsl(45 85% 45% / 0.35)',
   },
   permanent: {
-    boxShadow: '0 0 0 4px hsl(0 75% 55%), 0 0 14px 6px hsl(0 75% 55% / 0.7), 0 0 30px 10px hsl(0 65% 45% / 0.35)',
+    boxShadow: '0 0 0 4px hsl(140 65% 45%), 0 0 14px 6px hsl(140 65% 45% / 0.7), 0 0 30px 10px hsl(140 55% 35% / 0.35)',
   },
 };
