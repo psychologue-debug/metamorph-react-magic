@@ -1546,17 +1546,20 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
             : currentEffect.type === 'mortal_heal' ? 'lever l\'incapacité de'
             : currentEffect.type === 'retro_own_mortal' || currentEffect.type === 'retro_enemy_mortal' ? 'rétromorphoser'
             : 'incapaciter';
-          setReactionWindow({
-            trigger: {
-              ...trigger,
-              effectDescription: `${currentEffect.sourceMortalName} va ${actionLabel} ${targetMortal?.nameVerso || targetMortal?.nameRecto || 'un mortel'} de ${targetPlayer?.name || 'un joueur'}`,
+          setGameState(prev => prev ? {
+            ...prev,
+            reactionWindow: {
+              trigger: {
+                ...trigger,
+                effectDescription: `${currentEffect.sourceMortalName} va ${actionLabel} ${targetMortal?.nameVerso || targetMortal?.nameRecto || 'un mortel'} de ${targetPlayer?.name || 'un joueur'}`,
+              },
+              reactorQueue: reactors,
+              currentReactorIndex: 0,
+              phase: 'waiting_ready' as const,
+              responses: [],
+              timerStartedAt: Date.now(),
             },
-            reactorQueue: reactors,
-            currentReactorIndex: 0,
-            phase: 'waiting_ready' as const,
-            responses: [],
-            timerStartedAt: Date.now(),
-          });
+          } : prev);
           // Lock and clear immediately
           targetingLockRef.current = true;
           pendingEffectRef.current = null;
