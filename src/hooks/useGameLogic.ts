@@ -2295,22 +2295,26 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     }
 
     // Move to next reactor
-    setReactionWindow(prev => {
-      if (!prev) return prev;
-      const newResponses = [...prev.responses, { playerId, cardId, cardName: card.name, passed: false }];
-      const nextIdx = prev.currentReactorIndex + 1;
-      if (nextIdx >= prev.reactorQueue.length) {
-        return { ...prev, responses: newResponses, phase: 'resolved' as const };
+    setGameState(prev => {
+      if (!prev || !prev.reactionWindow) return prev;
+      const rw = prev.reactionWindow;
+      const newResponses = [...rw.responses, { playerId, cardId, cardName: card.name, passed: false }];
+      const nextIdx = rw.currentReactorIndex + 1;
+      if (nextIdx >= rw.reactorQueue.length) {
+        return { ...prev, reactionWindow: { ...rw, responses: newResponses, phase: 'resolved' as const } };
       }
       return {
         ...prev,
-        responses: newResponses,
-        currentReactorIndex: nextIdx,
-        phase: 'waiting_ready' as const,
-        timerStartedAt: Date.now(),
+        reactionWindow: {
+          ...rw,
+          responses: newResponses,
+          currentReactorIndex: nextIdx,
+          phase: 'waiting_ready' as const,
+          timerStartedAt: Date.now(),
+        },
       };
     });
-  }, [gameState, reactionWindow]);
+  }, [gameState]);
 
   // When reaction window resolves, handle two-phase flow
   useEffect(() => {
