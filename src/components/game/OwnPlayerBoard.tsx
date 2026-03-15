@@ -76,6 +76,7 @@ const OwnPlayerBoard = ({
           style={{ background: 'hsl(var(--divine) / 0.1)', color: 'hsl(var(--divine))' }}>
           {isMetaMode ? '🎯 Choisissez un mortel à métamorphoser'
             : isActivateMode ? '⚡ Cliquez un mortel métamorphosé pour activer son effet'
+            : isReactionMode ? '🛡️ Cliquez une carte Réaction de votre main pour la poser face cachée'
             : '🃏 Choisissez un sort à jouer'}
         </div>
       )}
