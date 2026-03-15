@@ -127,6 +127,7 @@ const OwnPlayerBoard = ({
             <div className="text-sm text-muted-foreground font-display mb-1 uppercase tracking-wider flex items-center gap-1">
               <Sword className="w-4 h-4" /> Main ({player.hand.length}/2)
               {isSpellMode && <span className="text-divine ml-1">— Cliquez pour jouer</span>}
+              {isReactionMode && <span className="text-reaction ml-1">— Cliquez une Réaction</span>}
             </div>
             <div className="flex gap-2 flex-wrap">
               {player.hand.map((card) => {
