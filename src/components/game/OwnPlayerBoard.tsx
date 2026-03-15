@@ -38,6 +38,7 @@ const OwnPlayerBoard = ({
   const isMetaMode = interactionMode === 'metamorphosing';
   const isSpellMode = interactionMode === 'playing_spell';
   const isActivateMode = interactionMode === 'activating_effect';
+  const isReactionMode = interactionMode === 'placing_reaction';
   const [reactionToManage, setReactionToManage] = useState<SpellCard | null>(null);
   const [hoveredMortal, setHoveredMortal] = useState<Mortal | null>(null);
   const [hoveredSpell, setHoveredSpell] = useState<SpellCard | null>(null);
