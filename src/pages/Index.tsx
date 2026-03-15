@@ -485,6 +485,7 @@ const Index = () => {
               onToggleMetamorphose={toggleMetamorphoseMode}
               onToggleSpell={toggleSpellMode}
               onToggleActivate={toggleActivateMode}
+              onTogglePlaceReaction={togglePlaceReactionMode}
             />
           </div>
         </div>
