@@ -15,6 +15,7 @@ import LobbyScreen from '@/components/game/LobbyScreen';
 import TargetingModal from '@/components/game/TargetingModal';
 import ReactionWindow from '@/components/game/ReactionWindow';
 import MortalTooltip from '@/components/game/MortalTooltip';
+import OpponentActionNotification from '@/components/game/OpponentActionNotification';
 import { DivinityId, Mortal, Player as PlayerType, GameState as GameStateType, DIVINITIES as DIV } from '@/types/game';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Scroll, Plus, LogIn, ScrollText, RefreshCw } from 'lucide-react';
