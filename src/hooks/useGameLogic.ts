@@ -2974,6 +2974,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     handleReactionReady,
     handleReactionPass,
     handleReactionActivate,
+    handleForcedDiscardChoice,
   };
 }
 

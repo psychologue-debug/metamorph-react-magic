@@ -648,6 +648,7 @@ const Index = () => {
           onPass={handleReactionPass}
           onActivate={handleReactionActivate}
           onReady={handleReactionReady}
+          localPlayerId={multiplayerConfig?.localPlayerId}
         />
       )}
     </div>
