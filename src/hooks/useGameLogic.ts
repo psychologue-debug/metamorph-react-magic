@@ -35,7 +35,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
   const discardJustCompleted = useRef(false);
   const [pendingReactionCard, setPendingReactionCard] = useState<SpellCard | null>(null);
   const [pendingEffect, setPendingEffect] = useState<PendingEffect | null>(null);
-  const [reactionWindow, setReactionWindow] = useState<ReactionWindowState | null>(null);
+  const reactionWindow = gameState?.reactionWindow ?? null;
   const [storedMetamorphoseEffect, setStoredMetamorphoseEffect] = useState<PendingEffect | null>(null);
   const metamorphoseReactionInfoRef = useRef<{ trigger: ReactionTrigger; reactors: string[] } | null>(null);
   const savedMortalSnapshotRef = useRef<{ mortal: Mortal; playerId: string } | null>(null);
