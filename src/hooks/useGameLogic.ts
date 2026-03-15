@@ -2796,6 +2796,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     toggleMetamorphoseMode,
     toggleSpellMode,
     toggleActivateMode,
+    togglePlaceReactionMode,
     handleToggleReactionWindow,
     resolveEffect,
     cancelEffect,
