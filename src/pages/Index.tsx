@@ -66,6 +66,7 @@ const Index = () => {
     toggleMetamorphoseMode,
     toggleSpellMode,
     toggleActivateMode,
+    togglePlaceReactionMode,
     handleToggleReactionWindow,
     resolveEffect,
     cancelEffect,
