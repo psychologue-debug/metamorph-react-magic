@@ -259,6 +259,8 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
         deck: newDeck,
         discardPile: newDiscardPile,
         log: newLog,
+        reactionWindow: null,
+        forcedDiscardQueue: null,
       };
     });
 
