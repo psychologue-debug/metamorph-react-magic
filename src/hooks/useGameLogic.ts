@@ -2383,7 +2383,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
       }
       setMetamorphoseEffectUndo(null);
       setStoredMetamorphoseEffect(null);
-      setReactionWindow(null);
+      setGameState(prev => prev ? { ...prev, reactionWindow: null } : prev);
       metamorphoseReactionInfoRef.current = null;
       return;
     }
@@ -2392,7 +2392,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     if (hasResistanceOrSursis) {
       // Metamorphose cancelled — clear everything
       setStoredMetamorphoseEffect(null);
-      setReactionWindow(null);
+      setGameState(prev => prev ? { ...prev, reactionWindow: null } : prev);
       metamorphoseReactionInfoRef.current = null;
       return;
     }
@@ -2408,7 +2408,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
         // Phase 1 done → move to targeting. metamorphoseReactionInfoRef stays for phase 2.
         setPendingEffect({ ...storedMetamorphoseEffect, fromMetamorphose: true });
         setStoredMetamorphoseEffect(null);
-        setReactionWindow(null);
+        setGameState(prev => prev ? { ...prev, reactionWindow: null } : prev);
         return;
       }
 
@@ -2423,7 +2423,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     }
 
     setStoredMetamorphoseEffect(null);
-    setReactionWindow(null);
+    setGameState(prev => prev ? { ...prev, reactionWindow: null } : prev);
     metamorphoseReactionInfoRef.current = null;
   }, [reactionWindow, storedMetamorphoseEffect, metamorphoseEffectUndo]);
 
