@@ -14,6 +14,7 @@ interface ReactionWindowProps {
   onPass: (playerId: string) => void;
   onActivate: (playerId: string, cardId: string) => void;
   onReady: (playerId: string) => void;
+  localPlayerId?: string; // multiplayer: only show for current reactor
 }
 
 const REACTION_TIMER_SECONDS = 10;

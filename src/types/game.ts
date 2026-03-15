@@ -123,6 +123,14 @@ export interface Player {
   sursautActive: boolean; // Ether destroyed at end of turn
 }
 
+export interface ForcedDiscardQueueState {
+  entries: { playerId: string; count: number }[];
+  reason: string;
+  sourcePlayerIndex: number;
+  etherBonusPerCard: boolean;
+  totalDiscarded: number;
+}
+
 export interface GameState {
   players: Player[];
   activePlayerIndex: number;
@@ -141,6 +149,7 @@ export interface GameState {
   reactionWindow?: ReactionWindowState | null;
   pendingMetamorphoseEffect?: any; // Stored effect to apply after reaction resolution
   gameOver?: boolean; // Set when victory condition is met at end of cycle
+  forcedDiscardQueue?: ForcedDiscardQueueState | null;
 }
 
 export interface GameLogEntry {
