@@ -14,7 +14,7 @@ import { onMortalMetamorphosed, onMortalIncapacitated, onEtherDestroyed, onReact
 
 const crypto = { randomUUID: generateUUID } as const;
 
-export type InteractionMode = 'idle' | 'metamorphosing' | 'playing_spell' | 'activating_effect';
+export type InteractionMode = 'idle' | 'metamorphosing' | 'playing_spell' | 'activating_effect' | 'placing_reaction';
 
 export interface MultiplayerConfig {
   sessionId: string;
@@ -542,7 +542,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
   }, [interactionMode, gameState]);
 
   const handleCardClick = useCallback((cardId: string) => {
-    if (interactionMode !== 'playing_spell') return;
+    if (interactionMode !== 'playing_spell' && interactionMode !== 'placing_reaction') return;
     let spellGeneratedEtherForPlayer = -1;
 
     setGameState((prev) => {
@@ -566,6 +566,12 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
           players: updPlayers,
           log: [{ id: crypto.randomUUID(), timestamp: Date.now(), playerName: player.name, action: 'Réaction posée', detail: `a posé une réaction face cachée` }, ...prev.log],
         };
+      }
+
+      // In placing_reaction mode, only reaction cards are valid
+      if (interactionMode === 'placing_reaction') {
+        toast.error('Seules les cartes Réaction peuvent être posées dans ce mode');
+        return prev;
       }
 
       // Check cost (with modifiers)
@@ -991,6 +997,10 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
 
   const toggleActivateMode = useCallback(() => {
     setInteractionMode((prev) => (prev === 'activating_effect' ? 'idle' : 'activating_effect'));
+  }, []);
+
+  const togglePlaceReactionMode = useCallback(() => {
+    setInteractionMode((prev) => (prev === 'placing_reaction' ? 'idle' : 'placing_reaction'));
   }, []);
 
   const handleToggleReactionWindow = useCallback(() => {
@@ -2792,6 +2802,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     toggleMetamorphoseMode,
     toggleSpellMode,
     toggleActivateMode,
+    togglePlaceReactionMode,
     handleToggleReactionWindow,
     resolveEffect,
     cancelEffect,

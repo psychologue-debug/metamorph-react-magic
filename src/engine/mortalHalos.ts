@@ -24,7 +24,7 @@ const ACTIVATABLE_CODES = new Set([
   'CER-01', 'CER-07', 'CER-10',
 ]);
 
-/** Red halo: mortals with permanent passive effects (not activatable, not ether) */
+/** Green halo: mortals with permanent passive effects (not activatable, not ether) */
 const PERMANENT_CODES = new Set([
   'APO-07', 'APO-08', 'APO-09', 'APO-10',
   'VEN-04',
@@ -56,6 +56,6 @@ export const HALO_STYLES: Record<Exclude<HaloType, 'none'>, {
     boxShadow: '0 0 0 4px hsl(45 95% 55%), 0 0 14px 6px hsl(45 95% 55% / 0.7), 0 0 30px 10px hsl(45 85% 45% / 0.35)',
   },
   permanent: {
-    boxShadow: '0 0 0 4px hsl(0 75% 55%), 0 0 14px 6px hsl(0 75% 55% / 0.7), 0 0 30px 10px hsl(0 65% 45% / 0.35)',
+    boxShadow: '0 0 0 4px hsl(140 65% 45%), 0 0 14px 6px hsl(140 65% 45% / 0.7), 0 0 30px 10px hsl(140 55% 35% / 0.35)',
   },
 };

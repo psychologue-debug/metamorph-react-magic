@@ -1,16 +1,17 @@
 import { GameState } from '@/types/game';
 import { InteractionMode } from '@/hooks/useGameLogic';
 import { motion } from 'framer-motion';
-import { SkipForward, Sparkles, Hand, X, Flame } from 'lucide-react';
+import { SkipForward, Sparkles, Hand, X, Flame, Shield } from 'lucide-react';
 
 interface ActionBarProps {
   gameState: GameState;
   interactionMode: InteractionMode;
-  isOwnTurn?: boolean; // multiplayer: false when not your turn
+  isOwnTurn?: boolean;
   onEndTurn: () => void;
   onToggleMetamorphose: () => void;
   onToggleSpell: () => void;
   onToggleActivate: () => void;
+  onTogglePlaceReaction: () => void;
 }
 
 const ActionBar = ({
@@ -21,11 +22,13 @@ const ActionBar = ({
   onToggleMetamorphose,
   onToggleSpell,
   onToggleActivate,
+  onTogglePlaceReaction,
 }: ActionBarProps) => {
   const activePlayer = gameState.players[gameState.activePlayerIndex];
   const isMetaMode = interactionMode === 'metamorphosing';
   const isSpellMode = interactionMode === 'playing_spell';
   const isActivateMode = interactionMode === 'activating_effect';
+  const isReactionMode = interactionMode === 'placing_reaction';
   const isSleeping = activePlayer.skipNextTurn;
   const disabled = !isOwnTurn || isSleeping;
 
@@ -95,6 +98,23 @@ const ActionBar = ({
       >
         {isActivateMode ? <X className="w-4 h-4 text-amber-400" /> : <Flame className="w-4 h-4 text-amber-400" />}
         {isActivateMode ? 'Annuler' : 'Activer un Effet'}
+      </motion.button>
+
+      <motion.button
+        className={`flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-display font-semibold border text-foreground transition-all ${
+          isReactionMode ? 'ring-2' : ''
+        } ${disabled ? 'opacity-30 pointer-events-none' : ''}`}
+        style={{
+          background: isReactionMode ? 'hsl(var(--reaction) / 0.25)' : 'hsl(var(--reaction) / 0.1)',
+          borderColor: 'hsl(var(--reaction) / 0.4)',
+          ...(isReactionMode ? { ringColor: 'hsl(var(--reaction))' } : {}),
+        }}
+        whileHover={disabled ? {} : { scale: 1.05 }}
+        whileTap={disabled ? {} : { scale: 0.95 }}
+        onClick={disabled ? undefined : onTogglePlaceReaction}
+      >
+        {isReactionMode ? <X className="w-4 h-4 text-reaction" /> : <Shield className="w-4 h-4 text-reaction" />}
+        {isReactionMode ? 'Annuler' : 'Poser une Réaction'}
       </motion.button>
 
       <div className="flex-1" />

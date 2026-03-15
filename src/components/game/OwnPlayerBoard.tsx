@@ -38,6 +38,7 @@ const OwnPlayerBoard = ({
   const isMetaMode = interactionMode === 'metamorphosing';
   const isSpellMode = interactionMode === 'playing_spell';
   const isActivateMode = interactionMode === 'activating_effect';
+  const isReactionMode = interactionMode === 'placing_reaction';
   const [reactionToManage, setReactionToManage] = useState<SpellCard | null>(null);
   const [hoveredMortal, setHoveredMortal] = useState<Mortal | null>(null);
   const [hoveredSpell, setHoveredSpell] = useState<SpellCard | null>(null);
@@ -75,6 +76,7 @@ const OwnPlayerBoard = ({
           style={{ background: 'hsl(var(--divine) / 0.1)', color: 'hsl(var(--divine))' }}>
           {isMetaMode ? '🎯 Choisissez un mortel à métamorphoser'
             : isActivateMode ? '⚡ Cliquez un mortel métamorphosé pour activer son effet'
+            : isReactionMode ? '🛡️ Cliquez une carte Réaction de votre main pour la poser face cachée'
             : '🃏 Choisissez un sort à jouer'}
         </div>
       )}
@@ -125,14 +127,19 @@ const OwnPlayerBoard = ({
             <div className="text-sm text-muted-foreground font-display mb-1 uppercase tracking-wider flex items-center gap-1">
               <Sword className="w-4 h-4" /> Main ({player.hand.length}/2)
               {isSpellMode && <span className="text-divine ml-1">— Cliquez pour jouer</span>}
+              {isReactionMode && <span className="text-reaction ml-1">— Cliquez une Réaction</span>}
             </div>
             <div className="flex gap-2 flex-wrap">
               {player.hand.map((card) => {
                 const playable = isSpellMode ? canPlayCard(card, player, gameState) : true;
+                const isReactionCard = card.type === 'reaction';
+                const reactionPlaceable = isReactionMode && isReactionCard && player.reactions.length < 2;
+                const dimmed = (isSpellMode && !playable) || (isReactionMode && !isReactionCard);
+                const highlighted = (isSpellMode && playable) || (isReactionMode && reactionPlaceable);
                 return (
                   <div
                     key={card.id}
-                    className={`relative transition-all ${isSpellMode && !playable ? 'opacity-40' : ''} ${isSpellMode && playable ? 'ring-1 ring-divine/50 rounded-lg' : ''}`}
+                    className={`relative transition-all ${dimmed ? 'opacity-40' : ''} ${highlighted ? (isReactionMode ? 'ring-1 ring-reaction/50 rounded-lg' : 'ring-1 ring-divine/50 rounded-lg') : ''}`}
                     onMouseEnter={() => setHoveredSpell(card)}
                     onMouseLeave={() => setHoveredSpell(null)}
                   >
@@ -140,7 +147,7 @@ const OwnPlayerBoard = ({
                       card={card}
                       effectiveCost={getEffectiveCardCost(card, player)}
                       small
-                      onClick={isSpellMode ? () => onCardClick?.(card.id) : undefined}
+                      onClick={(isSpellMode || isReactionMode) ? () => onCardClick?.(card.id) : undefined}
                     />
                   </div>
                 );

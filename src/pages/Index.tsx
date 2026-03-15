@@ -15,6 +15,7 @@ import LobbyScreen from '@/components/game/LobbyScreen';
 import TargetingModal from '@/components/game/TargetingModal';
 import ReactionWindow from '@/components/game/ReactionWindow';
 import MortalTooltip from '@/components/game/MortalTooltip';
+import OpponentActionNotification from '@/components/game/OpponentActionNotification';
 import { DivinityId, Mortal, Player as PlayerType, GameState as GameStateType, DIVINITIES as DIV } from '@/types/game';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Scroll, Plus, LogIn, ScrollText, RefreshCw } from 'lucide-react';
@@ -66,6 +67,7 @@ const Index = () => {
     toggleMetamorphoseMode,
     toggleSpellMode,
     toggleActivateMode,
+    togglePlaceReactionMode,
     handleToggleReactionWindow,
     resolveEffect,
     cancelEffect,
@@ -484,6 +486,7 @@ const Index = () => {
               onToggleMetamorphose={toggleMetamorphoseMode}
               onToggleSpell={toggleSpellMode}
               onToggleActivate={toggleActivateMode}
+              onTogglePlaceReaction={togglePlaceReactionMode}
             />
           </div>
         </div>
@@ -554,6 +557,9 @@ const Index = () => {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Opponent action notifications */}
+      <OpponentActionNotification log={gameState.log} localPlayerName={currentPlayer.name} />
 
       {/* Victory modal */}
       {winners.length > 0 && <VictoryModal winners={winners} onClose={resetGame} />}
