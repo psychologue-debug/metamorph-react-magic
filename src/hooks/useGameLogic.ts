@@ -520,14 +520,17 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
           ? `${activePlayerName} vient de métamorphoser ${mortalDisplayName} (${effectToTrigger.description}). Voulez-vous réagir ?`
           : `${activePlayerName} vient de métamorphoser ${mortalDisplayName}. Voulez-vous réagir ?`;
 
-        setReactionWindow({
-          trigger: { ...trigger, effectDescription: effectDesc },
-          reactorQueue: reactors,
-          currentReactorIndex: 0,
-          phase: 'waiting_ready',
-          responses: [],
-          timerStartedAt: Date.now(),
-        });
+        setGameState(prev => prev ? {
+          ...prev,
+          reactionWindow: {
+            trigger: { ...trigger, effectDescription: effectDesc },
+            reactorQueue: reactors,
+            currentReactorIndex: 0,
+            phase: 'waiting_ready' as const,
+            responses: [],
+            timerStartedAt: Date.now(),
+          },
+        } : prev);
         return;
       }
     }
