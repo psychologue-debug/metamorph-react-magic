@@ -111,6 +111,9 @@ const ReactionWindow = ({
 
   if (!currentReactor) return null;
 
+  // Multiplayer: only render for the current reactor
+  if (isMultiplayer && currentReactorId !== localPlayerId) return null;
+
   // Trigger description — use effectDescription directly when available to avoid duplication
   const triggerDesc = (() => {
     if (reactionWindow.trigger.effectDescription) {
