@@ -90,6 +90,7 @@ const Index = () => {
     handleReactionReady,
     handleReactionPass,
     handleReactionActivate,
+    handleForcedDiscardChoice,
   } = useGameLogic(multiplayerConfig);
 
   // Multiplayer sync: persist gameState to DB & receive Realtime updates
