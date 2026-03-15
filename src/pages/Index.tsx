@@ -558,6 +558,9 @@ const Index = () => {
         </div>
       </div>
 
+      {/* Opponent action notifications */}
+      <OpponentActionNotification log={gameState.log} localPlayerName={currentPlayer.name} />
+
       {/* Victory modal */}
       {winners.length > 0 && <VictoryModal winners={winners} onClose={resetGame} />}
 
