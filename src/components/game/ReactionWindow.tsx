@@ -14,6 +14,7 @@ interface ReactionWindowProps {
   onPass: (playerId: string) => void;
   onActivate: (playerId: string, cardId: string) => void;
   onReady: (playerId: string) => void;
+  localPlayerId?: string; // multiplayer: only show for current reactor
 }
 
 const REACTION_TIMER_SECONDS = 10;
@@ -24,6 +25,7 @@ const ReactionWindow = ({
   onPass,
   onActivate,
   onReady,
+  localPlayerId,
 }: ReactionWindowProps) => {
   const [timeLeft, setTimeLeft] = useState(REACTION_TIMER_SECONDS);
   const [choosing, setChoosing] = useState(false);
@@ -31,12 +33,21 @@ const ReactionWindow = ({
 
   const currentReactorId = reactionWindow.reactorQueue[reactionWindow.currentReactorIndex];
   const currentReactor = gameState.players.find(p => p.id === currentReactorId);
+  const isMultiplayer = !!localPlayerId;
 
   // Filter reaction cards to only show those that can actually be activated
   const validReactions = currentReactor?.reactions.filter(card => {
     const check = canActivateReaction(card, reactionWindow.trigger, currentReactor, gameState);
     return check.valid;
   }) || [];
+
+  // Multiplayer: auto-ready (skip "pass the screen" step)
+  useEffect(() => {
+    if (!isMultiplayer) return;
+    if (reactionWindow.phase === 'waiting_ready' && currentReactorId === localPlayerId) {
+      onReady(currentReactorId);
+    }
+  }, [isMultiplayer, reactionWindow.phase, currentReactorId, localPlayerId, onReady]);
 
   // Auto-pass if no valid reactions available
   useEffect(() => {
@@ -99,6 +110,9 @@ const ReactionWindow = ({
   }, [currentReactor, currentReactorId, reactionWindow.trigger, gameState, onActivate]);
 
   if (!currentReactor) return null;
+
+  // Multiplayer: only render for the current reactor
+  if (isMultiplayer && currentReactorId !== localPlayerId) return null;
 
   // Trigger description — use effectDescription directly when available to avoid duplication
   const triggerDesc = (() => {

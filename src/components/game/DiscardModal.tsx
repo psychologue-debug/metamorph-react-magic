@@ -1,17 +1,26 @@
 import { SpellCard } from '@/types/game';
 import { motion, AnimatePresence } from 'framer-motion';
-import GameCard from './GameCard';
 import { useState } from 'react';
+import { Check } from 'lucide-react';
 
 interface DiscardModalProps {
   hand: SpellCard[];
+  reactions?: SpellCard[];
   excessCount: number;
   onConfirm: (cardIds: string[]) => void;
-  onCancel: () => void;
+  onCancel?: () => void;
+  title?: string;
+  description?: string;
+  playerName?: string;
 }
 
-const DiscardModal = ({ hand, excessCount, onConfirm, onCancel }: DiscardModalProps) => {
+const DiscardModal = ({ hand, reactions = [], excessCount, onConfirm, onCancel, title, description, playerName }: DiscardModalProps) => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const allCards = [
+    ...hand.map(c => ({ ...c, source: 'hand' as const })),
+    ...reactions.map(c => ({ ...c, source: 'reaction' as const })),
+  ];
 
   const toggle = (id: string) => {
     setSelected((prev) => {
@@ -25,7 +34,7 @@ const DiscardModal = ({ hand, excessCount, onConfirm, onCancel }: DiscardModalPr
   return (
     <AnimatePresence>
       <motion.div
-        className="fixed inset-0 z-50 flex items-center justify-center"
+        className="fixed inset-0 z-[100001] flex items-center justify-center"
         style={{ background: 'hsla(0 0% 0% / 0.7)' }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -40,34 +49,55 @@ const DiscardModal = ({ hand, excessCount, onConfirm, onCancel }: DiscardModalPr
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
         >
-          <h2 className="font-display text-2xl font-bold text-foreground mb-2">Défausse obligatoire</h2>
+          <h2 className="font-display text-2xl font-bold text-foreground mb-2">
+            {title || 'Défausse obligatoire'}
+          </h2>
+          {playerName && (
+            <p className="text-lg font-display font-semibold mb-1" style={{ color: 'hsl(var(--divine))' }}>{playerName}</p>
+          )}
           <p className="text-lg text-muted-foreground mb-6 font-body">
-            Vous avez {hand.length} cartes en main. Sélectionnez {excessCount} carte{excessCount > 1 ? 's' : ''} à défausser.
+            {description || `Vous avez ${allCards.length} cartes. Sélectionnez ${excessCount} carte${excessCount > 1 ? 's' : ''} à défausser.`}
           </p>
-          <div className="flex gap-3 flex-wrap justify-center mb-6">
-            {hand.map((card) => (
-              <div
+          <div className="flex flex-col gap-2 mb-6 max-h-64 overflow-y-auto">
+            {allCards.map((card) => (
+              <motion.button
                 key={card.id}
-                className={`cursor-pointer transition-all rounded-lg ${selected.has(card.id) ? 'ring-3 ring-red-500 scale-105 opacity-60' : ''}`}
+                className={`relative p-3 rounded-lg border-2 transition-all text-left ${
+                  selected.has(card.id) ? 'border-destructive ring-2 ring-destructive/30 opacity-70' : 'border-border/50 hover:border-foreground/40'
+                }`}
+                style={{ background: selected.has(card.id) ? 'hsl(var(--destructive) / 0.1)' : 'hsl(var(--secondary) / 0.5)' }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => toggle(card.id)}
               >
-                <GameCard card={card} />
-              </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="font-display text-sm font-bold text-foreground">{card.name}</span>
+                    <span className="text-xs text-muted-foreground/70 italic ml-2">
+                      {card.source === 'reaction' ? '(Réaction posée)' : '(Main)'}
+                    </span>
+                  </div>
+                  {selected.has(card.id) && <Check className="w-4 h-4 text-destructive" />}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{card.description}</p>
+              </motion.button>
             ))}
           </div>
           <div className="flex justify-center gap-4">
-            <motion.button
-              className="px-6 py-3 rounded-xl font-display text-lg font-bold border border-border/50"
-              style={{
-                background: 'hsl(var(--muted))',
-                color: 'hsl(var(--foreground))',
-              }}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={onCancel}
-            >
-              Annuler
-            </motion.button>
+            {onCancel && (
+              <motion.button
+                className="px-6 py-3 rounded-xl font-display text-lg font-bold border border-border/50"
+                style={{
+                  background: 'hsl(var(--muted))',
+                  color: 'hsl(var(--foreground))',
+                }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onCancel}
+              >
+                Annuler
+              </motion.button>
+            )}
             <motion.button
               className="px-8 py-3 rounded-xl font-display text-lg font-bold disabled:opacity-40"
               style={{

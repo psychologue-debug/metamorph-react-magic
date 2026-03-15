@@ -758,7 +758,8 @@ function CardDiscardContent({
                 onClick={() => toggleCard(card.id)}
               >
                 <div className="font-display text-sm font-bold text-foreground">{card.name}</div>
-                <div className="text-xs text-muted-foreground">{card.source === 'reaction' ? '(Réaction posée)' : '(Main)'}</div>
+                <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{card.description}</div>
+                <div className="text-xs text-muted-foreground/70 italic">{card.source === 'reaction' ? '(Réaction posée)' : '(Main)'}</div>
                 {selected && (
                   <div className="absolute top-1 right-1">
                     <Check className="w-4 h-4 text-ether" />

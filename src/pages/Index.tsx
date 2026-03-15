@@ -90,6 +90,7 @@ const Index = () => {
     handleReactionReady,
     handleReactionPass,
     handleReactionActivate,
+    handleForcedDiscardChoice,
   } = useGameLogic(multiplayerConfig);
 
   // Multiplayer sync: persist gameState to DB & receive Realtime updates
@@ -564,15 +565,36 @@ const Index = () => {
       {/* Victory modal */}
       {winners.length > 0 && <VictoryModal winners={winners} onClose={resetGame} />}
 
-      {/* Discard modal */}
+      {/* End-of-turn discard modal */}
       {discardRequired && currentPlayer.hand.length > 2 && (
         <DiscardModal
           hand={currentPlayer.hand}
+          reactions={currentPlayer.reactions}
           excessCount={currentPlayer.hand.length - 2}
           onConfirm={handleDiscard}
           onCancel={cancelDiscard}
         />
       )}
+
+      {/* Forced discard modal (Grenouilles etc.) */}
+      {gameState.forcedDiscardQueue && gameState.forcedDiscardQueue.entries.length > 0 && (() => {
+        const entry = gameState.forcedDiscardQueue!.entries[0];
+        const targetPlayer = gameState.players.find(p => p.id === entry.playerId);
+        if (!targetPlayer) return null;
+        // In multiplayer, only show on the target player's screen
+        if (multiplayerConfig && multiplayerConfig.localPlayerId !== entry.playerId) return null;
+        return (
+          <DiscardModal
+            hand={targetPlayer.hand}
+            reactions={targetPlayer.reactions}
+            excessCount={entry.count}
+            onConfirm={handleForcedDiscardChoice}
+            title={`Défausse forcée — ${gameState.forcedDiscardQueue!.reason}`}
+            description={`${targetPlayer.name}, choisissez ${entry.count} carte(s) à défausser (main ou réactions).`}
+            playerName={targetPlayer.name}
+          />
+        );
+      })()}
 
       {/* Choice panel */}
       {pendingEffect && pendingEffect.type === 'choice' && pendingEffect.choices && (
@@ -626,6 +648,7 @@ const Index = () => {
           onPass={handleReactionPass}
           onActivate={handleReactionActivate}
           onReady={handleReactionReady}
+          localPlayerId={multiplayerConfig?.localPlayerId}
         />
       )}
     </div>
