@@ -24,6 +24,8 @@ export function useMultiplayerSync({
   const channelRef = useRef<RealtimeChannel | null>(null);
   const isRemoteUpdate = useRef(false);
   const lastWrittenRef = useRef<string>('');
+  const lastLocalChangeRef = useRef<number>(0);
+  const pendingWriteRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Write gameState to DB when it changes locally
   useEffect(() => {
@@ -37,16 +39,27 @@ export function useMultiplayerSync({
     // Skip if same as last write (avoid loops)
     if (serialized === lastWrittenRef.current) return;
     lastWrittenRef.current = serialized;
+    lastLocalChangeRef.current = Date.now();
+
+    // Clear any pending write
+    if (pendingWriteRef.current) {
+      clearTimeout(pendingWriteRef.current);
+    }
 
     // Debounce writes
-    const timer = setTimeout(async () => {
+    pendingWriteRef.current = setTimeout(async () => {
+      pendingWriteRef.current = null;
       await supabase
         .from('game_sessions')
         .update({ game_state: gameState as any })
         .eq('id', sessionId);
     }, 100);
 
-    return () => clearTimeout(timer);
+    return () => {
+      if (pendingWriteRef.current) {
+        clearTimeout(pendingWriteRef.current);
+      }
+    };
   }, [sessionId, gameState]);
 
   // Subscribe to Realtime changes
@@ -75,12 +88,21 @@ export function useMultiplayerSync({
             const remoteState = row.game_state as unknown as GameState;
             const remoteSerialized = JSON.stringify(remoteState);
 
-            if (remoteSerialized !== lastWrittenRef.current) {
-              isRemoteUpdate.current = true;
-              lastWrittenRef.current = remoteSerialized;
-              setGameState(remoteState);
-              onGameStartedFromRemote?.();
+            // Skip if this is our own write echoing back
+            if (remoteSerialized === lastWrittenRef.current) return;
+
+            // Skip if we have a very recent local change (write echo protection)
+            // This prevents remote echoes from overwriting in-flight local state
+            const timeSinceLocalChange = Date.now() - lastLocalChangeRef.current;
+            if (timeSinceLocalChange < 500 && pendingWriteRef.current) {
+              // We have a pending write — ignore this remote update as it's likely stale
+              return;
             }
+
+            isRemoteUpdate.current = true;
+            lastWrittenRef.current = remoteSerialized;
+            setGameState(remoteState);
+            onGameStartedFromRemote?.();
           }
         }
       )
