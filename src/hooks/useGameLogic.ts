@@ -1896,6 +1896,25 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
         }, ...prev.log],
       };
     });
+    // Triggered: NEP-01 (Banc de poissons) — Neptune discards own reaction
+    setGameState(gs => {
+      if (!gs) return gs;
+      const pi = pendingEffect.sourcePlayerIndex;
+      const trigResult = onForcedDiscard(gs.players, pi, false);
+      if (trigResult.etherChanges.length === 0) return gs;
+      const applied = applyTriggeredResult(gs, trigResult);
+      return { ...gs, players: applied.players, deck: applied.deck, discardPile: applied.discardPile, log: [...applied.logs, ...gs.log] };
+    });
+    // Triggered: NEP-01 for enemy player who was forced to discard
+    setGameState(gs => {
+      if (!gs) return gs;
+      const enemyIdx = gs.players.findIndex(p => p.id === enemyPlayerId);
+      if (enemyIdx < 0) return gs;
+      const trigResult = onForcedDiscard(gs.players, enemyIdx, true);
+      if (trigResult.etherChanges.length === 0) return gs;
+      const applied = applyTriggeredResult(gs, trigResult);
+      return { ...gs, players: applied.players, deck: applied.deck, discardPile: applied.discardPile, log: [...applied.logs, ...gs.log] };
+    });
     setPendingEffect(null);
   }, [pendingEffect]);
 
