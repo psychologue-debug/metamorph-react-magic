@@ -1,7 +1,7 @@
 import { GameLogEntry } from '@/types/game';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useRef } from 'react';
-import { AlertTriangle, Swords, Sparkles, Shield } from 'lucide-react';
+import { Swords, Sparkles, Shield, Zap, Skull, Heart, RotateCcw, Trash2 } from 'lucide-react';
 
 interface OpponentActionNotificationProps {
   log: GameLogEntry[];
@@ -11,30 +11,98 @@ interface OpponentActionNotificationProps {
 interface Notification {
   id: string;
   message: string;
-  icon: 'attack' | 'spell' | 'reaction' | 'info';
+  icon: 'spell' | 'activation' | 'reaction' | 'metamorphose' | 'incapacitate' | 'heal' | 'retro' | 'remove';
   timestamp: number;
 }
 
 const ICON_MAP = {
-  attack: <Swords className="w-5 h-5 text-destructive" />,
   spell: <Sparkles className="w-5 h-5 text-divine" />,
+  activation: <Zap className="w-5 h-5 text-amber-400" />,
   reaction: <Shield className="w-5 h-5 text-reaction" />,
-  info: <AlertTriangle className="w-5 h-5 text-amber-400" />,
+  metamorphose: <Swords className="w-5 h-5 text-ether" />,
+  incapacitate: <Skull className="w-5 h-5 text-destructive" />,
+  heal: <Heart className="w-5 h-5 text-green-400" />,
+  retro: <RotateCcw className="w-5 h-5 text-orange-400" />,
+  remove: <Trash2 className="w-5 h-5 text-destructive" />,
 };
 
-/** Keywords that signal an impactful action for any player */
-const IMPACTFUL_ACTIONS = [
+/** Actions that warrant a notification to other players */
+const NOTIFIABLE_ACTIONS = new Set([
   'Sort joué',
   'Activation',
   'Réaction posée',
   'Métamorphose',
-];
+  'Incapacitation',
+  'Guérison',
+  'Guérison totale',
+  'Retrait du jeu',
+  'Rétromorphose',
+]);
 
 function getNotificationIcon(action: string): Notification['icon'] {
   if (action === 'Sort joué') return 'spell';
-  if (action === 'Activation') return 'attack';
+  if (action === 'Activation') return 'activation';
   if (action.includes('Réaction')) return 'reaction';
-  return 'info';
+  if (action === 'Métamorphose') return 'metamorphose';
+  if (action === 'Incapacitation') return 'incapacitate';
+  if (action === 'Guérison' || action === 'Guérison totale') return 'heal';
+  if (action === 'Retrait du jeu') return 'remove';
+  if (action === 'Rétromorphose') return 'retro';
+  return 'spell';
+}
+
+/** Build a clean third-person notification message from a log entry */
+function buildNotificationMessage(entry: GameLogEntry): string {
+  const { playerName, action, detail } = entry;
+
+  // Sort joué: "Vénus a joué 'Règne' (coût: 5) — description"
+  // Extract spell name and description from detail
+  if (action === 'Sort joué') {
+    const spellMatch = detail.match(/a joué (.+?) \(coût:/);
+    const descMatch = detail.match(/— (.+)$/);
+    const spellName = spellMatch?.[1] || 'un sortilège';
+    const desc = descMatch?.[1] || '';
+    return desc
+      ? `${playerName} a joué « ${spellName} » — ${desc}`
+      : `${playerName} a joué « ${spellName} »`;
+  }
+
+  // Incapacitation: "Bacchus a incapacité Source d'eau de Apollon"
+  if (action === 'Incapacitation') {
+    return `${playerName} ${detail}`;
+  }
+
+  // Guérison: already "a levé l'incapacité de X de Y"
+  if (action === 'Guérison' || action === 'Guérison totale') {
+    return `${playerName} ${detail}`;
+  }
+
+  // Retrait du jeu
+  if (action === 'Retrait du jeu') {
+    return `${playerName} ${detail}`;
+  }
+
+  // Métamorphose: "a métamorphosé X → Y (coût: Z)"
+  if (action === 'Métamorphose') {
+    const metaMatch = detail.match(/a métamorphosé (.+?) → (.+?) \(coût: (\d+)/);
+    if (metaMatch) {
+      return `${playerName} a métamorphosé ${metaMatch[1]} en ${metaMatch[2]} (coût : ${metaMatch[3]} Éther)`;
+    }
+    return `${playerName} ${detail}`;
+  }
+
+  // Activation: various formats
+  if (action === 'Activation') {
+    return `${playerName} ${detail}`;
+  }
+
+  // Réaction posée
+  if (action === 'Réaction posée') {
+    return `${playerName} a posé une réaction face cachée`;
+  }
+
+  // Default: just concatenate
+  return `${playerName} ${detail}`;
 }
 
 const OpponentActionNotification = ({ log, localPlayerName }: OpponentActionNotificationProps) => {
@@ -60,12 +128,12 @@ const OpponentActionNotification = ({ log, localPlayerName }: OpponentActionNoti
       // Skip own actions and system messages
       if (entry.playerName === localPlayerName || entry.playerName === 'Système') continue;
 
-      // Only show impactful actions
-      if (!IMPACTFUL_ACTIONS.includes(entry.action)) continue;
+      // Only show notifiable actions
+      if (!NOTIFIABLE_ACTIONS.has(entry.action)) continue;
 
       const notif: Notification = {
         id: entry.id,
-        message: `${entry.playerName} ${entry.detail}`,
+        message: buildNotificationMessage(entry),
         icon: getNotificationIcon(entry.action),
         timestamp: Date.now(),
       };
