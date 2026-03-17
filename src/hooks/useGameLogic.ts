@@ -1896,6 +1896,25 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
         }, ...prev.log],
       };
     });
+    // Triggered: NEP-01 (Banc de poissons) — Neptune discards own reaction
+    setGameState(gs => {
+      if (!gs) return gs;
+      const pi = pendingEffect.sourcePlayerIndex;
+      const trigResult = onForcedDiscard(gs.players, pi, false);
+      if (trigResult.etherChanges.length === 0) return gs;
+      const applied = applyTriggeredResult(gs, trigResult);
+      return { ...gs, players: applied.players, deck: applied.deck, discardPile: applied.discardPile, log: [...applied.logs, ...gs.log] };
+    });
+    // Triggered: NEP-01 for enemy player who was forced to discard
+    setGameState(gs => {
+      if (!gs) return gs;
+      const enemyIdx = gs.players.findIndex(p => p.id === enemyPlayerId);
+      if (enemyIdx < 0) return gs;
+      const trigResult = onForcedDiscard(gs.players, enemyIdx, true);
+      if (trigResult.etherChanges.length === 0) return gs;
+      const applied = applyTriggeredResult(gs, trigResult);
+      return { ...gs, players: applied.players, deck: applied.deck, discardPile: applied.discardPile, log: [...applied.logs, ...gs.log] };
+    });
     setPendingEffect(null);
   }, [pendingEffect]);
 
@@ -2453,36 +2472,41 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
           if (metamorphoseTriggeredRef.current.has(newM.id)) continue;
           metamorphoseTriggeredRef.current.add(newM.id);
 
-          const trigResult = onMortalMetamorphosed(gameState.players, newM.code, newM.type, i);
-          if (trigResult.etherChanges.length > 0 || trigResult.drawCards.length > 0) {
-            setGameState(gs => {
-              if (!gs) return gs;
-              const applied = applyTriggeredResult(gs, trigResult);
-              let finalState = { ...gs, players: applied.players, deck: applied.deck, discardPile: applied.discardPile, log: [...applied.logs, ...gs.log] };
-              // Chain APO-05 and MIN-04 for each ether change from mortal effects
-              for (const change of trigResult.etherChanges) {
-                const apo05Result = onOutOfCycleEtherGenerated(finalState.players, change.playerIndex);
-                if (apo05Result.etherChanges.length > 0) {
-                  const apo05Applied = applyTriggeredResult(finalState, apo05Result);
-                  finalState = { ...finalState, players: apo05Applied.players, log: [...apo05Applied.logs, ...finalState.log] };
-                }
-                const min04Result = onMortalEffectGeneratedEther(finalState.players, change.playerIndex, newM.code);
-                if (min04Result.etherChanges.length > 0) {
-                  const min04Applied = applyTriggeredResult(finalState, min04Result);
-                  finalState = { ...finalState, players: min04Applied.players, log: [...min04Applied.logs, ...finalState.log] };
-                }
+          // Capture mortal info for use inside setGameState callback
+          const mortalCode = newM.code;
+          const mortalType = newM.type;
+          const ownerIndex = i;
+
+          setGameState(gs => {
+            if (!gs) return gs;
+            // Compute triggered result inside callback to use latest state
+            const trigResult = onMortalMetamorphosed(gs.players, mortalCode, mortalType, ownerIndex);
+            if (trigResult.etherChanges.length === 0 && trigResult.drawCards.length === 0) return gs;
+            const applied = applyTriggeredResult(gs, trigResult);
+            let finalState = { ...gs, players: applied.players, deck: applied.deck, discardPile: applied.discardPile, log: [...applied.logs, ...gs.log] };
+            // Chain APO-05 and MIN-04 for each ether change from mortal effects
+            for (const change of trigResult.etherChanges) {
+              const apo05Result = onOutOfCycleEtherGenerated(finalState.players, change.playerIndex);
+              if (apo05Result.etherChanges.length > 0) {
+                const apo05Applied = applyTriggeredResult(finalState, apo05Result);
+                finalState = { ...finalState, players: apo05Applied.players, log: [...apo05Applied.logs, ...finalState.log] };
               }
-              // Chain NEP-08 for draws from mortal effects (e.g. NEP-03)
-              for (const draw of trigResult.drawCards) {
-                const nep08Result = onOutOfPhaseCardDrawn(finalState.players, draw.playerIndex);
-                if (nep08Result.etherChanges.length > 0) {
-                  const nep08Applied = applyTriggeredResult(finalState, nep08Result);
-                  finalState = { ...finalState, players: nep08Applied.players, log: [...nep08Applied.logs, ...finalState.log] };
-                }
+              const min04Result = onMortalEffectGeneratedEther(finalState.players, change.playerIndex, mortalCode);
+              if (min04Result.etherChanges.length > 0) {
+                const min04Applied = applyTriggeredResult(finalState, min04Result);
+                finalState = { ...finalState, players: min04Applied.players, log: [...min04Applied.logs, ...finalState.log] };
               }
-              return finalState;
-            });
-          }
+            }
+            // Chain NEP-08 for draws from mortal effects (e.g. NEP-03)
+            for (const draw of trigResult.drawCards) {
+              const nep08Result = onOutOfPhaseCardDrawn(finalState.players, draw.playerIndex);
+              if (nep08Result.etherChanges.length > 0) {
+                const nep08Applied = applyTriggeredResult(finalState, nep08Result);
+                finalState = { ...finalState, players: nep08Applied.players, log: [...nep08Applied.logs, ...finalState.log] };
+              }
+            }
+            return finalState;
+          });
         }
 
         // New incapacitation detected
