@@ -164,7 +164,8 @@ export function onForcedDiscard(
     }
   }
 
-  // NEP-01 (Banc de poissons): +1 ether when a mortal effect or card forces you to discard
+  // NEP-01 (Banc de poissons): +1 ether whenever Neptune is forced to discard
+  // Triggers on ANY discard from an effect (enemy OR own, e.g. NEP-06 Laurier)
   const nep01 = findActiveEffect(players, 'NEP-01');
   if (nep01 && nep01.playerIndex === targetPlayerIndex) {
     result.etherChanges.push({
