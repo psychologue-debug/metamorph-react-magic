@@ -19,6 +19,7 @@ const ActionBar = ({
   gameState,
   interactionMode,
   isOwnTurn = true,
+  reactionWindowActive = false,
   onEndTurn,
   onToggleMetamorphose,
   onToggleSpell,
