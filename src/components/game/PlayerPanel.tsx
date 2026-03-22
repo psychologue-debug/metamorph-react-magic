@@ -35,7 +35,7 @@ const PlayerPanel = ({ player, gameState, isActive, index, compact = false, canS
       transition={{ delay: index * 0.1, duration: 0.4 }}
     >
       <div
-        className="rounded-xl p-3 h-full flex flex-col"
+        className="rounded-xl p-2 sm:p-3 h-full flex flex-col"
         style={{
           background: `linear-gradient(135deg, hsl(var(--card) / 0.95), hsl(var(--secondary) / 0.9))`,
           backdropFilter: 'blur(8px)',
