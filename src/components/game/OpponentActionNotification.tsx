@@ -38,6 +38,8 @@ const NOTIFIABLE_ACTIONS = new Set([
   'Guérison totale',
   'Retrait du jeu',
   'Rétromorphose',
+  'Éther détruit',
+  'Éther volé',
 ]);
 
 function getNotificationIcon(action: string): Notification['icon'] {
