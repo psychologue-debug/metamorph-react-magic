@@ -24,6 +24,7 @@ const ICON_MAP = {
   heal: <Heart className="w-5 h-5 text-green-400" />,
   retro: <RotateCcw className="w-5 h-5 text-orange-400" />,
   remove: <Trash2 className="w-5 h-5 text-destructive" />,
+  ether_destroy: <Flame className="w-5 h-5 text-ether" />,
 };
 
 /** Actions that warrant a notification to other players */
