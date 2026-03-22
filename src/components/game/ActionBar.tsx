@@ -7,6 +7,7 @@ interface ActionBarProps {
   gameState: GameState;
   interactionMode: InteractionMode;
   isOwnTurn?: boolean;
+  reactionWindowActive?: boolean;
   onEndTurn: () => void;
   onToggleMetamorphose: () => void;
   onToggleSpell: () => void;
