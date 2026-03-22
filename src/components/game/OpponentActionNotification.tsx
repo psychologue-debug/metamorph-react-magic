@@ -51,6 +51,7 @@ function getNotificationIcon(action: string): Notification['icon'] {
   if (action === 'Guérison' || action === 'Guérison totale') return 'heal';
   if (action === 'Retrait du jeu') return 'remove';
   if (action === 'Rétromorphose') return 'retro';
+  if (action === 'Éther détruit' || action === 'Éther volé') return 'ether_destroy';
   return 'spell';
 }
 
