@@ -27,6 +27,7 @@ import heroBg from '@/assets/hero-bg.jpg';
 type MenuMode = 'home' | 'create' | 'join';
 
 const Index = () => {
+  const isMobile = useIsMobile();
   const [godSelectionCount, setGodSelectionCount] = useState<number | null>(null);
   const [logOpen, setLogOpen] = useState(false);
   const [hoveredEnemyMortal, setHoveredEnemyMortal] = useState<{ mortal: Mortal; owner: PlayerType } | null>(null);
@@ -35,6 +36,7 @@ const Index = () => {
   const [createMaxPlayers, setCreateMaxPlayers] = useState(4);
   const [joinCode, setJoinCode] = useState('');
   const [joinName, setJoinName] = useState('');
+  const [mobileView, setMobileView] = useState<'own' | 'opponents'>('own');
 
   const multiplayer = useMultiplayer();
 
