@@ -72,11 +72,11 @@ const OwnPlayerBoard = ({
 
       {/* Mode indicator */}
       {interactionMode !== 'idle' && (
-        <div className="px-3 py-2 text-center font-display text-base font-semibold shrink-0"
+        <div className="px-2 sm:px-3 py-1 sm:py-2 text-center font-display text-xs sm:text-base font-semibold shrink-0"
           style={{ background: 'hsl(var(--divine) / 0.1)', color: 'hsl(var(--divine))' }}>
           {isMetaMode ? '🎯 Choisissez un mortel à métamorphoser'
             : isActivateMode ? '⚡ Cliquez un mortel métamorphosé pour activer son effet'
-            : isReactionMode ? '🛡️ Cliquez une carte Réaction de votre main pour la poser face cachée'
+            : isReactionMode ? '🛡️ Cliquez une Réaction à poser'
             : '🃏 Choisissez un sort à jouer'}
         </div>
       )}
