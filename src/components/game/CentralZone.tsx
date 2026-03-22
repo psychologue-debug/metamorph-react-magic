@@ -12,40 +12,38 @@ const CentralZone = ({ gameState }: CentralZoneProps) => {
   const [showDiscard, setShowDiscard] = useState(false);
 
   return (
-    <div className="relative flex items-center gap-3">
-      <div className="flex items-center gap-2">
-        <RotateCcw className="w-4 h-4 text-ether" />
-        <span className="font-display text-sm text-muted-foreground">
-          Cycle {gameState.turnCount}
+    <div className="relative flex items-center gap-1.5 sm:gap-3 flex-wrap">
+      <div className="flex items-center gap-1 sm:gap-2">
+        <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4 text-ether" />
+        <span className="font-display text-xs sm:text-sm text-muted-foreground">
+          C{gameState.turnCount}
         </span>
       </div>
 
-      <div className="h-4 w-px bg-border/40" />
+      <div className="h-3 sm:h-4 w-px bg-border/40" />
 
       <motion.span
-        className="font-display text-sm font-bold text-foreground"
+        className="font-display text-xs sm:text-sm font-bold text-foreground truncate max-w-[100px] sm:max-w-none"
         key={activePlayer.name}
         initial={{ opacity: 0, x: -5 }}
         animate={{ opacity: 1, x: 0 }}
       >
-        🏛 Tour de {activePlayer.name}
+        🏛 {activePlayer.name}
       </motion.span>
 
-      <div className="h-4 w-px bg-border/40" />
+      <div className="h-3 sm:h-4 w-px bg-border/40" />
 
-      <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1 bg-secondary/60 rounded-lg px-2 py-0.5">
-          <Layers className="w-3.5 h-3.5 text-ether" />
-          <span className="text-xs font-display font-bold text-foreground">{gameState.deck.length}</span>
-          <span className="text-xs text-muted-foreground">pioche</span>
+      <div className="flex items-center gap-1 sm:gap-2">
+        <div className="flex items-center gap-0.5 sm:gap-1 bg-secondary/60 rounded-lg px-1.5 sm:px-2 py-0.5">
+          <Layers className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-ether" />
+          <span className="text-[10px] sm:text-xs font-display font-bold text-foreground">{gameState.deck.length}</span>
         </div>
         <button
-          className="flex items-center gap-1 bg-secondary/60 rounded-lg px-2 py-0.5 hover:bg-ether/20 transition-colors cursor-pointer"
+          className="flex items-center gap-0.5 sm:gap-1 bg-secondary/60 rounded-lg px-1.5 sm:px-2 py-0.5 hover:bg-ether/20 transition-colors cursor-pointer"
           onClick={() => setShowDiscard(!showDiscard)}
         >
-          <Trash2 className="w-3.5 h-3.5 text-ether" />
-          <span className="text-xs font-display font-bold text-foreground">{gameState.discardPile.length}</span>
-          <span className="text-xs text-muted-foreground">défausse</span>
+          <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-ether" />
+          <span className="text-[10px] sm:text-xs font-display font-bold text-foreground">{gameState.discardPile.length}</span>
         </button>
       </div>
 

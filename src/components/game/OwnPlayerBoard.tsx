@@ -160,8 +160,8 @@ const OwnPlayerBoard = ({
 
           {/* Reactions */}
           <div className="shrink-0 relative">
-            <div className="text-sm text-muted-foreground font-display mb-1 uppercase tracking-wider flex items-center gap-1">
-              <Shield className="w-4 h-4 text-reaction" /> Réactions ({player.reactions.length}/2)
+            <div className="text-xs sm:text-sm text-muted-foreground font-display mb-1 uppercase tracking-wider flex items-center gap-1">
+              <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-reaction" /> <span className="hidden sm:inline">Réactions</span> ({player.reactions.length}/2)
             </div>
             <div className="flex gap-2">
               {player.reactions.map((card) => (

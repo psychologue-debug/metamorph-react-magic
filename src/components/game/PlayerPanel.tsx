@@ -64,9 +64,9 @@ const PlayerPanel = ({ player, gameState, isActive, index, compact = false, canS
         </div>
 
         {/* Stats row */}
-        <div className="flex items-center gap-3 mb-2 text-sm shrink-0">
-          <div className="flex items-center gap-1">
-            <RefreshCw className="text-ether w-4 h-4" />
+        <div className="flex items-center gap-2 sm:gap-3 mb-1.5 sm:mb-2 text-xs sm:text-sm shrink-0">
+          <div className="flex items-center gap-0.5 sm:gap-1">
+            <RefreshCw className="text-ether w-3 h-3 sm:w-4 sm:h-4" />
             <span className="font-display text-foreground font-bold">{player.metamorphosedCount}/10</span>
           </div>
           <div className="flex items-center gap-1 relative">
