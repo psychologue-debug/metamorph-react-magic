@@ -35,7 +35,7 @@ const PlayerPanel = ({ player, gameState, isActive, index, compact = false, canS
       transition={{ delay: index * 0.1, duration: 0.4 }}
     >
       <div
-        className="rounded-xl p-3 h-full flex flex-col"
+        className="rounded-xl p-2 sm:p-3 h-full flex flex-col"
         style={{
           background: `linear-gradient(135deg, hsl(var(--card) / 0.95), hsl(var(--secondary) / 0.9))`,
           backdropFilter: 'blur(8px)',
@@ -43,9 +43,9 @@ const PlayerPanel = ({ player, gameState, isActive, index, compact = false, canS
         }}
       >
         {/* Header row */}
-        <div className="flex items-center gap-2 mb-2 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2 shrink-0">
           <div
-            className="w-8 h-10 rounded-md flex items-center justify-center border-2 shrink-0 overflow-hidden"
+            className="w-6 h-8 sm:w-8 sm:h-10 rounded-md flex items-center justify-center border-2 shrink-0 overflow-hidden"
             style={{
               borderColor: isActive ? 'hsl(var(--ether))' : 'hsl(var(--border) / 0.5)',
               background: `linear-gradient(135deg, hsl(${divinity.color} / 0.3), hsl(var(--card)))`,
@@ -54,19 +54,19 @@ const PlayerPanel = ({ player, gameState, isActive, index, compact = false, canS
             {divinity.image ? (
               <img src={divinity.image} alt={divinity.name} className="w-full h-full object-cover" />
             ) : (
-              <span className="font-display font-bold text-foreground text-sm">{player.avatar}</span>
+              <span className="font-display font-bold text-foreground text-xs sm:text-sm">{player.avatar}</span>
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-display font-bold text-foreground truncate text-base">{player.name}</h3>
+            <h3 className="font-display font-bold text-foreground truncate text-sm sm:text-base">{player.name}</h3>
           </div>
           <EtherCounter amount={player.ether} size="sm" />
         </div>
 
         {/* Stats row */}
-        <div className="flex items-center gap-3 mb-2 text-sm shrink-0">
-          <div className="flex items-center gap-1">
-            <RefreshCw className="text-ether w-4 h-4" />
+        <div className="flex items-center gap-2 sm:gap-3 mb-1.5 sm:mb-2 text-xs sm:text-sm shrink-0">
+          <div className="flex items-center gap-0.5 sm:gap-1">
+            <RefreshCw className="text-ether w-3 h-3 sm:w-4 sm:h-4" />
             <span className="font-display text-foreground font-bold">{player.metamorphosedCount}/10</span>
           </div>
           <div className="flex items-center gap-1 relative">

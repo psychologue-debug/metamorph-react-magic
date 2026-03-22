@@ -12,7 +12,7 @@ const GameLog = ({ entries, open }: GameLogProps) => {
     <AnimatePresence>
       {open && (
         <motion.div
-          className="absolute top-0 right-0 z-[9990] w-72 max-h-[70vh] rounded-bl-lg"
+          className="absolute top-0 right-0 z-[9990] w-56 sm:w-72 max-h-[60vh] sm:max-h-[70vh] rounded-bl-lg"
           style={{
             background: 'hsl(var(--card) / 0.97)',
             backdropFilter: 'blur(12px)',

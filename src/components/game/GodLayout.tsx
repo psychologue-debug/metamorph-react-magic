@@ -1,5 +1,6 @@
 import { Mortal, Player, GameState } from '@/types/game';
 import BoardToken from './BoardToken';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export interface GodLayoutProps {
   mortals: Mortal[];
@@ -25,8 +26,11 @@ interface GodLayoutInternalProps extends GodLayoutProps {
 const PADDING = 25;
 
 const GodLayout = ({ mortals, owner, gameState, selectable, onMortalClick, onMortalHover, positions, connections, tokenSize = 140 }: GodLayoutInternalProps) => {
+  const isMobile = useIsMobile();
+  const effectiveSize = isMobile ? Math.min(tokenSize, 80) : tokenSize;
+
   return (
-    <div className="relative w-full h-full" style={{ padding: PADDING }}>
+    <div className="relative w-full h-full" style={{ padding: isMobile ? 10 : PADDING }}>
       <div className="relative w-full h-full">
         <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
           {connections.map((conn, i) => {
@@ -39,7 +43,7 @@ const GodLayout = ({ mortals, owner, gameState, selectable, onMortalClick, onMor
                 x1={`${pFrom.x}%`} y1={`${pFrom.y}%`}
                 x2={`${pTo.x}%`} y2={`${pTo.y}%`}
                 stroke={conn.color}
-                strokeWidth="5"
+                strokeWidth={isMobile ? 3 : 5}
                 strokeOpacity="0.55"
                 strokeLinecap="round"
               />
@@ -56,7 +60,7 @@ const GodLayout = ({ mortals, owner, gameState, selectable, onMortalClick, onMor
                 mortal={mortal}
                 owner={owner}
                 gameState={gameState}
-                size={tokenSize}
+                size={effectiveSize}
                 selectable={selectable}
                 onClick={onMortalClick}
                 onHover={onMortalHover}

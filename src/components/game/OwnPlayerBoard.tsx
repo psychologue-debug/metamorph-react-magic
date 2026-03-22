@@ -46,9 +46,9 @@ const OwnPlayerBoard = ({
   return (
     <div className="flex flex-col h-full">
       {/* Player info header */}
-      <div className="flex items-center gap-3 p-3 border-b shrink-0" style={{ borderColor: 'hsl(var(--border) / 0.3)' }}>
+      <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 border-b shrink-0" style={{ borderColor: 'hsl(var(--border) / 0.3)' }}>
         <div
-          className="w-12 h-16 rounded-lg flex items-center justify-center border-2 overflow-hidden shrink-0"
+          className="w-8 h-10 sm:w-12 sm:h-16 rounded-lg flex items-center justify-center border-2 overflow-hidden shrink-0"
           style={{
             borderColor: `hsl(${divinity.color})`,
             background: `linear-gradient(135deg, hsl(${divinity.color} / 0.2), hsl(var(--card)))`,
@@ -57,26 +57,26 @@ const OwnPlayerBoard = ({
           {divinity.image ? (
             <img src={divinity.image} alt={divinity.name} className="w-full h-full object-cover" />
           ) : (
-            <span className="font-display text-lg font-bold text-foreground">{player.avatar}</span>
+            <span className="font-display text-sm sm:text-lg font-bold text-foreground">{player.avatar}</span>
           )}
         </div>
         <div className="min-w-0">
-          <h2 className="font-display text-xl font-bold text-foreground truncate">{player.name}</h2>
+          <h2 className="font-display text-base sm:text-xl font-bold text-foreground truncate">{player.name}</h2>
         </div>
-        <EtherCounter amount={player.ether} size="md" />
-        <div className="flex items-center gap-1.5">
-          <RefreshCw className="w-5 h-5 text-ether" />
-          <span className="font-display text-lg font-bold text-foreground">{player.metamorphosedCount}/10</span>
+        <EtherCounter amount={player.ether} size="sm" />
+        <div className="flex items-center gap-1">
+          <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 text-ether" />
+          <span className="font-display text-sm sm:text-lg font-bold text-foreground">{player.metamorphosedCount}/10</span>
         </div>
       </div>
 
       {/* Mode indicator */}
       {interactionMode !== 'idle' && (
-        <div className="px-3 py-2 text-center font-display text-base font-semibold shrink-0"
+        <div className="px-2 sm:px-3 py-1 sm:py-2 text-center font-display text-xs sm:text-base font-semibold shrink-0"
           style={{ background: 'hsl(var(--divine) / 0.1)', color: 'hsl(var(--divine))' }}>
           {isMetaMode ? '🎯 Choisissez un mortel à métamorphoser'
             : isActivateMode ? '⚡ Cliquez un mortel métamorphosé pour activer son effet'
-            : isReactionMode ? '🛡️ Cliquez une carte Réaction de votre main pour la poser face cachée'
+            : isReactionMode ? '🛡️ Cliquez une Réaction à poser'
             : '🃏 Choisissez un sort à jouer'}
         </div>
       )}
@@ -120,14 +120,14 @@ const OwnPlayerBoard = ({
       </div>
 
       {/* Hand + Reactions row */}
-      <div className="px-3 py-2 border-t shrink-0 relative" style={{ borderColor: 'hsl(var(--border) / 0.3)' }}>
-        <div className="flex items-start gap-4">
+      <div className="px-2 sm:px-3 py-1.5 sm:py-2 border-t shrink-0 relative" style={{ borderColor: 'hsl(var(--border) / 0.3)' }}>
+        <div className="flex items-start gap-2 sm:gap-4">
           {/* Hand */}
           <div className="flex-1 min-w-0">
-            <div className="text-sm text-muted-foreground font-display mb-1 uppercase tracking-wider flex items-center gap-1">
-              <Sword className="w-4 h-4" /> Main ({player.hand.length}/2)
-              {isSpellMode && <span className="text-divine ml-1">— Cliquez pour jouer</span>}
-              {isReactionMode && <span className="text-reaction ml-1">— Cliquez une Réaction</span>}
+            <div className="text-xs sm:text-sm text-muted-foreground font-display mb-1 uppercase tracking-wider flex items-center gap-1">
+              <Sword className="w-3 h-3 sm:w-4 sm:h-4" /> Main ({player.hand.length}/2)
+              {isSpellMode && <span className="text-divine ml-1 hidden sm:inline">— Cliquez pour jouer</span>}
+              {isReactionMode && <span className="text-reaction ml-1 hidden sm:inline">— Cliquez une Réaction</span>}
             </div>
             <div className="flex gap-2 flex-wrap">
               {player.hand.map((card) => {
@@ -160,8 +160,8 @@ const OwnPlayerBoard = ({
 
           {/* Reactions */}
           <div className="shrink-0 relative">
-            <div className="text-sm text-muted-foreground font-display mb-1 uppercase tracking-wider flex items-center gap-1">
-              <Shield className="w-4 h-4 text-reaction" /> Réactions ({player.reactions.length}/2)
+            <div className="text-xs sm:text-sm text-muted-foreground font-display mb-1 uppercase tracking-wider flex items-center gap-1">
+              <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-reaction" /> <span className="hidden sm:inline">Réactions</span> ({player.reactions.length}/2)
             </div>
             <div className="flex gap-2">
               {player.reactions.map((card) => (
