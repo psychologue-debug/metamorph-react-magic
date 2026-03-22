@@ -2455,7 +2455,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     setStoredMetamorphoseEffect(null);
     setGameState(prev => prev ? { ...prev, reactionWindow: null } : prev);
     metamorphoseReactionInfoRef.current = null;
-  }, [reactionWindow, storedMetamorphoseEffect, metamorphoseEffectUndo]);
+  }, [reactionWindow, storedMetamorphoseEffect, metamorphoseEffectUndo, multiplayerConfig, gameState?.activePlayerIndex]);
 
   // === Triggered passive effects: detect state changes and apply ===
   useEffect(() => {
