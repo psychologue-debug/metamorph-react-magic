@@ -105,6 +105,11 @@ function buildNotificationMessage(entry: GameLogEntry): string {
     return `${playerName} a posé une réaction face cachée`;
   }
 
+  // Éther détruit / Éther volé
+  if (action === 'Éther détruit' || action === 'Éther volé') {
+    return `${playerName} ${detail}`;
+  }
+
   // Default: just concatenate
   return `${playerName} ${detail}`;
 }
