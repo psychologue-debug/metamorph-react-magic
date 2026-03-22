@@ -1,7 +1,7 @@
 import { GameLogEntry } from '@/types/game';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useRef } from 'react';
-import { Swords, Sparkles, Shield, Zap, Skull, Heart, RotateCcw, Trash2 } from 'lucide-react';
+import { Swords, Sparkles, Shield, Zap, Skull, Heart, RotateCcw, Trash2, Flame } from 'lucide-react';
 
 interface OpponentActionNotificationProps {
   log: GameLogEntry[];
@@ -11,7 +11,7 @@ interface OpponentActionNotificationProps {
 interface Notification {
   id: string;
   message: string;
-  icon: 'spell' | 'activation' | 'reaction' | 'metamorphose' | 'incapacitate' | 'heal' | 'retro' | 'remove';
+  icon: 'spell' | 'activation' | 'reaction' | 'metamorphose' | 'incapacitate' | 'heal' | 'retro' | 'remove' | 'ether_destroy';
   timestamp: number;
 }
 
@@ -24,6 +24,7 @@ const ICON_MAP = {
   heal: <Heart className="w-5 h-5 text-green-400" />,
   retro: <RotateCcw className="w-5 h-5 text-orange-400" />,
   remove: <Trash2 className="w-5 h-5 text-destructive" />,
+  ether_destroy: <Flame className="w-5 h-5 text-ether" />,
 };
 
 /** Actions that warrant a notification to other players */
@@ -37,6 +38,8 @@ const NOTIFIABLE_ACTIONS = new Set([
   'Guérison totale',
   'Retrait du jeu',
   'Rétromorphose',
+  'Éther détruit',
+  'Éther volé',
 ]);
 
 function getNotificationIcon(action: string): Notification['icon'] {
@@ -48,6 +51,7 @@ function getNotificationIcon(action: string): Notification['icon'] {
   if (action === 'Guérison' || action === 'Guérison totale') return 'heal';
   if (action === 'Retrait du jeu') return 'remove';
   if (action === 'Rétromorphose') return 'retro';
+  if (action === 'Éther détruit' || action === 'Éther volé') return 'ether_destroy';
   return 'spell';
 }
 
@@ -99,6 +103,11 @@ function buildNotificationMessage(entry: GameLogEntry): string {
   // Réaction posée
   if (action === 'Réaction posée') {
     return `${playerName} a posé une réaction face cachée`;
+  }
+
+  // Éther détruit / Éther volé
+  if (action === 'Éther détruit' || action === 'Éther volé') {
+    return `${playerName} ${detail}`;
   }
 
   // Default: just concatenate

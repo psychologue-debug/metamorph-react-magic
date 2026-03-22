@@ -6,14 +6,21 @@ import { isMortalInvulnerable } from './mortalStatuses';
 import { generateUUID } from '@/lib/uuid';
 
 /**
- * Get list of player IDs who have face-down reactions and are not the source player.
+ * Get list of player IDs who have face-down reactions that can actually be activated
+ * for the given trigger. This prevents opening reaction windows for irrelevant reactors,
+ * which is critical in multiplayer to avoid round-trip delays for auto-pass.
  */
 export function getEligibleReactors(
   trigger: ReactionTrigger,
   gameState: GameState
 ): string[] {
   return gameState.players
-    .filter(p => p.id !== trigger.sourcePlayerId && p.reactions.length > 0)
+    .filter(p => {
+      if (p.id === trigger.sourcePlayerId) return false;
+      if (p.reactions.length === 0) return false;
+      // Check if at least one reaction can actually be activated for this trigger
+      return p.reactions.some(card => canActivateReaction(card, trigger, p, gameState).valid);
+    })
     .map(p => p.id);
 }
 
