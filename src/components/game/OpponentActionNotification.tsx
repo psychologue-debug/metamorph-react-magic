@@ -11,7 +11,7 @@ interface OpponentActionNotificationProps {
 interface Notification {
   id: string;
   message: string;
-  icon: 'spell' | 'activation' | 'reaction' | 'metamorphose' | 'incapacitate' | 'heal' | 'retro' | 'remove';
+  icon: 'spell' | 'activation' | 'reaction' | 'metamorphose' | 'incapacitate' | 'heal' | 'retro' | 'remove' | 'ether_destroy';
   timestamp: number;
 }
 
