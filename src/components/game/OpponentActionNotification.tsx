@@ -1,7 +1,7 @@
 import { GameLogEntry } from '@/types/game';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useRef } from 'react';
-import { Swords, Sparkles, Shield, Zap, Skull, Heart, RotateCcw, Trash2 } from 'lucide-react';
+import { Swords, Sparkles, Shield, Zap, Skull, Heart, RotateCcw, Trash2, Flame } from 'lucide-react';
 
 interface OpponentActionNotificationProps {
   log: GameLogEntry[];
