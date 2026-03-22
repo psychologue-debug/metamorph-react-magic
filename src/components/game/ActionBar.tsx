@@ -126,11 +126,11 @@ const ActionBar = ({
       <div className="flex-1 min-w-0" />
 
       <motion.button
-        className={`flex items-center gap-1 sm:gap-2 h-8 sm:h-9 px-2 sm:px-4 rounded-lg text-xs sm:text-sm font-display font-semibold text-foreground transition-all border border-border/50 ${!isOwnTurn ? 'opacity-30 pointer-events-none' : ''}`}
+        className={`flex items-center gap-1 sm:gap-2 h-8 sm:h-9 px-2 sm:px-4 rounded-lg text-xs sm:text-sm font-display font-semibold text-foreground transition-all border border-border/50 ${disabled ? 'opacity-30 pointer-events-none' : ''}`}
         style={{ background: 'hsl(var(--muted))' }}
-        whileHover={!isOwnTurn ? {} : { scale: 1.05 }}
-        whileTap={!isOwnTurn ? {} : { scale: 0.95 }}
-        onClick={isOwnTurn ? onEndTurn : undefined}
+        whileHover={disabled ? {} : { scale: 1.05 }}
+        whileTap={disabled ? {} : { scale: 0.95 }}
+        onClick={disabled ? undefined : onEndTurn}
       >
         <SkipForward className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         <span className="hidden sm:inline">Fin du Tour</span>
