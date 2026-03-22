@@ -225,29 +225,29 @@ const Index = () => {
       >
         <div className="absolute inset-0 pointer-events-none">
           <div
-            className="absolute left-1/2 top-1/3 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-15"
+            className="absolute left-1/2 top-1/3 -translate-x-1/2 -translate-y-1/2 w-64 sm:w-[500px] h-64 sm:h-[500px] rounded-full opacity-15"
             style={{ background: `radial-gradient(circle, hsl(var(--ether)) 0%, transparent 60%)` }}
           />
         </div>
 
         <motion.div
-          className="relative z-10 text-center max-w-lg px-6"
+          className="relative z-10 text-center max-w-lg px-4 sm:px-6 w-full"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, type: 'spring' }}
         >
-          <motion.div className="mb-6" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2, duration: 0.6 }}>
-            <Scroll className="w-10 h-10 text-ether mx-auto mb-3" />
-            <h1 className="font-display text-5xl font-bold text-foreground tracking-wider mb-2">MÉTAMORPHOSES</h1>
-            <div className="w-24 h-0.5 mx-auto mb-4" style={{ background: 'linear-gradient(90deg, transparent, hsl(var(--ether)), transparent)' }} />
-            <p className="font-body text-lg text-muted-foreground italic">Un jeu de stratégie inspiré de la mythologie romaine</p>
+          <motion.div className="mb-4 sm:mb-6" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2, duration: 0.6 }}>
+            <Scroll className="w-8 h-8 sm:w-10 sm:h-10 text-ether mx-auto mb-2 sm:mb-3" />
+            <h1 className="font-display text-3xl sm:text-5xl font-bold text-foreground tracking-wider mb-2">MÉTAMORPHOSES</h1>
+            <div className="w-16 sm:w-24 h-0.5 mx-auto mb-3 sm:mb-4" style={{ background: 'linear-gradient(90deg, transparent, hsl(var(--ether)), transparent)' }} />
+            <p className="font-body text-base sm:text-lg text-muted-foreground italic">Un jeu de stratégie inspiré de la mythologie romaine</p>
           </motion.div>
 
           <AnimatePresence mode="wait">
             {menuMode === 'home' && (
-              <motion.div key="home" className="mt-10 flex flex-col gap-4 items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <motion.div key="home" className="mt-6 sm:mt-10 flex flex-col gap-3 sm:gap-4 items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 <motion.button
-                  className="flex items-center gap-3 px-8 py-4 rounded-xl font-display text-sm font-bold uppercase tracking-widest transition-all w-64"
+                  className="flex items-center gap-3 px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-display text-xs sm:text-sm font-bold uppercase tracking-widest transition-all w-56 sm:w-64"
                   style={{
                     background: `linear-gradient(135deg, hsl(var(--ether)), hsl(var(--ether-dim)))`,
                     color: 'hsl(var(--primary-foreground))',
@@ -257,28 +257,28 @@ const Index = () => {
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setMenuMode('create')}
                 >
-                  <Plus className="w-5 h-5" />
+                  <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
                   Créer une Partie
                 </motion.button>
 
                 <motion.button
-                  className="flex items-center gap-3 px-8 py-4 rounded-xl font-display text-sm font-bold uppercase tracking-widest transition-all w-64 border border-ether/30"
+                  className="flex items-center gap-3 px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-display text-xs sm:text-sm font-bold uppercase tracking-widest transition-all w-56 sm:w-64 border border-ether/30"
                   style={{ background: 'hsl(var(--card) / 0.9)', color: 'hsl(var(--foreground))' }}
                   whileHover={{ scale: 1.05, borderColor: 'hsl(var(--ether) / 0.6)' }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setMenuMode('join')}
                 >
-                  <LogIn className="w-5 h-5 text-ether" />
+                  <LogIn className="w-4 h-4 sm:w-5 sm:h-5 text-ether" />
                   Rejoindre une Partie
                 </motion.button>
 
-                <motion.div className="mt-8 pt-6 border-t border-border/30 w-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}>
-                  <p className="text-xs text-muted-foreground font-display uppercase tracking-wider mb-3">Mode test solo — choisissez le nombre de dieux</p>
+                <motion.div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-border/30 w-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}>
+                  <p className="text-xs text-muted-foreground font-display uppercase tracking-wider mb-2 sm:mb-3">Mode test solo — choisissez le nombre de dieux</p>
                   <div className="flex justify-center gap-2">
                     {[2, 3, 4, 5, 6, 7].map((count) => (
                       <motion.button
                         key={count}
-                        className="w-12 h-12 rounded-lg font-display font-bold text-base border border-border/50 text-foreground transition-all"
+                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg font-display font-bold text-sm sm:text-base border border-border/50 text-foreground transition-all"
                         style={{ background: 'hsl(var(--card))' }}
                         whileHover={{ scale: 1.1, borderColor: 'hsl(var(--ether) / 0.5)', background: 'hsl(var(--ether) / 0.15)' }}
                         whileTap={{ scale: 0.95 }}
