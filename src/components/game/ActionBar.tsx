@@ -7,6 +7,7 @@ interface ActionBarProps {
   gameState: GameState;
   interactionMode: InteractionMode;
   isOwnTurn?: boolean;
+  reactionWindowActive?: boolean;
   onEndTurn: () => void;
   onToggleMetamorphose: () => void;
   onToggleSpell: () => void;
@@ -18,6 +19,7 @@ const ActionBar = ({
   gameState,
   interactionMode,
   isOwnTurn = true,
+  reactionWindowActive = false,
   onEndTurn,
   onToggleMetamorphose,
   onToggleSpell,
@@ -30,7 +32,7 @@ const ActionBar = ({
   const isActivateMode = interactionMode === 'activating_effect';
   const isReactionMode = interactionMode === 'placing_reaction';
   const isSleeping = activePlayer.skipNextTurn;
-  const disabled = !isOwnTurn || isSleeping;
+  const disabled = !isOwnTurn || isSleeping || reactionWindowActive;
 
   return (
     <motion.div
