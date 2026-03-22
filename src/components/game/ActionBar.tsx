@@ -34,7 +34,7 @@ const ActionBar = ({
 
   return (
     <motion.div
-      className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border/50"
+      className="flex flex-wrap items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-lg border border-border/50"
       style={{
         background: `linear-gradient(90deg, hsl(var(--card) / 0.9), hsl(var(--secondary) / 0.7))`,
         backdropFilter: 'blur(8px)',
@@ -43,18 +43,18 @@ const ActionBar = ({
       animate={{ opacity: 1, y: 0 }}
     >
       {!isOwnTurn && (
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-display font-bold" style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>
+        <div className="flex items-center gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-display font-bold" style={{ background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}>
           ⏳ Tour de {activePlayer.name}
         </div>
       )}
       {isSleeping && isOwnTurn && (
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-display font-bold" style={{ background: 'hsl(260 40% 20%)', color: 'hsl(260 70% 80%)', border: '1px solid hsl(260 50% 40%)' }}>
+        <div className="flex items-center gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-display font-bold" style={{ background: 'hsl(260 40% 20%)', color: 'hsl(260 70% 80%)', border: '1px solid hsl(260 50% 40%)' }}>
           💤 Tour sauté
         </div>
       )}
 
       <motion.button
-        className={`flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-display font-semibold transition-all ${
+        className={`flex items-center gap-1 sm:gap-2 h-8 sm:h-9 px-2 sm:px-4 rounded-lg text-xs sm:text-sm font-display font-semibold transition-all ${
           isMetaMode ? 'ring-2 ring-ether' : ''
         } ${disabled ? 'opacity-30 pointer-events-none' : ''}`}
         style={{
@@ -67,12 +67,13 @@ const ActionBar = ({
         whileTap={disabled ? {} : { scale: 0.95 }}
         onClick={disabled ? undefined : onToggleMetamorphose}
       >
-        {isMetaMode ? <X className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
-        {isMetaMode ? 'Annuler' : 'Métamorphoser'}
+        {isMetaMode ? <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+        <span className="hidden sm:inline">{isMetaMode ? 'Annuler' : 'Métamorphoser'}</span>
+        <span className="sm:hidden">{isMetaMode ? '✕' : 'Méta.'}</span>
       </motion.button>
 
       <motion.button
-        className={`flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-display font-semibold border border-divine/30 text-foreground transition-all ${
+        className={`flex items-center gap-1 sm:gap-2 h-8 sm:h-9 px-2 sm:px-4 rounded-lg text-xs sm:text-sm font-display font-semibold border border-divine/30 text-foreground transition-all ${
           isSpellMode ? 'ring-2 ring-divine' : ''
         } ${disabled ? 'opacity-30 pointer-events-none' : ''}`}
         style={{ background: isSpellMode ? 'hsl(var(--divine) / 0.2)' : 'hsl(var(--divine) / 0.1)' }}
@@ -80,12 +81,13 @@ const ActionBar = ({
         whileTap={disabled ? {} : { scale: 0.95 }}
         onClick={disabled ? undefined : onToggleSpell}
       >
-        {isSpellMode ? <X className="w-4 h-4 text-divine" /> : <Hand className="w-4 h-4 text-divine" />}
-        {isSpellMode ? 'Annuler' : 'Jouer un Sort'}
+        {isSpellMode ? <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-divine" /> : <Hand className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-divine" />}
+        <span className="hidden sm:inline">{isSpellMode ? 'Annuler' : 'Jouer un Sort'}</span>
+        <span className="sm:hidden">{isSpellMode ? '✕' : 'Sort'}</span>
       </motion.button>
 
       <motion.button
-        className={`flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-display font-semibold border border-amber-500/30 text-foreground transition-all ${
+        className={`flex items-center gap-1 sm:gap-2 h-8 sm:h-9 px-2 sm:px-4 rounded-lg text-xs sm:text-sm font-display font-semibold border border-amber-500/30 text-foreground transition-all ${
           isActivateMode ? 'ring-2 ring-amber-500' : ''
         } ${disabled ? 'opacity-30 pointer-events-none' : ''}`}
         style={{
@@ -96,12 +98,13 @@ const ActionBar = ({
         whileTap={disabled ? {} : { scale: 0.95 }}
         onClick={disabled ? undefined : onToggleActivate}
       >
-        {isActivateMode ? <X className="w-4 h-4 text-amber-400" /> : <Flame className="w-4 h-4 text-amber-400" />}
-        {isActivateMode ? 'Annuler' : 'Activer un Effet'}
+        {isActivateMode ? <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" /> : <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />}
+        <span className="hidden sm:inline">{isActivateMode ? 'Annuler' : 'Activer un Effet'}</span>
+        <span className="sm:hidden">{isActivateMode ? '✕' : 'Effet'}</span>
       </motion.button>
 
       <motion.button
-        className={`flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-display font-semibold border text-foreground transition-all ${
+        className={`flex items-center gap-1 sm:gap-2 h-8 sm:h-9 px-2 sm:px-4 rounded-lg text-xs sm:text-sm font-display font-semibold border text-foreground transition-all ${
           isReactionMode ? 'ring-2' : ''
         } ${disabled ? 'opacity-30 pointer-events-none' : ''}`}
         style={{
@@ -113,21 +116,23 @@ const ActionBar = ({
         whileTap={disabled ? {} : { scale: 0.95 }}
         onClick={disabled ? undefined : onTogglePlaceReaction}
       >
-        {isReactionMode ? <X className="w-4 h-4 text-reaction" /> : <Shield className="w-4 h-4 text-reaction" />}
-        {isReactionMode ? 'Annuler' : 'Poser une Réaction'}
+        {isReactionMode ? <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-reaction" /> : <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-reaction" />}
+        <span className="hidden sm:inline">{isReactionMode ? 'Annuler' : 'Poser une Réaction'}</span>
+        <span className="sm:hidden">{isReactionMode ? '✕' : 'Réact.'}</span>
       </motion.button>
 
-      <div className="flex-1" />
+      <div className="flex-1 min-w-0" />
 
       <motion.button
-        className={`flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-display font-semibold text-foreground transition-all border border-border/50 ${!isOwnTurn ? 'opacity-30 pointer-events-none' : ''}`}
+        className={`flex items-center gap-1 sm:gap-2 h-8 sm:h-9 px-2 sm:px-4 rounded-lg text-xs sm:text-sm font-display font-semibold text-foreground transition-all border border-border/50 ${!isOwnTurn ? 'opacity-30 pointer-events-none' : ''}`}
         style={{ background: 'hsl(var(--muted))' }}
         whileHover={!isOwnTurn ? {} : { scale: 1.05 }}
         whileTap={!isOwnTurn ? {} : { scale: 0.95 }}
         onClick={isOwnTurn ? onEndTurn : undefined}
       >
-        <SkipForward className="w-4 h-4" />
-        Fin du Tour
+        <SkipForward className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+        <span className="hidden sm:inline">Fin du Tour</span>
+        <span className="sm:hidden">Fin</span>
       </motion.button>
     </motion.div>
   );
