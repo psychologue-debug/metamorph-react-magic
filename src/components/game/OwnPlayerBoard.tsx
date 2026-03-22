@@ -120,14 +120,14 @@ const OwnPlayerBoard = ({
       </div>
 
       {/* Hand + Reactions row */}
-      <div className="px-3 py-2 border-t shrink-0 relative" style={{ borderColor: 'hsl(var(--border) / 0.3)' }}>
-        <div className="flex items-start gap-4">
+      <div className="px-2 sm:px-3 py-1.5 sm:py-2 border-t shrink-0 relative" style={{ borderColor: 'hsl(var(--border) / 0.3)' }}>
+        <div className="flex items-start gap-2 sm:gap-4">
           {/* Hand */}
           <div className="flex-1 min-w-0">
-            <div className="text-sm text-muted-foreground font-display mb-1 uppercase tracking-wider flex items-center gap-1">
-              <Sword className="w-4 h-4" /> Main ({player.hand.length}/2)
-              {isSpellMode && <span className="text-divine ml-1">— Cliquez pour jouer</span>}
-              {isReactionMode && <span className="text-reaction ml-1">— Cliquez une Réaction</span>}
+            <div className="text-xs sm:text-sm text-muted-foreground font-display mb-1 uppercase tracking-wider flex items-center gap-1">
+              <Sword className="w-3 h-3 sm:w-4 sm:h-4" /> Main ({player.hand.length}/2)
+              {isSpellMode && <span className="text-divine ml-1 hidden sm:inline">— Cliquez pour jouer</span>}
+              {isReactionMode && <span className="text-reaction ml-1 hidden sm:inline">— Cliquez une Réaction</span>}
             </div>
             <div className="flex gap-2 flex-wrap">
               {player.hand.map((card) => {
