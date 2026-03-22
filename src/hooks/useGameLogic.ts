@@ -2336,8 +2336,19 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
   }, [gameState]);
 
   // When reaction window resolves, handle two-phase flow
+  // CRITICAL: In multiplayer, only the active player (who initiated the metamorphose)
+  // should process the resolution. Otherwise, the remote client clears the reaction
+  // window before the active player can apply the stored effect.
   useEffect(() => {
     if (!reactionWindow || reactionWindow.phase !== 'resolved') return;
+
+    // Multiplayer guard: only the active player processes reaction resolution
+    if (multiplayerConfig && gameState) {
+      const activePlayer = gameState.players[gameState.activePlayerIndex];
+      if (activePlayer && activePlayer.id !== multiplayerConfig.localPlayerId) {
+        return; // Not our turn — let the active player handle it
+      }
+    }
 
     const hasResistanceOrSursis = reactionWindow.responses.some(
       r => !r.passed && (r.cardName === 'Résistance' || r.cardName === 'Sursis')
@@ -2444,7 +2455,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     setStoredMetamorphoseEffect(null);
     setGameState(prev => prev ? { ...prev, reactionWindow: null } : prev);
     metamorphoseReactionInfoRef.current = null;
-  }, [reactionWindow, storedMetamorphoseEffect, metamorphoseEffectUndo]);
+  }, [reactionWindow, storedMetamorphoseEffect, metamorphoseEffectUndo, multiplayerConfig, gameState?.activePlayerIndex]);
 
   // === Triggered passive effects: detect state changes and apply ===
   useEffect(() => {

@@ -24,7 +24,7 @@ const GameLog = ({ entries, open }: GameLogProps) => {
           exit={{ x: '100%' }}
           transition={{ type: 'tween', duration: 0.25 }}
         >
-          <ScrollArea className="max-h-[70vh]">
+          <ScrollArea className="h-[70vh]">
             <div className="p-3 space-y-2">
               {entries.map((entry, i) => (
                 <motion.div
