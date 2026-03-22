@@ -486,6 +486,7 @@ const Index = () => {
               gameState={gameState}
               interactionMode={interactionMode}
               isOwnTurn={isOwnTurn}
+              reactionWindowActive={!!(reactionWindow && reactionWindow.phase !== 'resolved')}
               onEndTurn={handleEndTurn}
               onToggleMetamorphose={toggleMetamorphoseMode}
               onToggleSpell={toggleSpellMode}

@@ -32,7 +32,7 @@ const ActionBar = ({
   const isActivateMode = interactionMode === 'activating_effect';
   const isReactionMode = interactionMode === 'placing_reaction';
   const isSleeping = activePlayer.skipNextTurn;
-  const disabled = !isOwnTurn || isSleeping;
+  const disabled = !isOwnTurn || isSleeping || reactionWindowActive;
 
   return (
     <motion.div
