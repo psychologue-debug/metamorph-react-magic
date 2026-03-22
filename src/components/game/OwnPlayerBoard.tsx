@@ -46,9 +46,9 @@ const OwnPlayerBoard = ({
   return (
     <div className="flex flex-col h-full">
       {/* Player info header */}
-      <div className="flex items-center gap-3 p-3 border-b shrink-0" style={{ borderColor: 'hsl(var(--border) / 0.3)' }}>
+      <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 border-b shrink-0" style={{ borderColor: 'hsl(var(--border) / 0.3)' }}>
         <div
-          className="w-12 h-16 rounded-lg flex items-center justify-center border-2 overflow-hidden shrink-0"
+          className="w-8 h-10 sm:w-12 sm:h-16 rounded-lg flex items-center justify-center border-2 overflow-hidden shrink-0"
           style={{
             borderColor: `hsl(${divinity.color})`,
             background: `linear-gradient(135deg, hsl(${divinity.color} / 0.2), hsl(var(--card)))`,
@@ -57,16 +57,16 @@ const OwnPlayerBoard = ({
           {divinity.image ? (
             <img src={divinity.image} alt={divinity.name} className="w-full h-full object-cover" />
           ) : (
-            <span className="font-display text-lg font-bold text-foreground">{player.avatar}</span>
+            <span className="font-display text-sm sm:text-lg font-bold text-foreground">{player.avatar}</span>
           )}
         </div>
         <div className="min-w-0">
-          <h2 className="font-display text-xl font-bold text-foreground truncate">{player.name}</h2>
+          <h2 className="font-display text-base sm:text-xl font-bold text-foreground truncate">{player.name}</h2>
         </div>
-        <EtherCounter amount={player.ether} size="md" />
-        <div className="flex items-center gap-1.5">
-          <RefreshCw className="w-5 h-5 text-ether" />
-          <span className="font-display text-lg font-bold text-foreground">{player.metamorphosedCount}/10</span>
+        <EtherCounter amount={player.ether} size="sm" />
+        <div className="flex items-center gap-1">
+          <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5 text-ether" />
+          <span className="font-display text-sm sm:text-lg font-bold text-foreground">{player.metamorphosedCount}/10</span>
         </div>
       </div>
 
