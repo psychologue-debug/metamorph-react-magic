@@ -82,6 +82,14 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     toast.dismiss();
   }, []);
 
+  const clearTransientActionRefs = useCallback(() => {
+    metamorphoseReactionInfoRef.current = null;
+    savedMortalSnapshotRef.current = null;
+    pendingEffectRef.current = null;
+    targetingLockRef.current = false;
+    targetsConsumedRef.current = 0;
+  }, []);
+
   const handleDiscard = useCallback((cardIds: string[]) => {
     setGameState((prev) => {
       if (!prev) return prev;
@@ -110,8 +118,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     setStoredMetamorphoseEffect(null);
     setMetamorphoseEffectUndo(null);
     setGameState(prev => prev ? { ...prev, reactionWindow: null, forcedDiscardQueue: null } : prev);
-    metamorphoseReactionInfoRef.current = null;
-    savedMortalSnapshotRef.current = null;
+    clearTransientActionRefs();
     setInteractionMode('idle');
     toast.dismiss();
 
@@ -267,6 +274,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     // Side effects after state update (updater runs synchronously)
     if (shouldDiscard) {
       setDiscardRequired(true);
+      toast.info('Vous devez d\'abord défausser pour terminer votre tour.');
       return;
     }
     if (endTurnWinners.length > 0) {
@@ -275,7 +283,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     }
     setInteractionMode('idle');
     // currentPlayerIndex is now derived from gameState.activePlayerIndex — no separate setState needed
-  }, []);
+  }, [clearTransientActionRefs]);
 
   // Auto-proceed with end turn after discard completes
   useEffect(() => {
@@ -1215,6 +1223,9 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
   }, [pendingEffect]);
 
   const cancelEffect = useCallback(() => {
+    pendingEffectRef.current = null;
+    targetingLockRef.current = false;
+    targetsConsumedRef.current = 0;
     setPendingEffect(null);
   }, []);
 
@@ -2260,26 +2271,55 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
   }, []);
 
   const handleReactionActivate = useCallback((playerId: string, cardId: string) => {
-    if (!gameState || !reactionWindow) return;
-    const player = gameState.players.find(p => p.id === playerId);
-    if (!player) return;
-    const card = player.reactions.find(c => c.id === cardId);
-    if (!card) return;
+    let shouldClearStoredEffect = false;
+    let reactionApplied = false;
 
-    const { updatedState, blocksMetamorphoseEffect, cancelsMetamorphose, blocksSpellEffect, logMessage } =
-      resolveReaction(card, reactionWindow.trigger, player, gameState);
+    setGameState(prev => {
+      if (!prev || !prev.reactionWindow) return prev;
 
-    // Apply the resolution to game state
-    setGameState({
-      ...updatedState,
-      log: [{
-        id: crypto.randomUUID(),
-        timestamp: Date.now(),
-        playerName: player.name,
-        action: 'Réaction',
-        detail: logMessage,
-      }, ...updatedState.log],
+      const rw = prev.reactionWindow;
+      const player = prev.players.find(p => p.id === playerId);
+      if (!player) return prev;
+
+      const card = player.reactions.find(c => c.id === cardId);
+      if (!card) return prev;
+
+      const {
+        updatedState,
+        blocksMetamorphoseEffect,
+        cancelsMetamorphose,
+        logMessage,
+      } = resolveReaction(card, rw.trigger, player, prev);
+
+      const newResponses = [...rw.responses, { playerId, cardId, cardName: card.name, passed: false }];
+      const nextIdx = rw.currentReactorIndex + 1;
+      const nextReactionWindow = nextIdx >= rw.reactorQueue.length
+        ? { ...rw, responses: newResponses, phase: 'resolved' as const }
+        : {
+            ...rw,
+            responses: newResponses,
+            currentReactorIndex: nextIdx,
+            phase: 'waiting_ready' as const,
+            timerStartedAt: Date.now(),
+          };
+
+      reactionApplied = true;
+      shouldClearStoredEffect = cancelsMetamorphose || blocksMetamorphoseEffect;
+
+      return {
+        ...updatedState,
+        reactionWindow: nextReactionWindow,
+        log: [{
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          playerName: player.name,
+          action: 'Réaction',
+          detail: logMessage,
+        }, ...updatedState.log],
+      };
     });
+
+    if (!reactionApplied) return;
 
     // Triggered effects: reaction played (MIN-07 Araignée)
     setGameState(gs => {
@@ -2304,36 +2344,10 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
       return finalState;
     });
 
-    // If Résistance or Sursis cancelled the metamorphose, clear stored effect
-    if (cancelsMetamorphose) {
+    if (shouldClearStoredEffect) {
       setStoredMetamorphoseEffect(null);
     }
-    // If Parade blocked the effect, clear stored effect
-    if (blocksMetamorphoseEffect) {
-      setStoredMetamorphoseEffect(null);
-    }
-
-    // Move to next reactor
-    setGameState(prev => {
-      if (!prev || !prev.reactionWindow) return prev;
-      const rw = prev.reactionWindow;
-      const newResponses = [...rw.responses, { playerId, cardId, cardName: card.name, passed: false }];
-      const nextIdx = rw.currentReactorIndex + 1;
-      if (nextIdx >= rw.reactorQueue.length) {
-        return { ...prev, reactionWindow: { ...rw, responses: newResponses, phase: 'resolved' as const } };
-      }
-      return {
-        ...prev,
-        reactionWindow: {
-          ...rw,
-          responses: newResponses,
-          currentReactorIndex: nextIdx,
-          phase: 'waiting_ready' as const,
-          timerStartedAt: Date.now(),
-        },
-      };
-    });
-  }, [gameState]);
+  }, []);
 
   // When reaction window resolves, handle two-phase flow
   // CRITICAL: In multiplayer, only the active player (who initiated the metamorphose)
