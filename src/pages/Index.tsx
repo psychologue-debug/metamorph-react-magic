@@ -646,7 +646,7 @@ const Index = () => {
           effect={pendingEffect}
           gameState={gameState}
           onResolve={resolveEffect}
-          onCancel={pendingEffect.optional ? cancelEffect : undefined}
+          onCancel={cancelEffect}
           onGodDiscard={resolveGodDiscard}
           onCardDiscard={resolveCardDiscard}
           onPayDrawDiscard={resolvePayDrawDiscard}
