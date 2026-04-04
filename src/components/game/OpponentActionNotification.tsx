@@ -197,7 +197,7 @@ const OpponentActionNotification = ({ log, localPlayerName }: OpponentActionNoti
               boxShadow: notif.isTargetingMe
                 ? '0 4px 30px hsl(var(--destructive) / 0.35)'
                 : '0 4px 24px hsl(0 0% 0% / 0.4)',
-              ringColor: notif.isTargetingMe ? 'hsl(var(--destructive) / 0.4)' : undefined,
+              
             }}
             initial={{ opacity: 0, y: -30, scale: 0.9 }}
             animate={{
