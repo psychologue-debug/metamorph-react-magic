@@ -21,6 +21,11 @@ export interface MultiplayerConfig {
   localPlayerId: string; // the player's UUID from localStorage
 }
 
+type EndTurnResolution =
+  | { type: 'discard_required' }
+  | { type: 'turn_ended'; nextState: GameState }
+  | { type: 'game_over'; nextState: GameState; winners: Player[] };
+
 export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
   const [gameState, setGameState] = useState<GameState | null>(null);
   // In multiplayer, currentPlayerIndex = local player's index (for board view)
@@ -32,7 +37,8 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
   const [interactionMode, setInteractionMode] = useState<InteractionMode>('idle');
   const [winners, setWinners] = useState<Player[]>([]);
   const [discardRequired, setDiscardRequired] = useState(false);
-  const discardJustCompleted = useRef(false);
+  const gameStateRef = useRef<GameState | null>(null);
+  const pendingEndTurnAfterDiscardRef = useRef(false);
   const [pendingReactionCard, setPendingReactionCard] = useState<SpellCard | null>(null);
   const [pendingEffect, setPendingEffect] = useState<PendingEffect | null>(null);
   const reactionWindow = gameState?.reactionWindow ?? null;
@@ -64,6 +70,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     setGameStarted(true);
     setWinners([]);
     setDiscardRequired(false);
+    pendingEndTurnAfterDiscardRef.current = false;
     setPendingReactionCard(null);
   }, []);
 
@@ -73,6 +80,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     setWinners([]);
     setDiscardRequired(false);
     setInteractionMode('idle');
+    pendingEndTurnAfterDiscardRef.current = false;
     setPendingEffect(null);
     setPendingReactionCard(null);
     setStoredMetamorphoseEffect(null);
@@ -90,208 +98,224 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     targetsConsumedRef.current = 0;
   }, []);
 
-  const handleDiscard = useCallback((cardIds: string[]) => {
-    setGameState((prev) => {
-      if (!prev) return prev;
-      const updatedPlayers = prev.players.map((p, i) => {
-        if (i !== prev.activePlayerIndex) return p;
+  useEffect(() => {
+    gameStateRef.current = gameState;
+  }, [gameState]);
+
+  const buildEndTurnResolution = useCallback((state: GameState, options?: { skipDiscardCheck?: boolean }): EndTurnResolution => {
+    const currentPlayer = state.players[state.activePlayerIndex];
+
+    if (!options?.skipDiscardCheck && currentPlayer.hand.length > 2) {
+      return { type: 'discard_required' };
+    }
+
+    const nextPlayerIdx = (state.activePlayerIndex + 1) % state.players.length;
+    const isNewCycle = nextPlayerIdx === state.cycleStartPlayerIndex;
+
+    let updatedPlayers = state.players.map((p, i) => {
+      if (i === state.activePlayerIndex) {
         return {
           ...p,
-          hand: p.hand.filter((c) => !cardIds.includes(c.id)),
+          ether: p.sursautActive ? 0 : p.ether,
+          sursautActive: false,
+          metamorphosesThisTurn: 0,
+          maxMetamorphosesThisTurn: 1,
+          cannotMetamorphose: false,
+          skipNextTurn: false,
         };
-      });
-      const discardedCards = prev.players[prev.activePlayerIndex].hand.filter((c) => cardIds.includes(c.id));
-      return {
-        ...prev,
-        players: updatedPlayers,
-        discardPile: [...discardedCards, ...prev.discardPile],
-      };
-    });
-    setDiscardRequired(false);
-    discardJustCompleted.current = true;
-  }, []);
-
-  const handleEndTurn = useCallback(() => {
-    // Force-clear all blocking states so "Fin de tour" always works
-    setPendingEffect(null);
-    setPendingReactionCard(null);
-    setStoredMetamorphoseEffect(null);
-    setMetamorphoseEffectUndo(null);
-    setGameState(prev => prev ? { ...prev, reactionWindow: null, forcedDiscardQueue: null } : prev);
-    clearTransientActionRefs();
-    setInteractionMode('idle');
-    toast.dismiss();
-
-    // Use functional state update to avoid stale closure bugs (fixes Sursaut)
-    let shouldDiscard = false;
-    let endTurnWinners: Player[] = [];
-    let nextIdx = 0;
-
-    setGameState((prev) => {
-      if (!prev) return prev;
-      const currentPlayer = prev.players[prev.activePlayerIndex];
-
-      // Check if hand > 2 → need to discard first
-      if (currentPlayer.hand.length > 2) {
-        shouldDiscard = true;
-        return prev;
       }
+      return p;
+    });
 
-      const nextPlayerIdx = (prev.activePlayerIndex + 1) % prev.players.length;
-      const isNewCycle = nextPlayerIdx === prev.cycleStartPlayerIndex;
-      nextIdx = nextPlayerIdx;
+    let newDeck = [...state.deck];
+    let newDiscardPile = [...state.discardPile];
+    const newLog = [
+      {
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        playerName: currentPlayer.name,
+        action: 'Fin du Tour',
+        detail: 'a terminé son tour',
+      },
+      ...state.log,
+    ];
 
-      let updatedPlayers = prev.players.map((p, i) => {
-        if (i === prev.activePlayerIndex) {
-          return {
-            ...p,
-            ether: p.sursautActive ? 0 : p.ether,
-            sursautActive: false,
-            metamorphosesThisTurn: 0,
-            maxMetamorphosesThisTurn: 1,
-            cannotMetamorphose: false,
-            skipNextTurn: false,
-          };
-        }
-        return p;
-      });
-
-      let newDeck = [...prev.deck];
-      let newDiscardPile = [...prev.discardPile];
-      const newLog = [
-        {
-          id: crypto.randomUUID(),
-          timestamp: Date.now(),
-          playerName: currentPlayer.name,
-          action: 'Fin du Tour',
-          detail: 'a terminé son tour',
-        },
-        ...prev.log,
-      ];
-
-      // Check victory at end of cycle
-      if (isNewCycle) {
-        const cycleWinners = updatedPlayers.filter((p) => p.metamorphosedCount >= 10);
-        if (cycleWinners.length > 0) {
-          endTurnWinners = cycleWinners;
-          return {
-            ...prev,
+    if (isNewCycle) {
+      const cycleWinners = updatedPlayers.filter((p) => p.metamorphosedCount >= 10);
+      if (cycleWinners.length > 0) {
+        return {
+          type: 'game_over',
+          winners: cycleWinners,
+          nextState: {
+            ...state,
             players: updatedPlayers,
             log: newLog,
             gameOver: true,
-          };
-        }
+            reactionWindow: null,
+            forcedDiscardQueue: null,
+          },
+        };
+      }
 
-        // Sursis auto-metamorphose (imparable)
-        updatedPlayers = updatedPlayers.map(p => {
-          const hasSursis = p.mortals.some(m => m.sursisTarget);
-          if (!hasSursis) return p;
-          const updatedMortals = p.mortals.map(m => {
-            if (!m.sursisTarget) return m;
-            newLog.unshift({
-              id: crypto.randomUUID(),
-              timestamp: Date.now(),
-              playerName: 'Système',
-              action: 'Sursis',
-              detail: `${m.nameRecto} de ${p.name} est automatiquement métamorphosé (Sursis)`,
-            });
-            return { ...m, isMetamorphosed: true, sursisTarget: false };
+      updatedPlayers = updatedPlayers.map(p => {
+        const hasSursis = p.mortals.some(m => m.sursisTarget);
+        if (!hasSursis) return p;
+        const updatedMortals = p.mortals.map(m => {
+          if (!m.sursisTarget) return m;
+          newLog.unshift({
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: 'Système',
+            action: 'Sursis',
+            detail: `${m.nameRecto} de ${p.name} est automatiquement métamorphosé (Sursis)`,
           });
-          return {
-            ...p,
-            mortals: updatedMortals,
-            metamorphosedCount: updatedMortals.filter(m => m.isMetamorphosed).length,
-          };
+          return { ...m, isMetamorphosed: true, sursisTarget: false };
         });
-
-        // Generate ether at start of new cycle using engine
-        const genResult = calculateCycleEtherGeneration({
-          ...prev,
-          players: updatedPlayers,
-        });
-        updatedPlayers = genResult.updatedPlayers;
-        newLog.unshift(...genResult.logs);
-        newLog.unshift({
-          id: crypto.randomUUID(),
-          timestamp: Date.now(),
-          playerName: 'Système',
-          action: 'Nouveau Cycle',
-          detail: `Cycle ${prev.turnCount + 1} — Éther généré pour tous les dieux`,
-        });
-      }
-
-      // Draw 2 cards for next player (reshuffle discard if deck empty)
-      const drawnCards: SpellCard[] = [];
-      if (!updatedPlayers[nextPlayerIdx].cannotDraw) {
-        for (let i = 0; i < 2; i++) {
-          if (newDeck.length === 0 && newDiscardPile.length > 0) {
-            newDeck = [...newDiscardPile].sort(() => Math.random() - 0.5);
-            newDiscardPile = [];
-            newLog.unshift({
-              id: crypto.randomUUID(),
-              timestamp: Date.now(),
-              playerName: 'Système',
-              action: 'Pioche reconstituée',
-              detail: 'La défausse a été mélangée pour former une nouvelle pioche',
-            });
-          }
-          const card = newDeck.pop();
-          if (card) drawnCards.push(card);
-        }
-      }
-      updatedPlayers = updatedPlayers.map((p, i) => {
-        if (i === nextPlayerIdx) {
-          return { ...p, hand: [...p.hand, ...drawnCards], cannotDraw: false };
-        }
-        return p;
+        return {
+          ...p,
+          mortals: updatedMortals,
+          metamorphosedCount: updatedMortals.filter(m => m.isMetamorphosed).length,
+        };
       });
 
-      if (drawnCards.length > 0) {
-        newLog.unshift({
-          id: crypto.randomUUID(),
-          timestamp: Date.now(),
-          playerName: updatedPlayers[nextPlayerIdx].name,
-          action: 'Pioche',
-          detail: `a pioché ${drawnCards.length} cartes`,
-        });
-      }
+      const genResult = calculateCycleEtherGeneration({
+        ...state,
+        players: updatedPlayers,
+      });
+      updatedPlayers = genResult.updatedPlayers;
+      newLog.unshift(...genResult.logs);
+      newLog.unshift({
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        playerName: 'Système',
+        action: 'Nouveau Cycle',
+        detail: `Cycle ${state.turnCount + 1} — Éther généré pour tous les dieux`,
+      });
+    }
 
-      return {
-        ...prev,
+    const drawnCards: SpellCard[] = [];
+    if (!updatedPlayers[nextPlayerIdx].cannotDraw) {
+      for (let i = 0; i < 2; i++) {
+        if (newDeck.length === 0 && newDiscardPile.length > 0) {
+          newDeck = [...newDiscardPile].sort(() => Math.random() - 0.5);
+          newDiscardPile = [];
+          newLog.unshift({
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: 'Système',
+            action: 'Pioche reconstituée',
+            detail: 'La défausse a été mélangée pour former une nouvelle pioche',
+          });
+        }
+        const card = newDeck.pop();
+        if (card) drawnCards.push(card);
+      }
+    }
+
+    updatedPlayers = updatedPlayers.map((p, i) => {
+      if (i === nextPlayerIdx) {
+        return { ...p, hand: [...p.hand, ...drawnCards], cannotDraw: false };
+      }
+      return p;
+    });
+
+    if (drawnCards.length > 0) {
+      newLog.unshift({
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        playerName: updatedPlayers[nextPlayerIdx].name,
+        action: 'Pioche',
+        detail: `a pioché ${drawnCards.length} cartes`,
+      });
+    }
+
+    return {
+      type: 'turn_ended',
+      nextState: {
+        ...state,
         players: updatedPlayers,
         activePlayerIndex: nextPlayerIdx,
         phase: 'principale' as TurnPhase,
         reactionsBlocked: false,
-        turnCount: isNewCycle ? prev.turnCount + 1 : prev.turnCount,
+        turnCount: isNewCycle ? state.turnCount + 1 : state.turnCount,
         deck: newDeck,
         discardPile: newDiscardPile,
         log: newLog,
         reactionWindow: null,
         forcedDiscardQueue: null,
-      };
-    });
+      },
+    };
+  }, []);
 
-    // Side effects after state update (updater runs synchronously)
-    if (shouldDiscard) {
-      setDiscardRequired(true);
-      toast.info('Vous devez d\'abord défausser pour terminer votre tour.');
-      return;
-    }
-    if (endTurnWinners.length > 0) {
-      setWinners(endTurnWinners);
-      return;
-    }
+  const applyEndTurnResolution = useCallback((resolution: Exclude<EndTurnResolution, { type: 'discard_required' }>) => {
+    setPendingEffect(null);
+    setPendingReactionCard(null);
+    setStoredMetamorphoseEffect(null);
+    setMetamorphoseEffectUndo(null);
+    clearTransientActionRefs();
     setInteractionMode('idle');
-    // currentPlayerIndex is now derived from gameState.activePlayerIndex — no separate setState needed
+    toast.dismiss();
+    setGameState(resolution.nextState);
+
+    if (resolution.type === 'game_over') {
+      setWinners(resolution.winners);
+    }
   }, [clearTransientActionRefs]);
 
-  // Auto-proceed with end turn after discard completes
-  useEffect(() => {
-    if (discardJustCompleted.current && !discardRequired) {
-      discardJustCompleted.current = false;
-      handleEndTurn();
+  const requestEndTurnDiscard = useCallback(() => {
+    pendingEndTurnAfterDiscardRef.current = true;
+    setInteractionMode('idle');
+    setDiscardRequired(true);
+    toast.info('Vous devez d\'abord défausser pour terminer votre tour.');
+  }, []);
+
+  const handleDiscard = useCallback((cardIds: string[]) => {
+    const currentState = gameStateRef.current;
+    if (!currentState) return;
+
+    const activePlayer = currentState.players[currentState.activePlayerIndex];
+    const discardedFromHand = activePlayer.hand.filter((c) => cardIds.includes(c.id));
+    const discardedFromReactions = activePlayer.reactions.filter((c) => cardIds.includes(c.id));
+    const allDiscarded = [...discardedFromHand, ...discardedFromReactions];
+
+    const stateAfterDiscard: GameState = {
+      ...currentState,
+      players: currentState.players.map((p, i) => {
+        if (i !== currentState.activePlayerIndex) return p;
+        return {
+          ...p,
+          hand: p.hand.filter((c) => !cardIds.includes(c.id)),
+          reactions: p.reactions.filter((c) => !cardIds.includes(c.id)),
+        };
+      }),
+      discardPile: [...allDiscarded, ...currentState.discardPile],
+    };
+
+    const shouldFinalizeTurn = pendingEndTurnAfterDiscardRef.current;
+    pendingEndTurnAfterDiscardRef.current = false;
+    setDiscardRequired(false);
+
+    if (shouldFinalizeTurn) {
+      applyEndTurnResolution(buildEndTurnResolution(stateAfterDiscard, { skipDiscardCheck: true }));
+      return;
     }
-  }, [discardRequired, handleEndTurn]);
+
+    setGameState(stateAfterDiscard);
+  }, [applyEndTurnResolution, buildEndTurnResolution]);
+
+  const handleEndTurn = useCallback(() => {
+    const currentState = gameStateRef.current;
+    if (!currentState) return;
+
+    const resolution = buildEndTurnResolution(currentState);
+    if (resolution.type === 'discard_required') {
+      requestEndTurnDiscard();
+      return;
+    }
+
+    pendingEndTurnAfterDiscardRef.current = false;
+    applyEndTurnResolution(resolution);
+  }, [applyEndTurnResolution, buildEndTurnResolution, requestEndTurnDiscard]);
 
   // Sync pendingEffect ref and reset targeting counters when pendingEffect changes
   useEffect(() => {
@@ -307,14 +331,14 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     if (!activePlayer?.skipNextTurn) return;
     // Don't auto-skip if there's a pending discard (hand > 2)
     if (activePlayer.hand.length > 2) {
-      setDiscardRequired(true);
+      requestEndTurnDiscard();
       return;
     }
     const timer = setTimeout(() => {
       handleEndTurn();
     }, 1500);
     return () => clearTimeout(timer);
-  }, [gameState?.activePlayerIndex, gameState?.players[gameState?.activePlayerIndex ?? 0]?.skipNextTurn, handleEndTurn]);
+  }, [gameState?.activePlayerIndex, gameState?.players[gameState?.activePlayerIndex ?? 0]?.skipNextTurn, handleEndTurn, requestEndTurnDiscard]);
 
   const handleMortalClick = useCallback((mortalId: string) => {
     if (interactionMode === 'activating_effect') {
@@ -1230,6 +1254,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
   }, []);
 
   const cancelDiscard = useCallback(() => {
+    pendingEndTurnAfterDiscardRef.current = false;
     setDiscardRequired(false);
   }, []);
 
