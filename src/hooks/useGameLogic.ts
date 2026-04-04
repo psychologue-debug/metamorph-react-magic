@@ -296,7 +296,12 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     setDiscardRequired(false);
 
     if (shouldFinalizeTurn) {
-      applyEndTurnResolution(buildEndTurnResolution(stateAfterDiscard, { skipDiscardCheck: true }));
+      const resolution = buildEndTurnResolution(stateAfterDiscard, { skipDiscardCheck: true });
+      if (resolution.type === 'discard_required') {
+        setGameState(stateAfterDiscard);
+        return;
+      }
+      applyEndTurnResolution(resolution);
       return;
     }
 
