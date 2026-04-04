@@ -1,7 +1,7 @@
 import { GameLogEntry } from '@/types/game';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useRef } from 'react';
-import { Swords, Sparkles, Shield, Zap, Skull, Heart, RotateCcw, Trash2, Flame } from 'lucide-react';
+import { Swords, Sparkles, Shield, Zap, Skull, Heart, RotateCcw, Trash2, Flame, AlertTriangle } from 'lucide-react';
 
 interface OpponentActionNotificationProps {
   log: GameLogEntry[];
@@ -13,6 +13,7 @@ interface Notification {
   message: string;
   icon: 'spell' | 'activation' | 'reaction' | 'metamorphose' | 'incapacitate' | 'heal' | 'retro' | 'remove' | 'ether_destroy';
   timestamp: number;
+  isTargetingMe: boolean;
 }
 
 const ICON_MAP = {
@@ -26,6 +27,8 @@ const ICON_MAP = {
   remove: <Trash2 className="w-5 h-5 text-destructive" />,
   ether_destroy: <Flame className="w-5 h-5 text-ether" />,
 };
+
+const TARGETED_ICON = <AlertTriangle className="w-5 h-5 text-destructive animate-pulse" />;
 
 /** Actions that warrant a notification to other players */
 const NOTIFIABLE_ACTIONS = new Set([
@@ -55,38 +58,52 @@ function getNotificationIcon(action: string): Notification['icon'] {
   return 'spell';
 }
 
+/** Check if the log entry detail references the local player as a target */
+function isTargetingPlayer(entry: GameLogEntry, localPlayerName: string): boolean {
+  const { detail, playerName } = entry;
+  // The acting player is never "targeting themselves" from our perspective
+  if (playerName === localPlayerName) return false;
+
+  // Common patterns in detail text that reference a target god:
+  // "... de Apollon", "... d'Apollon", "... à Apollon", "... chez Apollon"
+  // "... cible Apollon", "... contre Apollon"
+  const escapedName = localPlayerName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const targetPatterns = new RegExp(
+    `(?:de |d'|à |chez |cible |contre |sur )${escapedName}\\b|\\b${escapedName}(?:\\s|$|\\.)`,
+    'i'
+  );
+  return targetPatterns.test(detail);
+}
+
 /** Build a clean third-person notification message from a log entry */
-function buildNotificationMessage(entry: GameLogEntry): string {
+function buildNotificationMessage(entry: GameLogEntry, isTargeted: boolean): string {
   const { playerName, action, detail } = entry;
 
-  // Sort joué: "Vénus a joué 'Règne' (coût: 5) — description"
-  // Extract spell name and description from detail
   if (action === 'Sort joué') {
     const spellMatch = detail.match(/a joué (.+?) \(coût:/);
     const descMatch = detail.match(/— (.+)$/);
     const spellName = spellMatch?.[1] || 'un sortilège';
     const desc = descMatch?.[1] || '';
-    return desc
+    const base = desc
       ? `${playerName} a joué « ${spellName} » — ${desc}`
       : `${playerName} a joué « ${spellName} »`;
+    return isTargeted ? `⚠️ ${base}` : base;
   }
 
-  // Incapacitation: "Bacchus a incapacité Source d'eau de Apollon"
   if (action === 'Incapacitation') {
-    return `${playerName} ${detail}`;
+    const msg = `${playerName} ${detail}`;
+    return isTargeted ? `⚠️ ${msg}` : msg;
   }
 
-  // Guérison: already "a levé l'incapacité de X de Y"
   if (action === 'Guérison' || action === 'Guérison totale') {
     return `${playerName} ${detail}`;
   }
 
-  // Retrait du jeu
   if (action === 'Retrait du jeu') {
-    return `${playerName} ${detail}`;
+    const msg = `${playerName} ${detail}`;
+    return isTargeted ? `⚠️ ${msg}` : msg;
   }
 
-  // Métamorphose: "a métamorphosé X → Y (coût: Z)"
   if (action === 'Métamorphose') {
     const metaMatch = detail.match(/a métamorphosé (.+?) → (.+?) \(coût: (\d+)/);
     if (metaMatch) {
@@ -95,23 +112,22 @@ function buildNotificationMessage(entry: GameLogEntry): string {
     return `${playerName} ${detail}`;
   }
 
-  // Activation: various formats
   if (action === 'Activation') {
-    return `${playerName} ${detail}`;
+    const msg = `${playerName} ${detail}`;
+    return isTargeted ? `⚠️ ${msg}` : msg;
   }
 
-  // Réaction posée
   if (action === 'Réaction posée') {
     return `${playerName} a posé une réaction face cachée`;
   }
 
-  // Éther détruit / Éther volé
   if (action === 'Éther détruit' || action === 'Éther volé') {
-    return `${playerName} ${detail}`;
+    const msg = `${playerName} ${detail}`;
+    return isTargeted ? `⚠️ ${msg}` : msg;
   }
 
-  // Default: just concatenate
-  return `${playerName} ${detail}`;
+  const msg = `${playerName} ${detail}`;
+  return isTargeted ? `⚠️ ${msg}` : msg;
 }
 
 const OpponentActionNotification = ({ log, localPlayerName }: OpponentActionNotificationProps) => {
@@ -120,7 +136,6 @@ const OpponentActionNotification = ({ log, localPlayerName }: OpponentActionNoti
   const initializedRef = useRef(false);
 
   useEffect(() => {
-    // Skip all existing log entries on first render
     if (!initializedRef.current) {
       initializedRef.current = true;
       for (const entry of log) {
@@ -129,33 +144,35 @@ const OpponentActionNotification = ({ log, localPlayerName }: OpponentActionNoti
       return;
     }
 
-    // Check for new impactful entries from opponents
     for (const entry of log) {
       if (seenIds.current.has(entry.id)) continue;
       seenIds.current.add(entry.id);
 
-      // Skip own actions and system messages
       if (entry.playerName === localPlayerName || entry.playerName === 'Système') continue;
-
-      // Only show notifiable actions
       if (!NOTIFIABLE_ACTIONS.has(entry.action)) continue;
+
+      const targeted = isTargetingPlayer(entry, localPlayerName);
 
       const notif: Notification = {
         id: entry.id,
-        message: buildNotificationMessage(entry),
+        message: buildNotificationMessage(entry, targeted),
         icon: getNotificationIcon(entry.action),
         timestamp: Date.now(),
+        isTargetingMe: targeted,
       };
 
       setNotifications(prev => [notif, ...prev].slice(0, 5));
     }
   }, [log, localPlayerName]);
 
-  // Auto-dismiss after 6s
+  // Auto-dismiss: targeted notifications last 8s, normal ones 6s
   useEffect(() => {
     if (notifications.length === 0) return;
     const timer = setInterval(() => {
-      setNotifications(prev => prev.filter(n => Date.now() - n.timestamp < 6000));
+      setNotifications(prev => prev.filter(n => {
+        const ttl = n.isTargetingMe ? 8000 : 6000;
+        return Date.now() - n.timestamp < ttl;
+      }));
     }, 1000);
     return () => clearInterval(timer);
   }, [notifications.length]);
@@ -166,21 +183,41 @@ const OpponentActionNotification = ({ log, localPlayerName }: OpponentActionNoti
         {notifications.map((notif) => (
           <motion.div
             key={notif.id}
-            className="flex items-center gap-3 px-5 py-3 rounded-xl shadow-2xl pointer-events-auto max-w-lg"
+            className={`flex items-center gap-3 px-5 py-3 rounded-xl shadow-2xl pointer-events-auto max-w-lg ${
+              notif.isTargetingMe ? 'ring-2' : ''
+            }`}
             style={{
-              background: 'hsl(var(--card) / 0.95)',
-              border: '1px solid hsl(var(--border) / 0.5)',
+              background: notif.isTargetingMe
+                ? 'hsl(var(--destructive) / 0.15)'
+                : 'hsl(var(--card) / 0.95)',
+              border: notif.isTargetingMe
+                ? '2px solid hsl(var(--destructive) / 0.7)'
+                : '1px solid hsl(var(--border) / 0.5)',
               backdropFilter: 'blur(12px)',
-              boxShadow: '0 4px 24px hsl(0 0% 0% / 0.4)',
+              boxShadow: notif.isTargetingMe
+                ? '0 4px 30px hsl(var(--destructive) / 0.35)'
+                : '0 4px 24px hsl(0 0% 0% / 0.4)',
+              
             }}
             initial={{ opacity: 0, y: -30, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
+            animate={{
+              opacity: 1,
+              y: 0,
+              scale: notif.isTargetingMe ? [1, 1.03, 1] : 1,
+            }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             transition={{ duration: 0.3 }}
             onClick={() => setNotifications(prev => prev.filter(n => n.id !== notif.id))}
           >
-            {ICON_MAP[notif.icon]}
-            <span className="font-display text-sm font-semibold text-foreground">{notif.message}</span>
+            {notif.isTargetingMe ? TARGETED_ICON : ICON_MAP[notif.icon]}
+            <span className={`font-display text-sm font-semibold ${
+              notif.isTargetingMe ? 'text-destructive' : 'text-foreground'
+            }`}>
+              {notif.isTargetingMe && (
+                <span className="uppercase tracking-wider text-xs mr-2 opacity-80">Vous êtes ciblé !</span>
+              )}
+              {notif.message}
+            </span>
           </motion.div>
         ))}
       </AnimatePresence>
