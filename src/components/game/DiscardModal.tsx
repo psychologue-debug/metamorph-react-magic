@@ -58,7 +58,7 @@ const DiscardModal = ({ hand, reactions = [], excessCount, onConfirm, onCancel, 
           <p className="text-lg text-muted-foreground mb-6 font-body">
             {description || `Vous avez ${allCards.length} cartes. Sélectionnez ${excessCount} carte${excessCount > 1 ? 's' : ''} à défausser.`}
           </p>
-          <div className="flex flex-col gap-2 mb-6 max-h-64 overflow-y-auto">
+          <div className="flex flex-col gap-2 mb-6 max-h-64 overflow-y-auto scrollbar-none" style={{ scrollbarWidth: 'none' }}>
             {allCards.map((card) => (
               <motion.button
                 key={card.id}
