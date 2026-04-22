@@ -2875,8 +2875,8 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
           id: crypto.randomUUID(),
           timestamp: Date.now(),
           playerName: prev.players[pi].name,
-          action: pendingEffect.sourceMortalName,
-          detail: `a volé une carte au hasard à ${targetPlayer.name} (${card.name})`,
+          action: 'Activation',
+          detail: `${pendingEffect.sourceMortalName} a volé une carte au hasard à ${targetPlayer.name} (${card.name})`,
         }, ...prev.log],
       };
     });
