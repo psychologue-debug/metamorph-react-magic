@@ -1408,10 +1408,7 @@ function StealCardFromGodContent({
   onSteal: (targetPlayerId: string, cardId: string) => void;
   onCancel?: () => void;
 }) {
-  const [selectedGod, setSelectedGod] = useState<string | null>(null);
-  const [selectedCard, setSelectedCard] = useState<string | null>(null);
   const enemies = gameState.players.filter((_, i) => i !== effect.sourcePlayerIndex && gameState.players[i].hand.length > 0);
-  const selectedEnemy = selectedGod ? gameState.players.find(p => p.id === selectedGod) : null;
 
   if (enemies.length === 0) {
     return (
@@ -1431,6 +1428,13 @@ function StealCardFromGodContent({
     );
   }
 
+  const handlePickGod = (enemyId: string) => {
+    const enemy = gameState.players.find(p => p.id === enemyId);
+    if (!enemy || enemy.hand.length === 0) return;
+    const randomCard = enemy.hand[Math.floor(Math.random() * enemy.hand.length)];
+    onSteal(enemyId, randomCard.id);
+  };
+
   return (
     <ModalWrapper>
       <div>
@@ -1442,77 +1446,40 @@ function StealCardFromGodContent({
           </div>
         </div>
 
-        {!selectedGod ? (
-          <>
-            <p className="text-sm font-display text-foreground mb-3">Choisissez un dieu à qui voler une carte :</p>
-            <div className="space-y-2 mb-4">
-              {enemies.map(enemy => {
-                const divinity = DIVINITIES[enemy.divinity];
-                return (
-                  <motion.button
-                    key={enemy.id}
-                    className="w-full flex items-center gap-4 p-4 rounded-lg border border-border/50"
-                    style={{ background: 'hsl(var(--secondary) / 0.5)' }}
-                    whileHover={{ scale: 1.02, borderColor: 'hsl(var(--ether) / 0.5)' }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setSelectedGod(enemy.id)}
-                  >
-                    <div className="w-10 h-10 rounded-md overflow-hidden border-2" style={{ borderColor: `hsl(${divinity.color})` }}>
-                      {divinity.image && <img src={divinity.image} alt={divinity.name} className="w-full h-full object-cover" />}
-                    </div>
-                    <div className="flex-1 text-left">
-                      <span className="font-display font-semibold text-foreground">{enemy.name}</span>
-                      <span className="text-muted-foreground text-sm ml-2">({enemy.hand.length} cartes)</span>
-                    </div>
-                  </motion.button>
-                );
-              })}
-            </div>
-          </>
-        ) : (
-          <>
-            <p className="text-sm font-display text-foreground mb-3">Choisissez la carte à voler à {selectedEnemy?.name} :</p>
-            <div className="flex flex-wrap gap-2 mb-4">
-              {selectedEnemy?.hand.map(card => {
-                const selected = selectedCard === card.id;
-                return (
-                  <motion.button
-                    key={card.id}
-                    className={`p-3 rounded-lg border-2 transition-all text-left ${selected ? 'border-ether ring-2 ring-ether/30' : 'border-border/50 hover:border-ether/40'}`}
-                    style={{ background: selected ? 'hsl(var(--ether) / 0.1)' : 'hsl(var(--secondary) / 0.5)', minWidth: '140px' }}
-                    whileHover={{ scale: 1.03 }}
-                    onClick={() => setSelectedCard(card.id)}
-                  >
-                    <div className="font-display text-sm font-bold text-foreground">{card.name}</div>
-                    <div className="text-xs text-muted-foreground">Coût: {card.cost} | {card.type === 'reaction' ? 'Réaction' : 'Sortilège'}</div>
-                    <div className="text-xs text-muted-foreground mt-1">{card.description}</div>
-                    {selected && <Check className="w-4 h-4 text-ether mt-1" />}
-                  </motion.button>
-                );
-              })}
-            </div>
-            <div className="flex gap-3 justify-end">
-              <button
-                className="px-5 py-2 rounded-lg font-display text-sm border border-border/50 text-muted-foreground"
-                style={{ background: 'hsl(var(--muted))' }}
-                onClick={() => { setSelectedGod(null); setSelectedCard(null); }}
-              >
-                Retour
-              </button>
+        <p className="text-sm font-display text-foreground mb-3">Choisissez un dieu à qui voler une carte au hasard :</p>
+        <div className="space-y-2 mb-4">
+          {enemies.map(enemy => {
+            const divinity = DIVINITIES[enemy.divinity];
+            return (
               <motion.button
-                className="px-6 py-2 rounded-lg font-display font-semibold text-sm"
-                style={{
-                  background: selectedCard ? 'linear-gradient(135deg, hsl(var(--ether)), hsl(var(--ether-dim)))' : 'hsl(var(--muted))',
-                  color: selectedCard ? 'white' : 'hsl(var(--muted-foreground))',
-                }}
-                whileHover={selectedCard ? { scale: 1.05 } : {}}
-                onClick={() => selectedCard && selectedGod && onSteal(selectedGod, selectedCard)}
-                disabled={!selectedCard}
+                key={enemy.id}
+                className="w-full flex items-center gap-4 p-4 rounded-lg border border-border/50"
+                style={{ background: 'hsl(var(--secondary) / 0.5)' }}
+                whileHover={{ scale: 1.02, borderColor: 'hsl(var(--ether) / 0.5)' }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => handlePickGod(enemy.id)}
               >
-                Voler
+                <div className="w-10 h-10 rounded-md overflow-hidden border-2" style={{ borderColor: `hsl(${divinity.color})` }}>
+                  {divinity.image && <img src={divinity.image} alt={divinity.name} className="w-full h-full object-cover" />}
+                </div>
+                <div className="flex-1 text-left">
+                  <span className="font-display font-semibold text-foreground">{enemy.name}</span>
+                  <span className="text-muted-foreground text-sm ml-2">({enemy.hand.length} carte{enemy.hand.length > 1 ? 's' : ''})</span>
+                </div>
               </motion.button>
-            </div>
-          </>
+            );
+          })}
+        </div>
+        {onCancel && (
+          <div className="flex justify-end">
+            <button
+              className="px-5 py-2 rounded-lg font-display text-sm border border-border/50 text-muted-foreground"
+              style={{ background: 'hsl(var(--muted))' }}
+              onClick={onCancel}
+            >
+              Annuler
+            </button>
+          </div>
         )}
       </div>
     </ModalWrapper>
