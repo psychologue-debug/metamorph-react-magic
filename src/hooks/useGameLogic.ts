@@ -2600,8 +2600,9 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
 
         // Retro-metamorphosis detected (CER-06 Myrmidons)
         if (oldM.isMetamorphosed && !newM.isMetamorphosed) {
-          // Clear dedup ref so re-metamorphose can trigger effects again
+          // Clear dedup refs so re-metamorphose can trigger effects again
           metamorphoseTriggeredRef.current.delete(newM.id);
+          (metamorphoseTriggeredRef as any).appliedSet?.delete(newM.id);
 
           const trigResult = onMortalRetroMetamorphosed(gameState.players);
           if (trigResult.etherChanges.length > 0) {
