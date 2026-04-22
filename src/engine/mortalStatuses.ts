@@ -34,15 +34,16 @@ export function isMortalInvulnerable(
   // Handled separately via canBeRetroMetamorphosed / canBeRemoved if needed
   // For full invulnerability check, MIN-09 is NOT fully invulnerable (can be incapacitated)
 
-  // APO-08/09/10 combo: all three must be metamorphosed
+  // APO-08/09/10 combo: all three must be metamorphosed (incapacitation does NOT break invulnerability,
+  // only "retired" / removed-from-game does).
   if (owner.divinity === 'apollon') {
     const apo08 = owner.mortals.find(m => m.code === 'APO-08');
     const apo09 = owner.mortals.find(m => m.code === 'APO-09');
     const apo10 = owner.mortals.find(m => m.code === 'APO-10');
     if (
-      apo08?.isMetamorphosed && apo08.status !== 'incapacite' &&
-      apo09?.isMetamorphosed && apo09.status !== 'incapacite' &&
-      apo10?.isMetamorphosed && apo10.status !== 'incapacite'
+      apo08?.isMetamorphosed && apo08.status !== 'retired' &&
+      apo09?.isMetamorphosed && apo09.status !== 'retired' &&
+      apo10?.isMetamorphosed && apo10.status !== 'retired'
     ) {
       // All owner's metamorphosed mortals are invulnerable
       return true;
