@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { GameState, Player, Mortal, SpellCard, DIVINITIES } from '@/types/game';
 import { PendingEffect } from '@/engine/metamorphoseEffects';
 import { canBeIncapacitated, canBeRemovedFromGame, isMortalInvulnerable } from '@/engine/mortalStatuses';
@@ -1604,6 +1605,21 @@ function MoveIncapacitationsContent({
     return canBeIncapacitated(mortal, owner, gameState);
   };
 
+  // Show metamorphosed (non-retired, non-already-incap) mortals even if invulnerable so the
+  // player understands why they can't be picked.
+  const isVisibleTarget = (mortal: Mortal) => {
+    if (!mortal.isMetamorphosed) return false;
+    if (mortal.status === 'retired') return false;
+    const effectiveStatus = getEffectiveStatus(mortal);
+    if (effectiveStatus === 'incapacite') return false;
+    return true;
+  };
+
+  // Check if any valid target exists across all players (for warning)
+  const hasAnyValidTarget = phase === 'select_target'
+    ? allPlayers.some(p => p.mortals.some(m => isValidTarget(m, p)))
+    : true;
+
   return (
     <ModalWrapper>
       <div>
@@ -1624,29 +1640,47 @@ function MoveIncapacitationsContent({
             : 'Cliquez sur un mortel à incapaciter à la place :'}
         </p>
 
-        <div className="space-y-3 mb-4 max-h-[50vh] overflow-y-auto">
+        {phase === 'select_target' && !hasAnyValidTarget && (
+          <div className="mb-3 p-2 rounded-lg text-xs text-destructive border border-destructive/40" style={{ background: 'hsl(var(--destructive) / 0.1)' }}>
+            Aucun mortel ne peut être incapacité (tous invulnérables ou indisponibles). Annulez ou terminez.
+          </div>
+        )}
+
+        <div className="space-y-3 mb-4 max-h-[50vh] overflow-y-auto scrollbar-none">
           {allPlayers.map(owner => {
             const relevantMortals = owner.mortals.filter(m => {
               if (phase === 'select_source') return isValidSource(m);
-              return isValidTarget(m, owner);
+              return isVisibleTarget(m);
             });
             if (relevantMortals.length === 0) return null;
             return (
               <div key={owner.id}>
                 <h3 className="font-display text-xs font-semibold text-muted-foreground mb-1">{owner.name}</h3>
                 <div className="flex flex-wrap gap-2">
-                  {owner.mortals.map(mortal => {
+                  {relevantMortals.map(mortal => {
                     const valid = phase === 'select_source' ? isValidSource(mortal) : isValidTarget(mortal, owner);
+                    const invulnerable = phase === 'select_target' && !valid && isMortalInvulnerable(mortal, owner, gameState);
                     const effectiveStatus = getEffectiveStatus(mortal);
                     return (
                       <motion.button
                         key={mortal.id}
                         className={`relative rounded-lg overflow-hidden border-2 transition-all ${
-                          valid ? 'border-ether/50 hover:border-ether cursor-pointer' : 'border-border/20 opacity-30 cursor-not-allowed'
+                          valid
+                            ? 'border-ether/50 hover:border-ether cursor-pointer'
+                            : invulnerable
+                              ? 'border-yellow-500/60 opacity-60 cursor-not-allowed'
+                              : 'border-border/20 opacity-30 cursor-not-allowed'
                         }`}
                         style={{ width: 56, height: 56 }}
                         onClick={() => {
-                          if (!valid) return;
+                          if (!valid) {
+                            if (invulnerable) {
+                              toast.error(`${mortal.nameVerso} est invulnérable`, {
+                                description: `Tous les mortels métamorphosés de ${owner.name} sont protégés.`,
+                              });
+                            }
+                            return;
+                          }
                           if (phase === 'select_source') {
                             setCurrentSource({ mortalId: mortal.id, playerId: owner.id });
                             setPhase('select_target');
@@ -1662,7 +1696,6 @@ function MoveIncapacitationsContent({
                           }
                         }}
                         whileHover={valid ? { scale: 1.1 } : {}}
-                        disabled={!valid}
                       >
                         <img
                           src={mortal.isMetamorphosed ? mortal.imageVerso : mortal.imageRecto}
@@ -1671,6 +1704,11 @@ function MoveIncapacitationsContent({
                         />
                         {effectiveStatus === 'incapacite' && (
                           <div className="absolute bottom-0 left-0 right-0 text-center text-xs bg-black/60 text-white">⛓️</div>
+                        )}
+                        {invulnerable && (
+                          <div className="absolute top-0 right-0 bg-yellow-500/90 text-white rounded-bl px-1">
+                            <Shield className="w-3 h-3" />
+                          </div>
                         )}
                       </motion.button>
                     );
@@ -1692,7 +1730,13 @@ function MoveIncapacitationsContent({
           </div>
         )}
 
-        <div className="flex gap-3 justify-end">
+        <div className="flex gap-3 justify-end flex-wrap">
+          <button
+            className="px-4 py-2 rounded-lg font-display text-sm border border-border/50 text-muted-foreground hover:bg-muted"
+            onClick={() => onConfirm([])}
+          >
+            Annuler
+          </button>
           {phase === 'select_target' && (
             <button
               className="px-4 py-2 rounded-lg font-display text-sm border border-border/50 text-muted-foreground"
