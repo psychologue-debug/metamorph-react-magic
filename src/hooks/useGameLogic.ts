@@ -2523,7 +2523,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
 
         // New metamorphose detected
         if (!oldM.isMetamorphosed && newM.isMetamorphosed) {
-          // Dedup: prevent triggered effects from firing twice for the same mortal
+          // Dedup at the *effect* level (StrictMode safe): only schedule once per mortal id
           if (metamorphoseTriggeredRef.current.has(newM.id)) continue;
           metamorphoseTriggeredRef.current.add(newM.id);
 
@@ -2531,9 +2531,17 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
           const mortalCode = newM.code;
           const mortalType = newM.type;
           const ownerIndex = i;
+          const triggeredMortalId = newM.id;
 
           setGameState(gs => {
             if (!gs) return gs;
+            // Second-level dedup INSIDE the updater: in React StrictMode the updater
+            // can run twice; we only want to apply triggered ether/draw effects once.
+            const appliedSet = (metamorphoseTriggeredRef as any).appliedSet ||
+              ((metamorphoseTriggeredRef as any).appliedSet = new Set<string>());
+            if (appliedSet.has(triggeredMortalId)) return gs;
+            appliedSet.add(triggeredMortalId);
+
             // Compute triggered result inside callback to use latest state
             const trigResult = onMortalMetamorphosed(gs.players, mortalCode, mortalType, ownerIndex);
             if (trigResult.etherChanges.length === 0 && trigResult.drawCards.length === 0) return gs;
@@ -2592,8 +2600,9 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
 
         // Retro-metamorphosis detected (CER-06 Myrmidons)
         if (oldM.isMetamorphosed && !newM.isMetamorphosed) {
-          // Clear dedup ref so re-metamorphose can trigger effects again
+          // Clear dedup refs so re-metamorphose can trigger effects again
           metamorphoseTriggeredRef.current.delete(newM.id);
+          (metamorphoseTriggeredRef as any).appliedSet?.delete(newM.id);
 
           const trigResult = onMortalRetroMetamorphosed(gameState.players);
           if (trigResult.etherChanges.length > 0) {
