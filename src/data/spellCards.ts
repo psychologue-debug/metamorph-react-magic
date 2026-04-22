@@ -168,7 +168,7 @@ export const SPELL_TEMPLATES: SpellTemplate[] = [
     name: 'Métabolisme',
     type: 'sortilege',
     quantity: 3,
-    cost: 3,
+    cost: 5,
     targets: 'Défausse (Anabolisme + Catabolisme)',
     activationCondition: 'Il doit y avoir au moins une carte Anabolisme et une carte Catabolisme dans la défausse',
     effect: 'Prenez une carte Anabolisme et une carte Catabolisme dans la défausse.',
