@@ -592,10 +592,10 @@ const Index = () => {
       {discardRequired && currentPlayer.hand.length > 2 && (
         <DiscardModal
           hand={currentPlayer.hand}
-          reactions={currentPlayer.reactions}
           excessCount={currentPlayer.hand.length - 2}
           onConfirm={handleDiscard}
           onCancel={cancelDiscard}
+          allowReactions={false}
         />
       )}
 
