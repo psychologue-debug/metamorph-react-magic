@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { GameState, Player, Mortal, SpellCard, DIVINITIES } from '@/types/game';
 import { PendingEffect } from '@/engine/metamorphoseEffects';
 import { canBeIncapacitated, canBeRemovedFromGame, isMortalInvulnerable } from '@/engine/mortalStatuses';
