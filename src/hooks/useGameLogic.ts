@@ -2846,6 +2846,8 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
   // === BAC-03 (Mouettes): Steal a card from a god ===
   const resolveStealCard = useCallback((targetPlayerId: string, cardId: string) => {
     if (!pendingEffect) return;
+    let stolenCardName = '';
+    let targetPlayerName = '';
     setGameState(prev => {
       if (!prev) return prev;
       const pi = pendingEffect.sourcePlayerIndex;
@@ -2853,6 +2855,8 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
       if (!targetPlayer) return prev;
       const card = targetPlayer.hand.find(c => c.id === cardId);
       if (!card) return prev;
+      stolenCardName = card.name;
+      targetPlayerName = targetPlayer.name;
 
       const updatedPlayers = prev.players.map(p => {
         if (p.id === targetPlayerId) {
@@ -2871,11 +2875,14 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
           id: crypto.randomUUID(),
           timestamp: Date.now(),
           playerName: prev.players[pi].name,
-          action: pendingEffect.sourceMortalName,
-          detail: `a volé ${card.name} à ${targetPlayer.name}`,
+          action: 'Activation',
+          detail: `${pendingEffect.sourceMortalName} a volé une carte au hasard à ${targetPlayer.name} (${card.name})`,
         }, ...prev.log],
       };
     });
+    if (stolenCardName) {
+      toast.success(`Vous avez volé « ${stolenCardName} » à ${targetPlayerName} !`);
+    }
     setPendingEffect(null);
   }, [pendingEffect]);
 
