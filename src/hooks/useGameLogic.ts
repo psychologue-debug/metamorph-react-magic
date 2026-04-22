@@ -1550,10 +1550,12 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     if (targetValid) {
       // Check if Compassion/Parade reaction window should open for hostile targeting
       const isHostileEnemyEffect = (isIncapacitate || isRemove || isRetroEnemy);
-      const srcPlayerId = gameState?.players[currentEffect.sourcePlayerIndex]?.id;
+      // Use the latest gameState (after the incapacitation just applied) to avoid stale-closure bugs
+      const latestGameState = gameStateRef.current ?? gameState;
+      const srcPlayerId = latestGameState?.players[currentEffect.sourcePlayerIndex]?.id;
       const isEnemyAction = srcPlayerId !== playerId;
 
-      if (isHostileEnemyEffect && isEnemyAction && gameState) {
+      if (isHostileEnemyEffect && isEnemyAction && latestGameState) {
         const triggerType = currentEffect.fromMetamorphose ? 'mortal_effect'
           : currentEffect.sourceMortalCode?.startsWith('SPELL-') ? 'spell_effect'
           : 'mortal_effect';
@@ -1568,7 +1570,20 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
           targetMortalId: mortalId,
         };
 
-        const reactors = getEligibleReactors(trigger, gameState);
+        const reactors = getEligibleReactors(trigger, latestGameState);
+        console.log('[Reaction Phase 2 check]', {
+          sourceMortal: currentEffect.sourceMortalCode,
+          sourceMortalName: currentEffect.sourceMortalName,
+          fromMetamorphose: currentEffect.fromMetamorphose,
+          triggerType,
+          srcPlayerId,
+          targetPlayerId: playerId,
+          targetMortalId: mortalId,
+          reactors,
+          opponentReactions: latestGameState.players
+            .filter(p => p.id !== srcPlayerId)
+            .map(p => ({ name: p.name, ether: p.ether, reactions: p.reactions.map(r => r.name) })),
+        });
         if (reactors.length > 0) {
           metamorphoseReactionInfoRef.current = null;
           const snapshot = savedMortalSnapshotRef.current;
@@ -1581,7 +1596,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
               effectType: currentEffect.type,
             });
           }
-          const targetPlayer = gameState.players.find(p => p.id === playerId);
+          const targetPlayer = latestGameState.players.find(p => p.id === playerId);
           const targetMortal = targetPlayer?.mortals.find(m => m.id === mortalId);
           const actionLabel = currentEffect.type === 'enemy_mortal_remove' ? 'retirer du jeu'
             : currentEffect.type === 'mortal_heal' ? 'lever l\'incapacité de'
