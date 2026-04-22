@@ -12,14 +12,15 @@ interface DiscardModalProps {
   title?: string;
   description?: string;
   playerName?: string;
+  allowReactions?: boolean;
 }
 
-const DiscardModal = ({ hand, reactions = [], excessCount, onConfirm, onCancel, title, description, playerName }: DiscardModalProps) => {
+const DiscardModal = ({ hand, reactions = [], excessCount, onConfirm, onCancel, title, description, playerName, allowReactions = true }: DiscardModalProps) => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const allCards = [
     ...hand.map(c => ({ ...c, source: 'hand' as const })),
-    ...reactions.map(c => ({ ...c, source: 'reaction' as const })),
+    ...(allowReactions ? reactions.map(c => ({ ...c, source: 'reaction' as const })) : []),
   ];
 
   const toggle = (id: string) => {
