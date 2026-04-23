@@ -24,7 +24,7 @@ const BoardToken = ({ mortal, owner, gameState, size = 140, selectable, onClick,
   const isInvulnerable = isMortalInvulnerable(mortal, owner, gameState);
   const showImage = imageSrc && !imgFailed;
 
-  const haloType = getHaloType(mortal);
+  const haloType = getHaloType(mortal, owner);
   const haloStyle = haloType !== 'none' ? HALO_STYLES[haloType] : null;
 
   return (

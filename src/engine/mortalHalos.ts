@@ -2,7 +2,7 @@
 // Determines the visual halo ring around metamorphosed mortals based on their effect type.
 // Uses explicit code lists provided by the game designer.
 
-import { Mortal } from '@/types/game';
+import { Mortal, Player } from '@/types/game';
 
 export type HaloType = 'ether' | 'activatable' | 'permanent' | 'none';
 
@@ -35,11 +35,26 @@ const PERMANENT_CODES = new Set([
 
 /**
  * Returns the halo type for a metamorphosed mortal using explicit code lists.
- * Priority: ether > activatable > permanent > none
+ * Priority: ether > activatable > permanent > none.
+ * If `owner` is provided, applies dynamic conditions (e.g. DIA-01 Alcyon stops
+ * generating ether when its owner has 4+ metamorphosed mortals).
  */
-export function getHaloType(mortal: Mortal): HaloType {
+export function getHaloType(mortal: Mortal, owner?: Player): HaloType {
   if (!mortal.isMetamorphosed) return 'none';
-  if (ETHER_CODES.has(mortal.code)) return 'ether';
+  if (mortal.status === 'incapacite' || mortal.status === 'retired') return 'none';
+  if (ETHER_CODES.has(mortal.code)) {
+    // DIA-01 (Alcyon): no ether halo when owner has 4+ metamorphosed mortals
+    if (mortal.code === 'DIA-01' && owner) {
+      const metaCount = owner.mortals.filter(m => m.isMetamorphosed).length;
+      if (metaCount >= 4) {
+        // Fall through to other halo types if any (none for DIA-01 here)
+        if (ACTIVATABLE_CODES.has(mortal.code)) return 'activatable';
+        if (PERMANENT_CODES.has(mortal.code)) return 'permanent';
+        return 'none';
+      }
+    }
+    return 'ether';
+  }
   if (ACTIVATABLE_CODES.has(mortal.code)) return 'activatable';
   if (PERMANENT_CODES.has(mortal.code)) return 'permanent';
   return 'none';
