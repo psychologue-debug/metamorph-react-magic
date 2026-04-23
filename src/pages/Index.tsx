@@ -47,6 +47,7 @@ const Index = () => {
   const [skipEndTurnConfirm, setSkipEndTurnConfirm] = useState(false);
   const [endTurnDontAskAgain, setEndTurnDontAskAgain] = useState(false);
 
+
   const multiplayer = useMultiplayer();
 
   // Build multiplayer config if in a multiplayer session
