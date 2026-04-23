@@ -55,7 +55,7 @@ function MortalToken({
   const showImage = imageSrc && !imgFailed;
   const fontSize = size < 60 ? 'text-xs' : size < 100 ? 'text-sm' : 'text-lg';
 
-  const haloType = getHaloType(mortal);
+  const haloType = getHaloType(mortal, owner);
   const haloStyle = haloType !== 'none' ? HALO_STYLES[haloType] : null;
 
   return (

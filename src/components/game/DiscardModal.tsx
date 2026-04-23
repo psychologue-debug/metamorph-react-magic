@@ -74,6 +74,7 @@ const DiscardModal = ({ hand, reactions = [], excessCount, onConfirm, onCancel, 
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="font-display text-sm font-bold text-foreground">{card.name}</span>
+                    <span className="text-xs font-display font-bold text-ether ml-2">{card.cost} Éther</span>
                     <span className="text-xs text-muted-foreground/70 italic ml-2">
                       {card.source === 'reaction' ? '(Réaction posée)' : '(Main)'}
                     </span>

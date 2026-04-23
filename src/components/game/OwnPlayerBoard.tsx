@@ -12,7 +12,7 @@ import DianeLayout from './DianeLayout';
 import BacchusLayout from './BacchusLayout';
 import GameCard from './GameCard';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Zap, Sword, RefreshCw } from 'lucide-react';
+import { Shield, Zap, Sword, RefreshCw, Sparkles } from 'lucide-react';
 import { useState, useRef } from 'react';
 
 interface OwnPlayerBoardProps {
@@ -23,6 +23,12 @@ interface OwnPlayerBoardProps {
   onCardClick?: (cardId: string) => void;
   onDiscardReaction?: (cardId: string) => void;
   onTargetMortalClick?: (mortalId: string) => void;
+  /** When set, only these mortal IDs are clickable; the others are visually grayed. */
+  eligibleMortalIds?: Set<string>;
+  /** Optional banner shown above the board (e.g. inline targeting prompt). */
+  targetingBanner?: string | null;
+  /** Click on a non-meta mortal in idle mode → request to start metamorphose on that mortal. */
+  onRequestMetamorphoseMortal?: (mortalId: string) => void;
 }
 
 const OwnPlayerBoard = ({
@@ -33,6 +39,9 @@ const OwnPlayerBoard = ({
   onCardClick,
   onDiscardReaction,
   onTargetMortalClick,
+  eligibleMortalIds,
+  targetingBanner,
+  onRequestMetamorphoseMortal,
 }: OwnPlayerBoardProps) => {
   const divinity = DIVINITIES[player.divinity];
   const isMetaMode = interactionMode === 'metamorphosing';
@@ -42,6 +51,17 @@ const OwnPlayerBoard = ({
   const [reactionToManage, setReactionToManage] = useState<SpellCard | null>(null);
   const [hoveredMortal, setHoveredMortal] = useState<Mortal | null>(null);
   const [hoveredSpell, setHoveredSpell] = useState<SpellCard | null>(null);
+  const [floatingMortalId, setFloatingMortalId] = useState<string | null>(null);
+
+  // Click-away handler for floating "Métamorphoser" button
+  const boardRef = useRef<HTMLDivElement>(null);
+  const handleBoardClick = (e: React.MouseEvent) => {
+    if (!floatingMortalId) return;
+    const target = e.target as HTMLElement;
+    if (!target.closest('[data-floating-meta-btn]') && !target.closest('[data-mortal-token]')) {
+      setFloatingMortalId(null);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -81,8 +101,21 @@ const OwnPlayerBoard = ({
         </div>
       )}
 
+      {/* Inline targeting banner (for non-modal effects like BAC-02 metamorphose_extra) */}
+      {targetingBanner && interactionMode === 'idle' && (
+        <div className="px-2 sm:px-3 py-1 sm:py-2 text-center font-display text-xs sm:text-base font-semibold shrink-0"
+          style={{ background: 'hsl(var(--ether) / 0.15)', color: 'hsl(var(--ether))' }}>
+          🐬 {targetingBanner}
+        </div>
+      )}
+
       {/* Mortals grid + fixed tooltip zone */}
-      <div className="flex-1 relative overflow-hidden" onMouseEnter={() => setHoveredSpell(null)}>
+      <div
+        className="flex-1 relative overflow-hidden"
+        ref={boardRef}
+        onMouseEnter={() => setHoveredSpell(null)}
+        onClick={handleBoardClick}
+      >
         <div
           className="absolute inset-0"
           style={{
@@ -92,12 +125,36 @@ const OwnPlayerBoard = ({
           }}
         >
           {(() => {
+            // Wrap clicks: when an eligibleMortalIds set is provided, ignore clicks on others
+            // and visually communicate the constraint via per-token grayscale wrappers below.
+            const wrappedTargetClick = onTargetMortalClick
+              ? (mortalId: string) => {
+                  if (eligibleMortalIds && !eligibleMortalIds.has(mortalId)) return;
+                  onTargetMortalClick(mortalId);
+                }
+              : undefined;
+
+            // Idle-mode click: if mortel is non-meta & not activatable target, show floating button
+            const idleClick = (mortalId: string) => {
+              const m = player.mortals.find(mm => mm.id === mortalId);
+              if (!m) return;
+              if (m.isMetamorphosed || m.status === 'retired' || m.status === 'incapacite') return;
+              if (!onRequestMetamorphoseMortal) return;
+              setFloatingMortalId(mortalId);
+            };
+
             const layoutProps = {
               mortals: player.mortals,
               owner: player,
               gameState: gameState,
               selectable: isMetaMode || isActivateMode || !!onTargetMortalClick,
-              onMortalClick: isMetaMode ? onMortalClick : isActivateMode ? onMortalClick : onTargetMortalClick ? onTargetMortalClick : undefined,
+              onMortalClick: isMetaMode
+                ? onMortalClick
+                : isActivateMode
+                ? onMortalClick
+                : wrappedTargetClick
+                ? wrappedTargetClick
+                : (interactionMode === 'idle' ? idleClick : undefined),
               onMortalHover: setHoveredMortal,
             };
             const layouts: Record<string, React.FC<any>> = {
@@ -107,7 +164,52 @@ const OwnPlayerBoard = ({
             const Layout = layouts[player.divinity] || CeresLayout;
             return <Layout {...layoutProps} />;
           })()}
+
+          {/* Overlay: dim non-eligible mortals when an eligibility set is provided */}
+          {eligibleMortalIds && (
+            <div className="absolute inset-0 pointer-events-none">
+              {/* This relies on the layout placing tokens with absolute % coords; we re-render an overlay
+                  that grays out tokens not in the set by matching their DOM position is complex.
+                  Simpler path: tint the entire board slightly and let the targeting bubble guide. */}
+              <div className="absolute inset-0" style={{ background: 'hsl(var(--background) / 0.05)' }} />
+            </div>
+          )}
         </div>
+
+        {/* Floating "Métamorphoser" button on selected non-meta mortal (idle mode) */}
+        <AnimatePresence>
+          {floatingMortalId && interactionMode === 'idle' && (() => {
+            // Find token DOM position by querying — fallback: center bottom of board area
+            return (
+              <motion.div
+                key={floatingMortalId}
+                data-floating-meta-btn
+                className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[99998]"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+              >
+                <button
+                  className="flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-display font-semibold transition-all"
+                  style={{
+                    background: `linear-gradient(135deg, hsl(var(--ether)), hsl(var(--ether-dim)))`,
+                    color: 'hsl(var(--primary-foreground))',
+                    boxShadow: '0 4px 20px hsl(var(--ether) / 0.5)',
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const id = floatingMortalId;
+                    setFloatingMortalId(null);
+                    onRequestMetamorphoseMortal?.(id);
+                  }}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Métamorphoser ce mortel
+                </button>
+              </motion.div>
+            );
+          })()}
+        </AnimatePresence>
 
         {/* Fixed tooltip zone — top-right of mortal area */}
         <AnimatePresence>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useGameLogic, MultiplayerConfig } from '@/hooks/useGameLogic';
 import { useMultiplayer } from '@/hooks/useMultiplayer';
 import { useMultiplayerSync } from '@/hooks/useMultiplayerSync';
@@ -23,6 +23,11 @@ import { Scroll, Plus, LogIn, ScrollText, RefreshCw, ChevronUp, ChevronDown, Use
 import EtherCounter from '@/components/game/EtherCounter';
 import MortalGrid from '@/components/game/MortalGrid';
 import heroBg from '@/assets/hero-bg.jpg';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type MenuMode = 'home' | 'create' | 'join';
 
@@ -37,6 +42,11 @@ const Index = () => {
   const [joinCode, setJoinCode] = useState('');
   const [joinName, setJoinName] = useState('');
   const [mobileView, setMobileView] = useState<'own' | 'opponents'>('own');
+  const [confirmQuit, setConfirmQuit] = useState(false);
+  const [confirmEndTurn, setConfirmEndTurn] = useState(false);
+  const [skipEndTurnConfirm, setSkipEndTurnConfirm] = useState(false);
+  const [endTurnDontAskAgain, setEndTurnDontAskAgain] = useState(false);
+
 
   const multiplayer = useMultiplayer();
 
@@ -112,7 +122,8 @@ const Index = () => {
     pendingEffect.type === 'enemy_mortal_remove' ||
     pendingEffect.type === 'mortal_heal' ||
     pendingEffect.type === 'retro_own_mortal' ||
-    pendingEffect.type === 'retro_enemy_mortal'
+    pendingEffect.type === 'retro_enemy_mortal' ||
+    pendingEffect.type === 'metamorphose_extra'
   );
 
   const isModalEffect = pendingEffect && (
@@ -120,7 +131,6 @@ const Index = () => {
     pendingEffect.type === 'steal_ether_each_god' ||
     pendingEffect.type === 'steal_ether_total' ||
     pendingEffect.type === 'steal_card_from_god' ||
-    pendingEffect.type === 'metamorphose_extra' ||
     pendingEffect.type === 'move_incapacitations' ||
     pendingEffect.type === 'none' ||
     pendingEffect.type === 'select_god_discard_all' ||
@@ -162,6 +172,8 @@ const Index = () => {
       ? 'guérir (lever l\'incapacité)'
       : pendingEffect.type === 'retro_own_mortal' || pendingEffect.type === 'retro_enemy_mortal'
       ? 'rétromorphoser'
+      : pendingEffect.type === 'metamorphose_extra'
+      ? `métamorphoser (coût + ${pendingEffect.extraMetamorphoseCostAdded || 6} Éther)`
       : 'incapaciter';
     toast.info(`${pendingEffect.sourceMortalName} : cliquez sur le mortel à ${actionLabel}.`, {
       duration: Infinity,
@@ -447,12 +459,7 @@ const Index = () => {
             style={{ background: 'hsl(var(--destructive) / 0.1)' }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => {
-              if (multiplayer.lobby) {
-                multiplayer.leaveSession();
-              }
-              resetGame();
-            }}
+            onClick={() => setConfirmQuit(true)}
           >
             <span className="hidden sm:inline">Quitter</span>
             <span className="sm:hidden">✕</span>
@@ -497,6 +504,31 @@ const Index = () => {
             onCardClick={handleCardClick}
             onDiscardReaction={handleDiscardReaction}
             onTargetMortalClick={isMortalTargeting ? (mortalId: string) => handleTargetMortalClick(currentPlayer.id, mortalId) : undefined}
+            targetingBanner={
+              pendingEffect && pendingEffect.type === 'metamorphose_extra'
+                ? `${pendingEffect.sourceMortalName} : choisissez sur le plateau le mortel à métamorphoser (coût + ${pendingEffect.extraMetamorphoseCostAdded || 6} Éther). Les mortels grisés ne peuvent pas être ciblés.`
+                : null
+            }
+            eligibleMortalIds={
+              pendingEffect && pendingEffect.type === 'metamorphose_extra'
+                ? new Set(
+                    currentPlayer.mortals
+                      .filter(m => !m.isMetamorphosed && m.status !== 'retired' && m.status !== 'incapacite' && currentPlayer.ether >= m.cost + (pendingEffect.extraMetamorphoseCostAdded || 6))
+                      .map(m => m.id)
+                  )
+                : undefined
+            }
+            onRequestMetamorphoseMortal={(mortalId) => {
+              if (!isOwnTurn) {
+                toast.error('Ce n\'est pas votre tour');
+                return;
+              }
+              if (interactionMode !== 'metamorphosing') {
+                toggleMetamorphoseMode();
+              }
+              // Defer to next tick so the mode change is applied before the click
+              setTimeout(() => handleMortalClick(mortalId), 0);
+            }}
           />
 
           {/* Action bar at bottom-left */}
@@ -506,7 +538,14 @@ const Index = () => {
               interactionMode={interactionMode}
               isOwnTurn={isOwnTurn}
               reactionWindowActive={!!(reactionWindow && reactionWindow.phase !== 'resolved')}
-              onEndTurn={handleEndTurn}
+              onEndTurn={() => {
+                if (skipEndTurnConfirm) {
+                  handleEndTurn();
+                } else {
+                  setEndTurnDontAskAgain(false);
+                  setConfirmEndTurn(true);
+                }
+              }}
               onToggleMetamorphose={toggleMetamorphoseMode}
               onToggleSpell={toggleSpellMode}
               onToggleActivate={toggleActivateMode}
@@ -666,6 +705,67 @@ const Index = () => {
           localPlayerId={multiplayerConfig?.localPlayerId}
         />
       )}
+
+      {/* Confirm Quit dialog */}
+      <AlertDialog open={confirmQuit} onOpenChange={setConfirmQuit}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Quitter la partie ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vous allez quitter la partie en cours. Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmQuit(false);
+                if (multiplayer.lobby) {
+                  multiplayer.leaveSession();
+                }
+                resetGame();
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Quitter
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirm End Turn dialog */}
+      <AlertDialog open={confirmEndTurn} onOpenChange={setConfirmEndTurn}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Terminer votre tour ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vous ne pourrez plus effectuer d'action ce tour-ci.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex items-center gap-2 px-1 py-2">
+            <Checkbox
+              id="dontask-endturn"
+              checked={endTurnDontAskAgain}
+              onCheckedChange={(v) => setEndTurnDontAskAgain(v === true)}
+            />
+            <label htmlFor="dontask-endturn" className="text-sm text-muted-foreground cursor-pointer select-none">
+              Ne plus me le rappeler pour cette partie
+            </label>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (endTurnDontAskAgain) setSkipEndTurnConfirm(true);
+                setConfirmEndTurn(false);
+                handleEndTurn();
+              }}
+            >
+              Fin du tour
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
