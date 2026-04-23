@@ -23,6 +23,12 @@ interface OwnPlayerBoardProps {
   onCardClick?: (cardId: string) => void;
   onDiscardReaction?: (cardId: string) => void;
   onTargetMortalClick?: (mortalId: string) => void;
+  /** When set, only these mortal IDs are clickable; the others are visually grayed. */
+  eligibleMortalIds?: Set<string>;
+  /** Optional banner shown above the board (e.g. inline targeting prompt). */
+  targetingBanner?: string | null;
+  /** Click on a non-meta mortal in idle mode → request to start metamorphose on that mortal. */
+  onRequestMetamorphoseMortal?: (mortalId: string) => void;
 }
 
 const OwnPlayerBoard = ({
@@ -33,6 +39,9 @@ const OwnPlayerBoard = ({
   onCardClick,
   onDiscardReaction,
   onTargetMortalClick,
+  eligibleMortalIds,
+  targetingBanner,
+  onRequestMetamorphoseMortal,
 }: OwnPlayerBoardProps) => {
   const divinity = DIVINITIES[player.divinity];
   const isMetaMode = interactionMode === 'metamorphosing';
@@ -42,6 +51,17 @@ const OwnPlayerBoard = ({
   const [reactionToManage, setReactionToManage] = useState<SpellCard | null>(null);
   const [hoveredMortal, setHoveredMortal] = useState<Mortal | null>(null);
   const [hoveredSpell, setHoveredSpell] = useState<SpellCard | null>(null);
+  const [floatingMortalId, setFloatingMortalId] = useState<string | null>(null);
+
+  // Click-away handler for floating "Métamorphoser" button
+  const boardRef = useRef<HTMLDivElement>(null);
+  const handleBoardClick = (e: React.MouseEvent) => {
+    if (!floatingMortalId) return;
+    const target = e.target as HTMLElement;
+    if (!target.closest('[data-floating-meta-btn]') && !target.closest('[data-mortal-token]')) {
+      setFloatingMortalId(null);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full">
