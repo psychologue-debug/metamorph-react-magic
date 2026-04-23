@@ -2927,58 +2927,62 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
   const resolveMetamorphoseExtra = useCallback((mortalId: string) => {
     if (!pendingEffect) return;
     const extraCost = pendingEffect.extraMetamorphoseCostAdded || 6;
+    const pi = pendingEffect.sourcePlayerIndex;
+    const sourceMortalName = pendingEffect.sourceMortalName;
 
-    let effectToTrigger: PendingEffect | null = null;
+    // Pre-compute on a snapshot to reliably extract the on-metamorphose effect
+    // BEFORE committing the state. This avoids stale-closure / strict-mode issues
+    // that previously prevented Bacchus on-flip effects (e.g. BAC-07 Battus) from firing.
+    const snapshot = gameStateRef.current;
+    if (!snapshot) return;
+    const playerSnap = snapshot.players[pi];
+    const mortalSnap = playerSnap?.mortals.find(m => m.id === mortalId);
+    if (!mortalSnap) return;
+    if (mortalSnap.isMetamorphosed || mortalSnap.status === 'retired' || mortalSnap.status === 'incapacite') {
+      toast.error('Mortel non métamorphosable');
+      return;
+    }
+    const totalCost = mortalSnap.cost + extraCost;
+    if (playerSnap.ether < totalCost) {
+      toast.error(`Pas assez d'Éther ! (${totalCost} requis, ${playerSnap.ether} disponible)`);
+      return;
+    }
 
+    // Build projected state for effect computation
+    const projectedMortals = playerSnap.mortals.map(m =>
+      m.id === mortalId ? { ...m, isMetamorphosed: true } : m
+    );
+    const projectedPlayer = {
+      ...playerSnap,
+      ether: playerSnap.ether - totalCost,
+      mortals: projectedMortals,
+      metamorphosedCount: projectedMortals.filter(m => m.isMetamorphosed).length,
+      metamorphosesThisTurn: playerSnap.metamorphosesThisTurn + 1,
+    };
+    const projectedState: GameState = {
+      ...snapshot,
+      players: snapshot.players.map((p, i) => i === pi ? projectedPlayer : p),
+    };
+    const metamorphosedMortal = projectedMortals.find(m => m.id === mortalId)!;
+    const effectToTrigger = getMetamorphoseEffect(metamorphosedMortal, projectedPlayer, projectedState);
+
+    // Commit state
     setGameState(prev => {
       if (!prev) return prev;
-      const pi = pendingEffect.sourcePlayerIndex;
-      const player = prev.players[pi];
-      const mortal = player.mortals.find(m => m.id === mortalId);
-      if (!mortal) return prev;
-      if (mortal.isMetamorphosed || mortal.status === 'retired' || mortal.status === 'incapacite') return prev;
-
-      const totalCost = mortal.cost + extraCost;
-      if (player.ether < totalCost) {
-        toast.error(`Pas assez d'Éther ! (${totalCost} requis, ${player.ether} disponible)`);
-        return prev;
-      }
-
-      const updatedMortals = player.mortals.map(m =>
-        m.id === mortalId ? { ...m, isMetamorphosed: true } : m
-      );
-      const updatedPlayers = prev.players.map((p, i) => {
-        if (i !== pi) return p;
-        return {
-          ...p,
-          ether: p.ether - totalCost,
-          mortals: updatedMortals,
-          metamorphosedCount: updatedMortals.filter(m => m.isMetamorphosed).length,
-          metamorphosesThisTurn: p.metamorphosesThisTurn + 1,
-        };
-      });
-
-      const newState = {
+      return {
         ...prev,
-        players: updatedPlayers,
+        players: prev.players.map((p, i) => i === pi ? projectedPlayer : p),
         log: [{
           id: crypto.randomUUID(),
           timestamp: Date.now(),
-          playerName: player.name,
-          action: pendingEffect.sourceMortalName,
-          detail: `a métamorphosé ${mortal.nameRecto} → ${mortal.nameVerso} via Dauphins (coût: ${totalCost} Éther)`,
+          playerName: playerSnap.name,
+          action: sourceMortalName,
+          detail: `a métamorphosé ${mortalSnap.nameRecto} → ${mortalSnap.nameVerso} via Dauphins (coût: ${totalCost} Éther)`,
         }, ...prev.log],
       };
-
-      // Check for on-metamorphose effect on the newly metamorphosed mortal
-      const metamorphosedMortal = updatedMortals.find(m => m.id === mortalId)!;
-      const updatedPlayer = updatedPlayers[pi];
-      effectToTrigger = getMetamorphoseEffect(metamorphosedMortal, updatedPlayer, newState);
-
-      return newState;
     });
 
-    // If the extra metamorphose has an on-metamorphose effect, trigger it
+    // Now trigger the on-metamorphose effect of the newly metamorphosed mortal (if any)
     if (effectToTrigger) {
       if ((effectToTrigger as PendingEffect).conditionNotMet && (effectToTrigger as PendingEffect).type === 'none') {
         toast.info((effectToTrigger as PendingEffect).conditionNotMet);
@@ -2989,10 +2993,15 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     } else {
       setPendingEffect(null);
     }
-    toast.success('Mortel métamorphosé via Dauphins !', {
+    toast.success(`${mortalSnap.nameVerso} métamorphosé via Dauphins !`, {
       style: { background: 'hsl(280 40% 20%)', border: '1px solid hsl(280 50% 40%)', color: 'white', fontSize: '16px' },
     });
   }, [pendingEffect]);
+
+  // Expose the latest resolver to handleTargetMortalClick (which uses refs)
+  useEffect(() => {
+    resolveMetamorphoseExtraRef.current = resolveMetamorphoseExtra;
+  }, [resolveMetamorphoseExtra]);
 
   // === BAC-04 (Quatre Colombes): Move incapacitations ===
   const resolveMoveIncapacitations = useCallback((moves: { fromMortalId: string; toMortalId: string; fromPlayerId: string; toPlayerId: string }[]) => {
