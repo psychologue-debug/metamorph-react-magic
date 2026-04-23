@@ -112,7 +112,8 @@ const Index = () => {
     pendingEffect.type === 'enemy_mortal_remove' ||
     pendingEffect.type === 'mortal_heal' ||
     pendingEffect.type === 'retro_own_mortal' ||
-    pendingEffect.type === 'retro_enemy_mortal'
+    pendingEffect.type === 'retro_enemy_mortal' ||
+    pendingEffect.type === 'metamorphose_extra'
   );
 
   const isModalEffect = pendingEffect && (
@@ -120,7 +121,6 @@ const Index = () => {
     pendingEffect.type === 'steal_ether_each_god' ||
     pendingEffect.type === 'steal_ether_total' ||
     pendingEffect.type === 'steal_card_from_god' ||
-    pendingEffect.type === 'metamorphose_extra' ||
     pendingEffect.type === 'move_incapacitations' ||
     pendingEffect.type === 'none' ||
     pendingEffect.type === 'select_god_discard_all' ||
@@ -162,6 +162,8 @@ const Index = () => {
       ? 'guérir (lever l\'incapacité)'
       : pendingEffect.type === 'retro_own_mortal' || pendingEffect.type === 'retro_enemy_mortal'
       ? 'rétromorphoser'
+      : pendingEffect.type === 'metamorphose_extra'
+      ? `métamorphoser (coût + ${pendingEffect.extraMetamorphoseCostAdded || 6} Éther)`
       : 'incapaciter';
     toast.info(`${pendingEffect.sourceMortalName} : cliquez sur le mortel à ${actionLabel}.`, {
       duration: Infinity,
