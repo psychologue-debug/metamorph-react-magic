@@ -50,6 +50,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
   const metamorphoseTriggeredRef = useRef<Set<string>>(new Set());
   const pendingEffectRef = useRef<PendingEffect | null>(null);
   const targetsConsumedRef = useRef(0);
+  const resolveMetamorphoseExtraRef = useRef<((mortalId: string) => void) | null>(null);
   const [metamorphoseEffectUndo, setMetamorphoseEffectUndo] = useState<{
     playerId: string;
     mortalId: string;
