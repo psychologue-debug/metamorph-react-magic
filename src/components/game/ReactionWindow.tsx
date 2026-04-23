@@ -17,7 +17,7 @@ interface ReactionWindowProps {
   localPlayerId?: string; // multiplayer: only show for current reactor
 }
 
-const REACTION_TIMER_SECONDS = 10;
+const REACTION_TIMER_SECONDS = 15;
 
 const ReactionWindow = ({
   gameState,

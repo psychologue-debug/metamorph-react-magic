@@ -1,6 +1,6 @@
 import { GameState } from '@/types/game';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Layers, RotateCcw, Trash2 } from 'lucide-react';
+import { Layers, RotateCcw, Archive } from 'lucide-react';
 import { useState } from 'react';
 
 interface CentralZoneProps {
@@ -42,7 +42,7 @@ const CentralZone = ({ gameState }: CentralZoneProps) => {
           className="flex items-center gap-0.5 sm:gap-1 bg-secondary/60 rounded-lg px-1.5 sm:px-2 py-0.5 hover:bg-ether/20 transition-colors cursor-pointer"
           onClick={() => setShowDiscard(!showDiscard)}
         >
-          <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-ether" />
+          <Archive className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-ether" />
           <span className="text-[10px] sm:text-xs font-display font-bold text-foreground">{gameState.discardPile.length}</span>
         </button>
       </div>
