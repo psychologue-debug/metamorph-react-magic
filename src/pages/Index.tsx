@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useGameLogic, MultiplayerConfig } from '@/hooks/useGameLogic';
 import { useMultiplayer } from '@/hooks/useMultiplayer';
 import { useMultiplayerSync } from '@/hooks/useMultiplayerSync';
@@ -23,6 +23,11 @@ import { Scroll, Plus, LogIn, ScrollText, RefreshCw, ChevronUp, ChevronDown, Use
 import EtherCounter from '@/components/game/EtherCounter';
 import MortalGrid from '@/components/game/MortalGrid';
 import heroBg from '@/assets/hero-bg.jpg';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type MenuMode = 'home' | 'create' | 'join';
 
@@ -37,6 +42,10 @@ const Index = () => {
   const [joinCode, setJoinCode] = useState('');
   const [joinName, setJoinName] = useState('');
   const [mobileView, setMobileView] = useState<'own' | 'opponents'>('own');
+  const [confirmQuit, setConfirmQuit] = useState(false);
+  const [confirmEndTurn, setConfirmEndTurn] = useState(false);
+  const [skipEndTurnConfirm, setSkipEndTurnConfirm] = useState(false);
+  const [endTurnDontAskAgain, setEndTurnDontAskAgain] = useState(false);
 
   const multiplayer = useMultiplayer();
 
