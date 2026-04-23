@@ -704,6 +704,67 @@ const Index = () => {
           localPlayerId={multiplayerConfig?.localPlayerId}
         />
       )}
+
+      {/* Confirm Quit dialog */}
+      <AlertDialog open={confirmQuit} onOpenChange={setConfirmQuit}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Quitter la partie ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vous allez quitter la partie en cours. Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmQuit(false);
+                if (multiplayer.lobby) {
+                  multiplayer.leaveSession();
+                }
+                resetGame();
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Quitter
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirm End Turn dialog */}
+      <AlertDialog open={confirmEndTurn} onOpenChange={setConfirmEndTurn}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Terminer votre tour ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vous ne pourrez plus effectuer d'action ce tour-ci.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex items-center gap-2 px-1 py-2">
+            <Checkbox
+              id="dontask-endturn"
+              checked={endTurnDontAskAgain}
+              onCheckedChange={(v) => setEndTurnDontAskAgain(v === true)}
+            />
+            <label htmlFor="dontask-endturn" className="text-sm text-muted-foreground cursor-pointer select-none">
+              Ne plus me le rappeler pour cette partie
+            </label>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (endTurnDontAskAgain) setSkipEndTurnConfirm(true);
+                setConfirmEndTurn(false);
+                handleEndTurn();
+              }}
+            >
+              Fin du tour
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
