@@ -522,50 +522,43 @@ const Index = () => {
           {/* GameLog panel */}
           <GameLog entries={gameState.log} open={logOpen} />
 
-          {/* Active enemy */}
-          {activeEnemy && (
-            <div className="flex-1 p-1 sm:p-2 overflow-hidden">
-              <PlayerPanel
-                key={activeEnemy.player.id}
-                player={activeEnemy.player}
-                gameState={gameState}
-                isActive={true}
-                index={activeEnemy.index}
-                compact={false}
-                canSeeReactions={canSeeEnemyReactions}
-                onMortalClick={isMortalTargeting ? (mortalId: string) => handleTargetMortalClick(activeEnemy.player.id, mortalId) : undefined}
-                onMortalHover={(m) => handleEnemyMortalHover(m, activeEnemy.player)}
-              />
-            </div>
-          )}
-
-          {/* Inactive enemies */}
-          {inactiveEnemies.length > 0 && (
-            <div
-              className="flex gap-1 sm:gap-1.5 px-1 sm:px-2 py-1 sm:py-1.5 border-t shrink-0 overflow-x-auto overflow-y-hidden"
-              style={{
-                borderColor: 'hsl(var(--border) / 0.3)',
-                height: activeEnemy ? (isMobile ? '90px' : '110px') : undefined,
-                flex: activeEnemy ? undefined : '1',
-                flexWrap: isMobile ? 'nowrap' : 'wrap',
-                alignContent: activeEnemy ? 'center' : 'start',
-                paddingTop: activeEnemy ? undefined : '8px',
-              }}
-            >
-              {inactiveEnemies.map(({ player, index: playerIndex }) => (
-                <OpponentMini
-                  key={player.id}
-                  player={player}
-                  gameState={gameState}
-                  playerIndex={playerIndex}
-                  canSeeReactions={canSeeEnemyReactions}
-                  onMortalClick={isMortalTargeting ? (mortalId: string) => handleTargetMortalClick(player.id, mortalId) : undefined}
-                  onMortalHover={(m) => handleEnemyMortalHover(m, player)}
-                  fillSpace={!activeEnemy}
-                />
-              ))}
-            </div>
-          )}
+          {/* Adaptive grid for ALL opponents — fills the whole right half */}
+          {(() => {
+            const n = opponents.length;
+            if (n === 0) return null;
+            // Mobile: keep simple vertical stack so tokens stay readable
+            const { cols, rows } = isMobile
+              ? { cols: 1, rows: n }
+              : n <= 1 ? { cols: 1, rows: 1 }
+              : n === 2 ? { cols: 1, rows: 2 }
+              : n <= 4 ? { cols: 2, rows: 2 }
+              : { cols: 2, rows: 3 };
+            const compact = !isMobile && n >= 3;
+            return (
+              <div
+                className="flex-1 grid gap-1 sm:gap-2 p-1 sm:p-2 min-h-0 overflow-hidden"
+                style={{
+                  gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+                  gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
+                }}
+              >
+                {opponents.map(({ player, index: playerIndex }) => (
+                  <div key={player.id} className="min-h-0 min-w-0 overflow-hidden">
+                    <PlayerPanel
+                      player={player}
+                      gameState={gameState}
+                      isActive={playerIndex === gameState.activePlayerIndex}
+                      index={playerIndex}
+                      compact={compact}
+                      canSeeReactions={canSeeEnemyReactions}
+                      onMortalClick={isMortalTargeting ? (mortalId: string) => handleTargetMortalClick(player.id, mortalId) : undefined}
+                      onMortalHover={(m) => handleEnemyMortalHover(m, player)}
+                    />
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
 
           {/* Fixed enemy tooltip zone */}
           <AnimatePresence>
