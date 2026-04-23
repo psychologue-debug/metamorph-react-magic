@@ -13,11 +13,19 @@ const GameBoard = ({ gameState, currentPlayerIndex, onMortalClick }: GameBoardPr
   map((player, index) => ({ player, index })).
   filter(({ index }) => index !== currentPlayerIndex);
 
-  // Use compact mode when 4+ opponents to fit everything on screen
-  const compact = opponents.length >= 4;
+  const n = opponents.length;
+  // Adaptive grid: 1→1x1, 2→1col×2rows, 3-4→2x2, 5-6→2cols×3rows
+  const { cols, rows } = (() => {
+    if (n <= 1) return { cols: 1, rows: 1 };
+    if (n === 2) return { cols: 1, rows: 2 };
+    if (n <= 4) return { cols: 2, rows: 2 };
+    return { cols: 2, rows: 3 };
+  })();
+  // Compact tokens when cells become small
+  const compact = n >= 3;
 
   return (
-    <div className="relative w-full h-full marble-texture overflow-auto">
+    <div className="relative w-full h-full marble-texture overflow-hidden">
       {/* Background decorative elements */}
       <div className="absolute inset-0 pointer-events-none">
         <div
@@ -30,8 +38,14 @@ const GameBoard = ({ gameState, currentPlayerIndex, onMortalClick }: GameBoardPr
       {/* Top-left info */}
       <CentralZone gameState={gameState} />
 
-      {/* Opponents grid — fits all in width without scrolling */}
-      <div className="flex-wrap justify-center gap-2 p-2 pt-20 flex">
+      {/* Opponents adaptive grid — fills available space */}
+      <div
+        className="grid gap-2 p-2 pt-20 w-full h-full"
+        style={{
+          gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+          gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
+        }}
+      >
         {opponents.map(({ player, index: playerIndex }) =>
         <PlayerPanel
           key={player.id}
