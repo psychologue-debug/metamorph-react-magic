@@ -1279,7 +1279,19 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     const isHeal = currentEffect.type === 'mortal_heal';
     const isRetroOwn = currentEffect.type === 'retro_own_mortal';
     const isRetroEnemy = currentEffect.type === 'retro_enemy_mortal';
-    if (!isIncapacitate && !isRemove && !isHeal && !isRetroOwn && !isRetroEnemy) return;
+    const isMetaExtra = currentEffect.type === 'metamorphose_extra';
+    if (!isIncapacitate && !isRemove && !isHeal && !isRetroOwn && !isRetroEnemy && !isMetaExtra) return;
+
+    // metamorphose_extra (BAC-02 Dauphins): delegate to dedicated resolver
+    if (isMetaExtra) {
+      const sourcePlayerId = gameState?.players[currentEffect.sourcePlayerIndex]?.id;
+      if (playerId !== sourcePlayerId) {
+        toast.error('Vous devez cibler un de vos propres mortels');
+        return;
+      }
+      resolveMetamorphoseExtraRef.current?.(mortalId);
+      return;
+    }
 
     // Track whether the click was valid so we only clear pendingEffect on success
     let targetValid = false;
