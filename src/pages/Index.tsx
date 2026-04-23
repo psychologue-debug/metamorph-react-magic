@@ -458,12 +458,7 @@ const Index = () => {
             style={{ background: 'hsl(var(--destructive) / 0.1)' }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => {
-              if (multiplayer.lobby) {
-                multiplayer.leaveSession();
-              }
-              resetGame();
-            }}
+            onClick={() => setConfirmQuit(true)}
           >
             <span className="hidden sm:inline">Quitter</span>
             <span className="sm:hidden">✕</span>
@@ -508,6 +503,31 @@ const Index = () => {
             onCardClick={handleCardClick}
             onDiscardReaction={handleDiscardReaction}
             onTargetMortalClick={isMortalTargeting ? (mortalId: string) => handleTargetMortalClick(currentPlayer.id, mortalId) : undefined}
+            targetingBanner={
+              pendingEffect && pendingEffect.type === 'metamorphose_extra'
+                ? `${pendingEffect.sourceMortalName} : choisissez sur le plateau le mortel à métamorphoser (coût + ${pendingEffect.extraMetamorphoseCostAdded || 6} Éther). Les mortels grisés ne peuvent pas être ciblés.`
+                : null
+            }
+            eligibleMortalIds={
+              pendingEffect && pendingEffect.type === 'metamorphose_extra'
+                ? new Set(
+                    currentPlayer.mortals
+                      .filter(m => !m.isMetamorphosed && m.status !== 'retired' && m.status !== 'incapacite' && currentPlayer.ether >= m.cost + (pendingEffect.extraMetamorphoseCostAdded || 6))
+                      .map(m => m.id)
+                  )
+                : undefined
+            }
+            onRequestMetamorphoseMortal={(mortalId) => {
+              if (!isOwnTurn) {
+                toast.error('Ce n\'est pas votre tour');
+                return;
+              }
+              if (interactionMode !== 'metamorphosing') {
+                toggleMetamorphoseMode();
+              }
+              // Defer to next tick so the mode change is applied before the click
+              setTimeout(() => handleMortalClick(mortalId), 0);
+            }}
           />
 
           {/* Action bar at bottom-left */}
@@ -517,7 +537,14 @@ const Index = () => {
               interactionMode={interactionMode}
               isOwnTurn={isOwnTurn}
               reactionWindowActive={!!(reactionWindow && reactionWindow.phase !== 'resolved')}
-              onEndTurn={handleEndTurn}
+              onEndTurn={() => {
+                if (skipEndTurnConfirm) {
+                  handleEndTurn();
+                } else {
+                  setEndTurnDontAskAgain(false);
+                  setConfirmEndTurn(true);
+                }
+              }}
               onToggleMetamorphose={toggleMetamorphoseMode}
               onToggleSpell={toggleSpellMode}
               onToggleActivate={toggleActivateMode}
