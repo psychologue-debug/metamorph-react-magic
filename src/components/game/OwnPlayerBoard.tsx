@@ -101,9 +101,7 @@ const OwnPlayerBoard = ({
       {/* Mortals grid + fixed tooltip zone */}
       <div
         className="flex-1 relative overflow-hidden"
-        ref={boardRef}
         onMouseEnter={() => setHoveredSpell(null)}
-        onClick={handleBoardClick}
       >
         <div
           className="absolute inset-0"
