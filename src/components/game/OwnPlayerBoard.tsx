@@ -12,8 +12,8 @@ import DianeLayout from './DianeLayout';
 import BacchusLayout from './BacchusLayout';
 import GameCard from './GameCard';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Zap, Sword, RefreshCw, Sparkles } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { Shield, Zap, Sword, RefreshCw } from 'lucide-react';
+import { useState } from 'react';
 
 interface OwnPlayerBoardProps {
   player: Player;
