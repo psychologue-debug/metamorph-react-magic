@@ -78,6 +78,9 @@ export interface PendingEffect {
   fromMetamorphose?: boolean;
   // For play_spell_at_discount
   spellDiscount?: number;
+  // If set, cancelling this effect refunds the spell that triggered it
+  // (returns the card to the player's hand, refunds ether, removes it from discard)
+  spellRefund?: { cardId: string; cost: number };
 }
 
 /**
