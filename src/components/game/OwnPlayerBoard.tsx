@@ -167,40 +167,7 @@ const OwnPlayerBoard = ({
           )}
         </div>
 
-        {/* Floating "Métamorphoser" button on selected non-meta mortal (idle mode) */}
-        <AnimatePresence>
-          {floatingMortalId && interactionMode === 'idle' && (() => {
-            // Find token DOM position by querying — fallback: center bottom of board area
-            return (
-              <motion.div
-                key={floatingMortalId}
-                data-floating-meta-btn
-                className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[99998]"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-              >
-                <button
-                  className="flex items-center gap-2 h-9 px-4 rounded-lg text-sm font-display font-semibold transition-all"
-                  style={{
-                    background: `linear-gradient(135deg, hsl(var(--ether)), hsl(var(--ether-dim)))`,
-                    color: 'hsl(var(--primary-foreground))',
-                    boxShadow: '0 4px 20px hsl(var(--ether) / 0.5)',
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const id = floatingMortalId;
-                    setFloatingMortalId(null);
-                    onRequestMetamorphoseMortal?.(id);
-                  }}
-                >
-                  <Sparkles className="w-4 h-4" />
-                  Métamorphoser ce mortel
-                </button>
-              </motion.div>
-            );
-          })()}
-        </AnimatePresence>
+        {/* Floating "Métamorphoser" button removed per UX feedback */}
 
         {/* Fixed tooltip zone — top-right of mortal area */}
         <AnimatePresence>
