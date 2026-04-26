@@ -34,6 +34,7 @@ type MenuMode = 'home' | 'create' | 'join';
 
 const Index = () => {
   const isMobile = useIsMobile();
+  const displayPrefs = useDisplayPreferences();
   const [godSelectionCount, setGodSelectionCount] = useState<number | null>(null);
   const [logOpen, setLogOpen] = useState(false);
   const [hoveredEnemyMortal, setHoveredEnemyMortal] = useState<{ mortal: Mortal; owner: PlayerType } | null>(null);
