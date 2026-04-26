@@ -534,10 +534,12 @@ function EtherStealContent({
   effect,
   gameState,
   onResolve,
+  onCancel,
 }: {
   effect: PendingEffect;
   gameState: GameState;
   onResolve: (result: TargetingResult) => void;
+  onCancel?: () => void;
 }) {
   const maxPerGod = effect.etherStealPerGod || 4;
   const [stolen, setStolen] = useState<Record<string, number>>({});
