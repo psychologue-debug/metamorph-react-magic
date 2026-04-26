@@ -403,10 +403,12 @@ function EtherDestroyContent({
   effect,
   gameState,
   onResolve,
+  onCancel,
 }: {
   effect: PendingEffect;
   gameState: GameState;
   onResolve: (result: TargetingResult) => void;
+  onCancel?: () => void;
 }) {
   const totalToDestroy = effect.etherDestroy || 0;
   const [destroyed, setDestroyed] = useState<Record<string, number>>({});
