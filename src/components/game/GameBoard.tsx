@@ -21,8 +21,6 @@ const GameBoard = ({ gameState, currentPlayerIndex, onMortalClick }: GameBoardPr
     if (n <= 4) return { cols: 2, rows: 2 };
     return { cols: 2, rows: 3 };
   })();
-  // Compact tokens when cells become small
-  const compact = n >= 3;
 
   return (
     <div className="relative w-full h-full marble-texture overflow-hidden">
@@ -53,7 +51,6 @@ const GameBoard = ({ gameState, currentPlayerIndex, onMortalClick }: GameBoardPr
           gameState={gameState}
           isActive={playerIndex === gameState.activePlayerIndex}
           index={playerIndex}
-          compact={compact}
           onMortalClick={onMortalClick ? (mortalId: string) => onMortalClick(player.id, mortalId) : undefined}
         />
         )}

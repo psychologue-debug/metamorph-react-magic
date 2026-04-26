@@ -19,7 +19,8 @@ import MortalTooltip from '@/components/game/MortalTooltip';
 import OpponentActionNotification from '@/components/game/OpponentActionNotification';
 import { DivinityId, Mortal, Player as PlayerType, GameState as GameStateType, DIVINITIES as DIV } from '@/types/game';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Scroll, Plus, LogIn, ScrollText, RefreshCw, ChevronUp, ChevronDown, Users } from 'lucide-react';
+import { Scroll, Plus, LogIn, ScrollText, RefreshCw, ChevronUp, ChevronDown, Users, ListOrdered, GitBranch, Sparkles } from 'lucide-react';
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences';
 import EtherCounter from '@/components/game/EtherCounter';
 import MortalGrid from '@/components/game/MortalGrid';
 import heroBg from '@/assets/hero-bg.jpg';
@@ -33,6 +34,7 @@ type MenuMode = 'home' | 'create' | 'join';
 
 const Index = () => {
   const isMobile = useIsMobile();
+  const displayPrefs = useDisplayPreferences();
   const [godSelectionCount, setGodSelectionCount] = useState<number | null>(null);
   const [logOpen, setLogOpen] = useState(false);
   const [hoveredEnemyMortal, setHoveredEnemyMortal] = useState<{ mortal: Mortal; owner: PlayerType } | null>(null);
@@ -447,6 +449,32 @@ const Index = () => {
           <span className="font-body text-xs sm:text-base text-muted-foreground italic hidden sm:inline">
             Cycle {gameState.turnCount} — {gameState.players.length} dieux
           </span>
+
+          {/* Display aids toggles */}
+          {([
+            { key: 'showPriorities' as const, Icon: ListOrdered, label: 'Priorités', color: 'hsl(45 95% 55%)' },
+            { key: 'showLinks' as const, Icon: GitBranch, label: 'Liens', color: 'hsl(210 70% 55%)' },
+            { key: 'showHalos' as const, Icon: Sparkles, label: 'Halos', color: 'hsl(270 70% 60%)' },
+          ]).map(({ key, Icon, label, color }) => {
+            const active = displayPrefs[key];
+            return (
+              <button
+                key={key}
+                onClick={() => displayPrefs.toggle(key)}
+                title={`${active ? 'Masquer' : 'Afficher'} : ${label}`}
+                className="flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-lg text-xs sm:text-sm font-display font-semibold transition-colors border"
+                style={{
+                  borderColor: active ? color : 'hsl(var(--border) / 0.3)',
+                  color: active ? color : 'hsl(var(--muted-foreground))',
+                  background: active ? `${color.replace(')', ' / 0.12)')}` : 'transparent',
+                }}
+              >
+                <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden md:inline">{label}</span>
+              </button>
+            );
+          })}
+
           <button
             className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1 sm:py-1.5 rounded-lg text-sm sm:text-lg font-display font-bold tracking-wider transition-colors ${logOpen ? 'bg-ether/20 text-ether' : 'text-foreground hover:text-ether'}`}
             onClick={() => setLogOpen(prev => !prev)}

@@ -1,6 +1,7 @@
 import { Mortal, Player, GameState } from '@/types/game';
 import BoardToken from './BoardToken';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useEffect, useRef, useState } from 'react';
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences';
 
 export interface GodLayoutProps {
   mortals: Mortal[];
@@ -20,36 +21,67 @@ export interface ConnectionDef {
 interface GodLayoutInternalProps extends GodLayoutProps {
   positions: Record<string, { x: number; y: number }>;
   connections: ConnectionDef[];
-  tokenSize?: number;
+  /** Token diameter as a fraction of inner board width. Default 0.14 (~14%). */
+  tokenRatio?: number;
+  /** Min/max diameter clamps in px. */
+  minTokenSize?: number;
+  maxTokenSize?: number;
 }
 
-const PADDING = 25;
+const GodLayout = ({
+  mortals, owner, gameState, selectable, onMortalClick, onMortalHover,
+  positions, connections,
+  tokenRatio = 0.14, minTokenSize = 28, maxTokenSize = 140,
+}: GodLayoutInternalProps) => {
+  const { showLinks } = useDisplayPreferences();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ w: 0, h: 0 });
 
-const GodLayout = ({ mortals, owner, gameState, selectable, onMortalClick, onMortalHover, positions, connections, tokenSize = 140 }: GodLayoutInternalProps) => {
-  const isMobile = useIsMobile();
-  const effectiveSize = isMobile ? Math.min(tokenSize, 80) : tokenSize;
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const e of entries) {
+        const { width, height } = e.contentRect;
+        setSize({ w: width, h: height });
+      }
+    });
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  // Padding ~3% of the smaller dimension keeps tokens visible at every scale.
+  const minDim = Math.min(size.w, size.h);
+  const padding = Math.max(4, Math.round(minDim * 0.03));
+  const innerW = Math.max(0, size.w - padding * 2);
+  const innerH = Math.max(0, size.h - padding * 2);
+  const innerMin = Math.min(innerW, innerH);
+  const tokenSize = Math.round(
+    Math.max(minTokenSize, Math.min(maxTokenSize, innerMin * tokenRatio))
+  );
 
   return (
-    <div className="relative w-full h-full" style={{ padding: isMobile ? 10 : PADDING }}>
+    <div ref={containerRef} className="relative w-full h-full" style={{ padding }}>
       <div className="relative w-full h-full">
-        <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
-          {connections.map((conn, i) => {
-            const pFrom = positions[conn.from];
-            const pTo = positions[conn.to];
-            if (!pFrom || !pTo) return null;
-            return (
-              <line
-                key={i}
-                x1={`${pFrom.x}%`} y1={`${pFrom.y}%`}
-                x2={`${pTo.x}%`} y2={`${pTo.y}%`}
-                stroke={conn.color}
-                strokeWidth={isMobile ? 3 : 5}
-                strokeOpacity="0.55"
-                strokeLinecap="round"
-              />
-            );
-          })}
-        </svg>
+        {showLinks && (
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
+            {connections.map((conn, i) => {
+              const pFrom = positions[conn.from];
+              const pTo = positions[conn.to];
+              if (!pFrom || !pTo) return null;
+              return (
+                <line
+                  key={i}
+                  x1={`${pFrom.x}%`} y1={`${pFrom.y}%`}
+                  x2={`${pTo.x}%`} y2={`${pTo.y}%`}
+                  stroke={conn.color}
+                  strokeWidth={Math.max(2, Math.round(tokenSize * 0.04))}
+                  strokeOpacity="0.55"
+                  strokeLinecap="round"
+                />
+              );
+            })}
+          </svg>
+        )}
 
         {mortals.map((mortal) => {
           const pos = positions[mortal.code];
@@ -60,7 +92,7 @@ const GodLayout = ({ mortals, owner, gameState, selectable, onMortalClick, onMor
                 mortal={mortal}
                 owner={owner}
                 gameState={gameState}
-                size={effectiveSize}
+                size={tokenSize}
                 selectable={selectable}
                 onClick={onMortalClick}
                 onHover={onMortalHover}
