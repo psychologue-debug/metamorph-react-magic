@@ -96,21 +96,38 @@ const BoardToken = ({ mortal, owner, gameState, size = 140, selectable, onClick,
       )}
 
       {showPriorityBadge && (
-        <div
-          className="absolute font-display font-bold rounded-full flex items-center justify-center pointer-events-none"
-          style={{
-            top: -badgeSize * 0.2, left: -badgeSize * 0.2,
-            width: badgeSize, height: badgeSize,
-            fontSize: badgeSize * 0.55,
-            color: 'hsl(45 95% 55%)',
-            background: 'hsl(var(--background) / 0.85)',
-            border: '2px solid hsl(45 95% 55%)',
-            boxShadow: '0 0 6px hsl(45 95% 55% / 0.5)',
-            zIndex: 3,
-          }}
-        >
-          {ROMAN[priority!]}
-        </div>
+        <>
+          {/* Anneau qui ceint exactement le mortel */}
+          <div
+            className="absolute inset-0 rounded-full pointer-events-none"
+            style={{
+              border: `${Math.max(2, Math.round(size * 0.035))}px solid hsl(45 95% 55%)`,
+              boxShadow: '0 0 8px hsl(45 95% 55% / 0.55), inset 0 0 4px hsl(45 95% 55% / 0.35)',
+              zIndex: 3,
+            }}
+          />
+          {/* Bourgeon latéral avec chiffre romain */}
+          <div
+            className="absolute font-display font-bold rounded-full flex items-center justify-center pointer-events-none"
+            style={{
+              // Positionné à cheval sur l'anneau, côté droit (légèrement haut)
+              top: `${size * 0.12}px`,
+              left: `${size * 0.86}px`,
+              transform: 'translate(-50%, -50%)',
+              width: badgeSize,
+              height: badgeSize,
+              fontSize: badgeSize * 0.6,
+              lineHeight: 1,
+              color: 'hsl(30 40% 15%)',
+              background: 'linear-gradient(135deg, hsl(48 95% 65%), hsl(40 90% 50%))',
+              border: `${Math.max(1, Math.round(size * 0.018))}px solid hsl(40 90% 35%)`,
+              boxShadow: '0 0 6px hsl(45 95% 55% / 0.7), 0 1px 2px hsl(0 0% 0% / 0.4)',
+              zIndex: 4,
+            }}
+          >
+            {ROMAN[priority!]}
+          </div>
+        </>
       )}
     </motion.div>
   );
