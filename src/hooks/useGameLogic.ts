@@ -1262,10 +1262,38 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
   }, [pendingEffect]);
 
   const cancelEffect = useCallback(() => {
+    const effect = pendingEffectRef.current;
     pendingEffectRef.current = null;
     targetingLockRef.current = false;
     targetsConsumedRef.current = 0;
     setPendingEffect(null);
+    // Refund spell that triggered this effect (if any)
+    if (effect?.spellRefund) {
+      const { cardId, cost } = effect.spellRefund;
+      const playerIndex = effect.sourcePlayerIndex;
+      setGameState(prev => {
+        if (!prev) return prev;
+        const cardIdx = prev.discardPile.findIndex(c => c.id === cardId);
+        if (cardIdx === -1) return prev;
+        const card = prev.discardPile[cardIdx];
+        const newDiscard = [...prev.discardPile.slice(0, cardIdx), ...prev.discardPile.slice(cardIdx + 1)];
+        const newPlayers = prev.players.map((p, i) =>
+          i === playerIndex ? { ...p, ether: p.ether + cost, hand: [...p.hand, card] } : p
+        );
+        return {
+          ...prev,
+          players: newPlayers,
+          discardPile: newDiscard,
+          log: [{
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: prev.players[playerIndex]?.name || '',
+            action: 'Sort annulé',
+            detail: `a annulé ${card.name} — Éther et carte restitués`,
+          }, ...prev.log],
+        };
+      });
+    }
   }, []);
 
   const cancelDiscard = useCallback(() => {
