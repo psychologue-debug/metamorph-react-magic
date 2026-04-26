@@ -24,7 +24,6 @@ interface PlayerPanelProps {
 
 const PlayerPanel = ({ player, gameState, isActive, index, compact = false, canSeeReactions = false, onMortalClick, onMortalHover }: PlayerPanelProps) => {
   const divinity = DIVINITIES[player.divinity];
-  const tokenSize = compact ? 50 : 64;
   const [hoveredReactionIdx, setHoveredReactionIdx] = useState<number | null>(null);
 
   return (
