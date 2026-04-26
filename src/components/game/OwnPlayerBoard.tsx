@@ -51,17 +51,6 @@ const OwnPlayerBoard = ({
   const [reactionToManage, setReactionToManage] = useState<SpellCard | null>(null);
   const [hoveredMortal, setHoveredMortal] = useState<Mortal | null>(null);
   const [hoveredSpell, setHoveredSpell] = useState<SpellCard | null>(null);
-  const [floatingMortalId, setFloatingMortalId] = useState<string | null>(null);
-
-  // Click-away handler for floating "Métamorphoser" button
-  const boardRef = useRef<HTMLDivElement>(null);
-  const handleBoardClick = (e: React.MouseEvent) => {
-    if (!floatingMortalId) return;
-    const target = e.target as HTMLElement;
-    if (!target.closest('[data-floating-meta-btn]') && !target.closest('[data-mortal-token]')) {
-      setFloatingMortalId(null);
-    }
-  };
 
   return (
     <div className="flex flex-col h-full">
