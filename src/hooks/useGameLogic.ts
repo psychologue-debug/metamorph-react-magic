@@ -2544,6 +2544,24 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
       ].includes(storedMetamorphoseEffect.type);
 
       if (needsTargeting) {
+        // If Parade was played in phase 1, the metamorphose effect is fully blocked —
+        // do NOT proceed to targeting at all.
+        if (hasParade) {
+          setGameState(prev => prev ? {
+            ...prev,
+            reactionWindow: null,
+            log: [{
+              id: crypto.randomUUID(),
+              timestamp: Date.now(),
+              playerName: 'Système',
+              action: 'Parade',
+              detail: `L'effet de métamorphose a été annulé par Parade`,
+            }, ...prev.log],
+          } : prev);
+          setStoredMetamorphoseEffect(null);
+          metamorphoseReactionInfoRef.current = null;
+          return;
+        }
         // Phase 1 done → move to targeting. metamorphoseReactionInfoRef stays for phase 2.
         setPendingEffect({ ...storedMetamorphoseEffect, fromMetamorphose: true });
         setStoredMetamorphoseEffect(null);
