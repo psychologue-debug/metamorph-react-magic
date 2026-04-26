@@ -134,15 +134,6 @@ const OwnPlayerBoard = ({
                 }
               : undefined;
 
-            // Idle-mode click: if mortel is non-meta & not activatable target, show floating button
-            const idleClick = (mortalId: string) => {
-              const m = player.mortals.find(mm => mm.id === mortalId);
-              if (!m) return;
-              if (m.isMetamorphosed || m.status === 'retired' || m.status === 'incapacite') return;
-              if (!onRequestMetamorphoseMortal) return;
-              setFloatingMortalId(mortalId);
-            };
-
             const layoutProps = {
               mortals: player.mortals,
               owner: player,
@@ -154,7 +145,7 @@ const OwnPlayerBoard = ({
                 ? onMortalClick
                 : wrappedTargetClick
                 ? wrappedTargetClick
-                : (interactionMode === 'idle' ? idleClick : undefined),
+                : undefined,
               onMortalHover: setHoveredMortal,
             };
             const layouts: Record<string, React.FC<any>> = {
