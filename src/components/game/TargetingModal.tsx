@@ -79,6 +79,7 @@ const TargetingModal = ({ effect, gameState, onResolve, onCancel, onGodDiscard, 
         effect={effect}
         gameState={gameState}
         onResolve={onResolve}
+        onCancel={onCancel}
       />
     );
   }
@@ -89,6 +90,7 @@ const TargetingModal = ({ effect, gameState, onResolve, onCancel, onGodDiscard, 
         effect={effect}
         gameState={gameState}
         onResolve={onResolve}
+        onCancel={onCancel}
       />
     );
   }
