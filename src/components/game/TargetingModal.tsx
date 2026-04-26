@@ -492,6 +492,15 @@ function EtherDestroyContent({
               Encore {remaining} à répartir
             </span>
           )}
+          {onCancel && (
+            <button
+              className="px-5 py-2 rounded-lg font-display text-sm border border-border/50 text-muted-foreground"
+              style={{ background: 'hsl(var(--muted))' }}
+              onClick={onCancel}
+            >
+              Annuler
+            </button>
+          )}
           <motion.button
             className="px-6 py-2 rounded-lg font-display font-semibold text-sm"
             style={{
