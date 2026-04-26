@@ -179,8 +179,8 @@ const Index = () => {
       duration: Infinity,
       id: 'targeting-bubble',
       style: { background: 'hsl(270 40% 20%)', border: '1px solid hsl(270 50% 40%)', color: 'white', fontSize: '16px' },
-      action: pendingEffect.optional ? {
-        label: 'Passer',
+      action: (pendingEffect.optional || pendingEffect.spellRefund) ? {
+        label: pendingEffect.spellRefund ? 'Annuler' : 'Passer',
         onClick: () => cancelEffect(),
       } : undefined,
     });
