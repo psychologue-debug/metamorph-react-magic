@@ -79,6 +79,7 @@ const TargetingModal = ({ effect, gameState, onResolve, onCancel, onGodDiscard, 
         effect={effect}
         gameState={gameState}
         onResolve={onResolve}
+        onCancel={onCancel}
       />
     );
   }
@@ -89,6 +90,7 @@ const TargetingModal = ({ effect, gameState, onResolve, onCancel, onGodDiscard, 
         effect={effect}
         gameState={gameState}
         onResolve={onResolve}
+        onCancel={onCancel}
       />
     );
   }
@@ -188,6 +190,7 @@ const TargetingModal = ({ effect, gameState, onResolve, onCancel, onGodDiscard, 
         effect={effect}
         gameState={gameState}
         onResolve={onResolve}
+        onCancel={onCancel}
       />
     );
   }
@@ -400,10 +403,12 @@ function EtherDestroyContent({
   effect,
   gameState,
   onResolve,
+  onCancel,
 }: {
   effect: PendingEffect;
   gameState: GameState;
   onResolve: (result: TargetingResult) => void;
+  onCancel?: () => void;
 }) {
   const totalToDestroy = effect.etherDestroy || 0;
   const [destroyed, setDestroyed] = useState<Record<string, number>>({});
@@ -487,6 +492,15 @@ function EtherDestroyContent({
               Encore {remaining} à répartir
             </span>
           )}
+          {onCancel && (
+            <button
+              className="px-5 py-2 rounded-lg font-display text-sm border border-border/50 text-muted-foreground"
+              style={{ background: 'hsl(var(--muted))' }}
+              onClick={onCancel}
+            >
+              Annuler
+            </button>
+          )}
           <motion.button
             className="px-6 py-2 rounded-lg font-display font-semibold text-sm"
             style={{
@@ -520,10 +534,12 @@ function EtherStealContent({
   effect,
   gameState,
   onResolve,
+  onCancel,
 }: {
   effect: PendingEffect;
   gameState: GameState;
   onResolve: (result: TargetingResult) => void;
+  onCancel?: () => void;
 }) {
   const maxPerGod = effect.etherStealPerGod || 4;
   const [stolen, setStolen] = useState<Record<string, number>>({});
@@ -599,27 +615,38 @@ function EtherStealContent({
           <span className="text-sm font-display text-ether font-semibold">
             Total volé : +{totalStolen} Éther
           </span>
-          <motion.button
-            className="px-6 py-2 rounded-lg font-display font-semibold text-sm"
-            style={{
-              background: 'linear-gradient(135deg, hsl(var(--ether)), hsl(var(--ether-dim)))',
-              color: 'white',
-            }}
-            whileHover={{ scale: 1.05 }}
-            onClick={() => {
-              const etherStolen = Object.entries(stolen)
-                .filter(([_, amount]) => amount > 0)
-                .map(([playerId, amount]) => ({ playerId, amount }));
-              onResolve({
-                effectId: effect.effectId,
-                type: effect.type,
-                sourceMortalCode: effect.sourceMortalCode,
-                etherStolen,
-              });
-            }}
-          >
-            Confirmer
-          </motion.button>
+          <div className="flex gap-3">
+            {onCancel && (
+              <button
+                className="px-5 py-2 rounded-lg font-display text-sm border border-border/50 text-muted-foreground"
+                style={{ background: 'hsl(var(--muted))' }}
+                onClick={onCancel}
+              >
+                Annuler
+              </button>
+            )}
+            <motion.button
+              className="px-6 py-2 rounded-lg font-display font-semibold text-sm"
+              style={{
+                background: 'linear-gradient(135deg, hsl(var(--ether)), hsl(var(--ether-dim)))',
+                color: 'white',
+              }}
+              whileHover={{ scale: 1.05 }}
+              onClick={() => {
+                const etherStolen = Object.entries(stolen)
+                  .filter(([_, amount]) => amount > 0)
+                  .map(([playerId, amount]) => ({ playerId, amount }));
+                onResolve({
+                  effectId: effect.effectId,
+                  type: effect.type,
+                  sourceMortalCode: effect.sourceMortalCode,
+                  etherStolen,
+                });
+              }}
+            >
+              Confirmer
+            </motion.button>
+          </div>
         </div>
       </div>
     </ModalWrapper>
@@ -1291,10 +1318,12 @@ function StealEtherTotalContent({
   effect,
   gameState,
   onResolve,
+  onCancel,
 }: {
   effect: PendingEffect;
   gameState: GameState;
   onResolve: (result: TargetingResult) => void;
+  onCancel?: () => void;
 }) {
   const totalToSteal = effect.etherStealTotal || 3;
   const [stolen, setStolen] = useState<Record<string, number>>({});
@@ -1370,27 +1399,38 @@ function StealEtherTotalContent({
           <span className="text-sm font-display text-ether font-semibold">
             Total volé : +{totalStolen} Éther
           </span>
-          <motion.button
-            className="px-6 py-2 rounded-lg font-display font-semibold text-sm"
-            style={{
-              background: 'linear-gradient(135deg, hsl(var(--ether)), hsl(var(--ether-dim)))',
-              color: 'white',
-            }}
-            whileHover={{ scale: 1.05 }}
-            onClick={() => {
-              const etherStolen = Object.entries(stolen)
-                .filter(([_, amount]) => amount > 0)
-                .map(([playerId, amount]) => ({ playerId, amount }));
-              onResolve({
-                effectId: effect.effectId,
-                type: effect.type,
-                sourceMortalCode: effect.sourceMortalCode,
-                etherStolen,
-              });
-            }}
-          >
-            Confirmer
-          </motion.button>
+          <div className="flex gap-3">
+            {onCancel && (
+              <button
+                className="px-5 py-2 rounded-lg font-display text-sm border border-border/50 text-muted-foreground"
+                style={{ background: 'hsl(var(--muted))' }}
+                onClick={onCancel}
+              >
+                Annuler
+              </button>
+            )}
+            <motion.button
+              className="px-6 py-2 rounded-lg font-display font-semibold text-sm"
+              style={{
+                background: 'linear-gradient(135deg, hsl(var(--ether)), hsl(var(--ether-dim)))',
+                color: 'white',
+              }}
+              whileHover={{ scale: 1.05 }}
+              onClick={() => {
+                const etherStolen = Object.entries(stolen)
+                  .filter(([_, amount]) => amount > 0)
+                  .map(([playerId, amount]) => ({ playerId, amount }));
+                onResolve({
+                  effectId: effect.effectId,
+                  type: effect.type,
+                  sourceMortalCode: effect.sourceMortalCode,
+                  etherStolen,
+                });
+              }}
+            >
+              Confirmer
+            </motion.button>
+          </div>
         </div>
       </div>
     </ModalWrapper>

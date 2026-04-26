@@ -723,6 +723,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
           sourceMortalName: 'Torpeur',
           description: 'Incapacitez un mortel ennemi.',
           maxTargets: 1,
+          spellRefund: { cardId: card.id, cost: effectiveCardCost },
         });
       } else if (card.name === 'Catabolisme') {
         setPendingEffect({
@@ -735,6 +736,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
           maxTargets: 0,
           etherGenerate: 0,
           etherDestroy: 5,
+          spellRefund: { cardId: card.id, cost: effectiveCardCost },
         });
       } else if (card.name === 'Doute') {
         setPendingEffect({
@@ -745,6 +747,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
           sourceMortalName: 'Doute',
           description: 'Rétromorphosez un de vos mortels.',
           maxTargets: 1,
+          spellRefund: { cardId: card.id, cost: effectiveCardCost },
         });
       } else if (card.name === 'Pharmaka') {
         setPendingEffect({
@@ -755,6 +758,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
           sourceMortalName: 'Pharmaka',
           description: 'Rétromorphosez un mortel ennemi.',
           maxTargets: 1,
+          spellRefund: { cardId: card.id, cost: effectiveCardCost },
         });
       } else if (card.name === 'Éveil') {
         setPendingEffect({
@@ -766,6 +770,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
           description: 'Levez l\'incapacité d\'un de vos mortels.',
           maxTargets: 1,
           healOwnOnly: true,
+          spellRefund: { cardId: card.id, cost: effectiveCardCost },
         });
       } else if (card.name === 'Glane') {
         setPendingEffect({
@@ -776,6 +781,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
           sourceMortalName: 'Glane',
           description: 'Prenez une carte de la défausse et mettez-la dans votre main.',
           maxTargets: 1,
+          spellRefund: { cardId: card.id, cost: effectiveCardCost },
         });
       } else if (card.name === 'Katadesmos') {
         setPendingEffect({
@@ -786,6 +792,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
           sourceMortalName: 'Katadesmos',
           description: 'Le dieu ennemi désigné ne pourra en aucune façon métamorphoser ses mortels jusqu\'à la fin de son prochain tour.',
           maxTargets: 1,
+          spellRefund: { cardId: card.id, cost: effectiveCardCost },
         });
       } else if (card.name === 'Sommeil') {
         setPendingEffect({
@@ -796,6 +803,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
           sourceMortalName: 'Sommeil',
           description: 'Le dieu ennemi désigné sautera son prochain tour.',
           maxTargets: 1,
+          spellRefund: { cardId: card.id, cost: effectiveCardCost },
         });
       } else if (card.name === 'Manne') {
         setPendingEffect({
@@ -810,6 +818,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
           drawCards: 4,
           discardCards: 2,
           includeReactions: true,
+          spellRefund: { cardId: card.id, cost: effectiveCardCost },
         });
       } else if (card.name === 'Turbulence') {
         const allReactions = prev.players.flatMap(p => p.reactions);
@@ -1253,10 +1262,38 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
   }, [pendingEffect]);
 
   const cancelEffect = useCallback(() => {
+    const effect = pendingEffectRef.current;
     pendingEffectRef.current = null;
     targetingLockRef.current = false;
     targetsConsumedRef.current = 0;
     setPendingEffect(null);
+    // Refund spell that triggered this effect (if any)
+    if (effect?.spellRefund) {
+      const { cardId, cost } = effect.spellRefund;
+      const playerIndex = effect.sourcePlayerIndex;
+      setGameState(prev => {
+        if (!prev) return prev;
+        const cardIdx = prev.discardPile.findIndex(c => c.id === cardId);
+        if (cardIdx === -1) return prev;
+        const card = prev.discardPile[cardIdx];
+        const newDiscard = [...prev.discardPile.slice(0, cardIdx), ...prev.discardPile.slice(cardIdx + 1)];
+        const newPlayers = prev.players.map((p, i) =>
+          i === playerIndex ? { ...p, ether: p.ether + cost, hand: [...p.hand, card] } : p
+        );
+        return {
+          ...prev,
+          players: newPlayers,
+          discardPile: newDiscard,
+          log: [{
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: prev.players[playerIndex]?.name || '',
+            action: 'Sort annulé',
+            detail: `a annulé ${card.name} — Éther et carte restitués`,
+          }, ...prev.log],
+        };
+      });
+    }
   }, []);
 
   const cancelDiscard = useCallback(() => {
