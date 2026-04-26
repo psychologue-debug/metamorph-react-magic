@@ -1,29 +1,93 @@
+## Objectif
 
+Refondre le rendu des plateaux pour les rendre vraiment responsive, faciliter le repositionnement précis des mortels, dessiner proprement les liens, et ajouter des toggles d'aide visuelle (priorités, liens, halos).
 
-## Fix : la défausse de fin de tour ne concerne que la main
+---
 
-### Problème
-Au moment de la défausse obligatoire de fin de tour (limite : 2 cartes en main max), la modale propose actuellement de défausser indifféremment des cartes de la main **ou** des réactions posées. Cela permet au joueur de défausser une réaction au lieu d'une carte de main, sans réellement réduire sa main sous la limite — ou au contraire de perdre une réaction utile alors que seul le surplus de main est en cause.
+## 1. Taille des mortels — responsive intelligent
 
-Les réactions posées sont déjà plafonnées à 2 par leur propre règle ; elles ne doivent **pas** être affectées par la limite de fin de tour.
+**Problème** : `tokenSize` est en pixels fixes (140px plateau actif, 50/64px pour les ennemis), ce qui cause débordements et chevauchements quand la cellule est petite.
 
-### Comportement attendu
-- **Défausse de fin de tour** : seules les cartes de la **main** sont comptées et défaussables. Les réactions posées sont totalement exclues de la modale.
-- **Défausses forcées par effet** (NEP-10, DIA-10, MIN-01 « Grenouilles »…) : comportement inchangé — le joueur peut toujours piocher dans main ET réactions (cf. règle existante).
+**Solution** : passer à un sizing **relatif au conteneur**, indépendant du viewport et du nombre d'ennemis.
 
-### Modifications
+- Mesurer la largeur réelle du conteneur (`ResizeObserver` dans `GodLayout.tsx`).
+- Calculer `tokenSize = clamp(minSize, containerWidth × ratio, maxSize)` avec un ratio fixe (~14% de la largeur du plateau, donnant ~140px sur un plateau de 1000px et ~28px sur un plateau de 200px).
+- Supprimer la prop `tokenSize` côté appelants : la taille devient auto-dérivée du conteneur.
+- Le `padding` autour du plateau passe lui aussi en pourcentage (3% du min(w,h)) pour rester proportionnel.
+- `BoardToken` reçoit la taille en px calculée mais toutes ses bordures/halos/icônes s'expriment en `em` ou en fractions de `size` pour rester nettes à toute échelle.
 
-**1. `src/components/game/DiscardModal.tsx`**
-Ajouter une prop `allowReactions?: boolean` (défaut : `true` pour préserver le comportement des défausses forcées). Quand elle vaut `false`, la modale n'affiche plus du tout la liste des réactions et n'autorise que la sélection dans la main.
+**Avantage** : un seul code path, fonctionne sur tablette, petit écran ou grand écran, et la grille adverse (1/2/3-4/5-6) n'a plus besoin du flag `compact`.
 
-**2. `src/pages/Index.tsx`**
-- Pour la modale de fin de tour (autour de la ligne 594) : passer `allowReactions={false}` et **ne pas** transmettre la prop `reactions`.
-- Pour la modale de défausse forcée (ligne 610) : laisser tel quel (`allowReactions` non passé → comportement actuel conservé).
+---
 
-**3. Vérification logique (`src/hooks/useGameLogic.ts`)**
-- `buildEndTurnResolution` (ligne 108) compte déjà uniquement `currentPlayer.hand.length > 2` — rien à changer.
-- `handleDiscard` filtre déjà les `cardIds` à partir de `hand` et `reactions` séparément — il continuera de fonctionner correctement même si la modale ne renvoie que des IDs venant de la main.
+## 2. Position des mortels — workflow x%/y%
 
-### Aucune régression attendue
-Les défausses forcées par effet conservent leur souplesse (main + réactions). Seul le flux strict de fin de tour est durci pour refléter la règle : « 2 cartes maximum **en main** à la fin du tour ».
+C'est **déjà** ce qui est fait : chaque layout (`CeresLayout`, `BacchusLayout`, etc.) contient un `POSITIONS: Record<code, {x, y}>` en pourcentage du plateau, et `GodLayout` les place via `left: x%, top: y%, transform: translate(-50%, -50%)`.
 
+→ Tu peux me donner pour chaque divinité une liste type `Mydas: x=11, y=97` et je l'applique directement dans le fichier `XxxLayout.tsx` correspondant. Aucune refonte nécessaire pour ça : les coordonnées sont **exactement** les centres des jetons.
+
+Note : avec le sizing responsive du point 1, un mortel à `y=97%` sera entièrement visible (le padding et le clamp évitent le débordement).
+
+---
+
+## 3. Liens entre mortels — design programmatique
+
+Ils sont **déjà** dessinés en SVG dans `GodLayout` à partir d'un tableau `CONNECTIONS: { from, to, color }[]`. Aucun besoin d'images.
+
+Capacités actuelles :
+- ligne droite entre deux mortels, couleur libre (HSL), épaisseur, opacité, linecap.
+
+Capacités que je peux ajouter facilement si tu le décris en texte :
+- courbes (Bézier quadratique avec point de contrôle, pour éviter qu'un trait passe sur un 3e mortel) ;
+- traits pointillés (`strokeDasharray`) ;
+- têtes de flèche (`marker-end`) pour indiquer un sens ;
+- traits multiples / parallèles ;
+- glow (filtre SVG) pour faire briller une chaîne ;
+- libellés sur le trait (numéro/symbole).
+
+→ Donne-moi simplement, par divinité : `de A vers B, couleur X, droite/courbée vers le haut/bas, plein/pointillé, flèche oui/non`. Aucune image nécessaire.
+
+---
+
+## 4. Toggles d'aide visuelle
+
+Ajout de **3 toggles indépendants** dans la barre supérieure (à côté de "Chroniques"), chacun avec un état persisté dans `localStorage` :
+
+| Toggle | Effet |
+|---|---|
+| **Priorités** | Affiche un badge `I` / `II` / `III` en surimpression des mortels (tableau de priorités à fournir par dieu). |
+| **Liens** | Affiche/masque le SVG des `CONNECTIONS` dans tous les `GodLayout`. |
+| **Halos** | Affiche/masque les anneaux colorés (violet/jaune/vert) des mortels métamorphosés. |
+
+### Détail technique
+
+- Nouveau hook `useDisplayPreferences` (Context React) exposant `{ showPriorities, showLinks, showHalos, toggle(key) }`. Stockage `localStorage`.
+- Provider monté dans `App.tsx`.
+- 3 boutons toggle (icônes lucide : `ListOrdered`, `GitBranch`, `Sparkles`) dans le bandeau supérieur de `Index.tsx`, état visuel actif/inactif.
+- `GodLayout.tsx` lit `showLinks` → conditionne le rendu du `<svg>` des liens.
+- `BoardToken.tsx` lit `showHalos` → si false, n'applique pas le `boxShadow` du halo (l'anneau de base ring-2 reste).
+- Nouveau fichier `src/data/mortalPriorities.ts` exportant `PRIORITIES: Partial<Record<MortalCode, 1 | 2 | 3>>` (vide au départ, à remplir par toi). `BoardToken` lit cette table et superpose un petit badge en chiffre romain en haut-gauche du jeton si `showPriorities` est ON et que le mortel **n'est pas encore métamorphosé**.
+
+---
+
+## Fichiers impactés
+
+- `src/components/game/GodLayout.tsx` — sizing responsive (ResizeObserver), conditionnel sur `showLinks`.
+- `src/components/game/BoardToken.tsx` — sizing relatif aux em, conditionnel sur `showHalos`, badge priorité.
+- `src/components/game/PlayerPanel.tsx` — retire `tokenSize` / `compact` (devient auto).
+- `src/components/game/GameBoard.tsx` — retire la logique `compact`.
+- `src/components/game/OwnPlayerBoard.tsx` — retire `tokenSize`.
+- `src/hooks/useDisplayPreferences.tsx` — nouveau (Context + localStorage).
+- `src/App.tsx` — wrap le Provider.
+- `src/pages/Index.tsx` — 3 boutons toggle dans le top bar.
+- `src/data/mortalPriorities.ts` — nouveau, table à compléter.
+
+---
+
+## Ce dont j'aurai besoin de toi (après implémentation)
+
+1. Les **coordonnées** révisées par dieu (format : `CODE x% y%`).
+2. La **liste des priorités** I/II/III par dieu.
+3. La **liste des liens** par dieu (paires + couleur + droite/courbe + style).
+
+Tu pourras me les envoyer en plusieurs messages, je les intégrerai au fur et à mesure.
