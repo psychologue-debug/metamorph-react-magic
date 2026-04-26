@@ -1318,10 +1318,12 @@ function StealEtherTotalContent({
   effect,
   gameState,
   onResolve,
+  onCancel,
 }: {
   effect: PendingEffect;
   gameState: GameState;
   onResolve: (result: TargetingResult) => void;
+  onCancel?: () => void;
 }) {
   const totalToSteal = effect.etherStealTotal || 3;
   const [stolen, setStolen] = useState<Record<string, number>>({});
