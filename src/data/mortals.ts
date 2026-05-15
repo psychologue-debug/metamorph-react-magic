@@ -186,7 +186,7 @@ export const MORTAL_TEMPLATES: MortalTemplate[] = [
   {
     god: 'bacchus', code: 'BAC-10', nameRecto: 'Arné', nameVerso: 'Corneille',
     type: 'animal', cost: 6, etherProduction: 1,
-    effectPermanent: 'Rétromorphosez ce mortel : générez 8 Éther.',
+    effectPermanent: 'Rétromorphosez ce mortel : générez 12 Éther.',
   },
   // === Minerve ===
   {
