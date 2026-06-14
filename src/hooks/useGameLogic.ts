@@ -61,6 +61,18 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
   const skipMetamorphoseConfirmRef = useRef(false);
   const [pendingSelfTargetConfirm, setPendingSelfTargetConfirm] = useState<{ mortalId: string; mortalName: string; actionLabel: string } | null>(null);
   const selfTargetResolveRef = useRef<((confirmed: boolean) => void) | null>(null);
+  // BAC-04 (Quatre Colombes): per-move snapshots so a defender's Compassion can revert
+  // the incapacitation moved onto one of their mortals (incapacitation stays on source).
+  const [pendingMoveUndo, setPendingMoveUndo] = useState<{
+    fromPlayerId: string;
+    fromMortalId: string;
+    fromSnapshot: Mortal;
+    toPlayerId: string;
+    toMortalId: string;
+    toSnapshot: Mortal;
+  }[] | null>(null);
+
+
 
   const startGame = useCallback((playerCount: number, selectedGods?: DivinityId[], playerNames?: string[], playerIds?: string[]) => {
     const state = createMockGameState(playerCount, selectedGods, playerIds);
@@ -90,6 +102,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     setPendingReactionCard(null);
     setStoredMetamorphoseEffect(null);
     setMetamorphoseEffectUndo(null);
+    setPendingMoveUndo(null);
     metamorphoseReactionInfoRef.current = null;
     savedMortalSnapshotRef.current = null;
     setPendingMetamorphoseConfirm(null);
@@ -273,6 +286,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     setPendingReactionCard(null);
     setStoredMetamorphoseEffect(null);
     setMetamorphoseEffectUndo(null);
+    setPendingMoveUndo(null);
     clearTransientActionRefs();
     setInteractionMode('idle');
     toast.dismiss();
@@ -2668,6 +2682,47 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
       r => !r.passed && r.cardName === 'Parade'
     );
 
+    // === BAC-04 (Quatre Colombes): per-defender Compassion reverts the moved incapacitation ===
+    if (pendingMoveUndo) {
+      const compassionResponders = new Set(
+        reactionWindow.responses.filter(r => !r.passed && r.cardName === 'Compassion').map(r => r.playerId)
+      );
+      const undo = pendingMoveUndo;
+      setPendingMoveUndo(null);
+      if (compassionResponders.size > 0) {
+        const cancelled = undo.filter(m => compassionResponders.has(m.toPlayerId));
+        if (cancelled.length > 0) {
+          setGameState(prev => {
+            if (!prev) return prev;
+            const restoreMap = new Map<string, Map<string, Mortal>>();
+            for (const mv of cancelled) {
+              if (!restoreMap.has(mv.toPlayerId)) restoreMap.set(mv.toPlayerId, new Map());
+              restoreMap.get(mv.toPlayerId)!.set(mv.toMortalId, mv.toSnapshot);
+              if (!restoreMap.has(mv.fromPlayerId)) restoreMap.set(mv.fromPlayerId, new Map());
+              restoreMap.get(mv.fromPlayerId)!.set(mv.fromMortalId, mv.fromSnapshot);
+            }
+            return {
+              ...prev,
+              players: prev.players.map(p => {
+                const m = restoreMap.get(p.id);
+                if (!m) return p;
+                return { ...p, mortals: p.mortals.map(mo => m.get(mo.id) ?? mo) };
+              }),
+              log: [{
+                id: crypto.randomUUID(),
+                timestamp: Date.now(),
+                playerName: 'Système',
+                action: 'Compassion',
+                detail: `Le déplacement d'incapacité a été annulé par Compassion`,
+              }, ...prev.log],
+            };
+          });
+        }
+      }
+      setGameState(prev => prev ? { ...prev, reactionWindow: null } : prev);
+      return;
+    }
+
     // === Phase 2: After targeting (metamorphoseEffectUndo is set) ===
     if (metamorphoseEffectUndo) {
       const hasCompassion = reactionWindow.responses.some(
@@ -2814,7 +2869,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     setStoredMetamorphoseEffect(null);
     setGameState(prev => prev ? { ...prev, reactionWindow: null } : prev);
     metamorphoseReactionInfoRef.current = null;
-  }, [reactionWindow, storedMetamorphoseEffect, metamorphoseEffectUndo, multiplayerConfig, gameState?.activePlayerIndex]);
+  }, [reactionWindow, storedMetamorphoseEffect, metamorphoseEffectUndo, pendingMoveUndo, multiplayerConfig, gameState?.activePlayerIndex]);
 
   // === Triggered passive effects: detect state changes and apply ===
   useEffect(() => {
@@ -3298,52 +3353,93 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
       return;
     }
 
-    setGameState(prev => {
-      if (!prev) return prev;
-      const pi = pendingEffect.sourcePlayerIndex;
-      let updatedPlayers = [...prev.players];
-      const newLog = [...prev.log];
+    const prev = gameStateRef.current;
+    if (!prev) {
+      setPendingEffect(null);
+      return;
+    }
 
-      for (const move of moves) {
-        // Heal the source mortal
-        updatedPlayers = updatedPlayers.map(p => {
-          if (p.id !== move.fromPlayerId) return p;
-          return {
-            ...p,
-            mortals: p.mortals.map(m =>
-              m.id === move.fromMortalId ? { ...m, status: 'normal' as const } : m
-            ),
-          };
-        });
-        // Incapacitate the target mortal
-        updatedPlayers = updatedPlayers.map(p => {
-          if (p.id !== move.toPlayerId) return p;
-          return {
-            ...p,
-            mortals: p.mortals.map(m =>
-              m.id === move.toMortalId ? { ...m, status: 'incapacite' as const } : m
-            ),
-          };
-        });
+    const pi = pendingEffect.sourcePlayerIndex;
+    const ownerId = prev.players[pi]?.id;
+    let updatedPlayers = [...prev.players];
+    const newLog = [...prev.log];
 
-        const fromMortal = prev.players.find(p => p.id === move.fromPlayerId)?.mortals.find(m => m.id === move.fromMortalId);
-        const toMortal = prev.players.find(p => p.id === move.toPlayerId)?.mortals.find(m => m.id === move.toMortalId);
-        newLog.unshift({
-          id: crypto.randomUUID(),
-          timestamp: Date.now(),
-          playerName: prev.players[pi].name,
-          action: 'Quatre Colombes',
-          detail: `a déplacé l'incapacité de ${fromMortal?.nameVerso || 'un mortel'} vers ${toMortal?.nameVerso || 'un mortel'}`,
+    // Snapshots of every mortal touched, captured BEFORE applying, so Compassion can revert.
+    const moveSnapshots: {
+      fromPlayerId: string; fromMortalId: string; fromSnapshot: Mortal;
+      toPlayerId: string; toMortalId: string; toSnapshot: Mortal;
+    }[] = [];
+
+    for (const move of moves) {
+      const fromMortal = prev.players.find(p => p.id === move.fromPlayerId)?.mortals.find(m => m.id === move.fromMortalId);
+      const toMortal = prev.players.find(p => p.id === move.toPlayerId)?.mortals.find(m => m.id === move.toMortalId);
+      if (fromMortal && toMortal) {
+        moveSnapshots.push({
+          fromPlayerId: move.fromPlayerId,
+          fromMortalId: move.fromMortalId,
+          fromSnapshot: { ...fromMortal },
+          toPlayerId: move.toPlayerId,
+          toMortalId: move.toMortalId,
+          toSnapshot: { ...toMortal },
         });
       }
 
-      return { ...prev, players: updatedPlayers, log: newLog };
-    });
+      // Heal the source mortal
+      updatedPlayers = updatedPlayers.map(p => {
+        if (p.id !== move.fromPlayerId) return p;
+        return { ...p, mortals: p.mortals.map(m => m.id === move.fromMortalId ? { ...m, status: 'normal' as const } : m) };
+      });
+      // Incapacitate the target mortal
+      updatedPlayers = updatedPlayers.map(p => {
+        if (p.id !== move.toPlayerId) return p;
+        return { ...p, mortals: p.mortals.map(m => m.id === move.toMortalId ? { ...m, status: 'incapacite' as const } : m) };
+      });
+
+      newLog.unshift({
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        playerName: prev.players[pi].name,
+        action: 'Quatre Colombes',
+        detail: `a déplacé l'incapacité de ${fromMortal?.nameVerso || 'un mortel'} vers ${toMortal?.nameVerso || 'un mortel'}`,
+      });
+    }
+
+    const appliedState = { ...prev, players: updatedPlayers, log: newLog };
+    setGameState(appliedState);
     setPendingEffect(null);
     toast.success(`${moves.length} incapacité(s) déplacée(s) !`, {
       style: { background: 'hsl(280 40% 20%)', border: '1px solid hsl(280 50% 40%)', color: 'white', fontSize: '16px' },
     });
+
+    // Moves that incapacitate an ENEMY mortal can be reacted to with Compassion.
+    const enemyMoves = moveSnapshots.filter(m => m.toPlayerId !== ownerId);
+    if (enemyMoves.length === 0) return;
+
+    const targetPlayerIds = Array.from(new Set(enemyMoves.map(m => m.toPlayerId)));
+    const trigger: ReactionTrigger = {
+      type: 'mortal_effect',
+      sourcePlayerId: ownerId,
+      targetPlayerIds,
+      targetMortalId: enemyMoves[0].toMortalId,
+      effectDescription: `${pendingEffect.sourceMortalName || 'Quatre Colombes'} incapacite un de vos mortels (déplacement d'incapacité)`,
+    };
+    const reactors = getEligibleReactors(trigger, appliedState);
+    if (reactors.length === 0) return;
+
+    setPendingMoveUndo(enemyMoves);
+    setGameState(p => p ? {
+      ...p,
+      reactionWindow: {
+        trigger,
+        reactorQueue: reactors,
+        currentReactorIndex: 0,
+        phase: 'waiting_ready' as const,
+        responses: [],
+        timerStartedAt: Date.now(),
+      },
+    } : p);
   }, [pendingEffect]);
+
 
   return {
     gameState,

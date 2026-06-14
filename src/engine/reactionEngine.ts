@@ -78,7 +78,10 @@ export function canActivateReaction(
       if (trigger.type !== 'spell_effect' && trigger.type !== 'mortal_effect') {
         return { valid: false, reason: 'Compassion protège contre les effets ennemis ciblant vos mortels' };
       }
-      if (trigger.targetPlayerId !== player.id) {
+      const targetsThisPlayer =
+        trigger.targetPlayerId === player.id ||
+        (trigger.targetPlayerIds?.includes(player.id) ?? false);
+      if (!targetsThisPlayer) {
         return { valid: false, reason: 'Aucun de vos mortels n\'est ciblé' };
       }
       return { valid: true };
