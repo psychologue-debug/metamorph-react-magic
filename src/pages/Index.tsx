@@ -737,6 +737,17 @@ const Index = () => {
         />
       )}
 
+      {/* Cénée (NEP-09) substitution choice — only shown to the Neptune defender */}
+      {pendingCeneeChoice &&
+        (!multiplayerConfig || multiplayerConfig.localPlayerId === pendingCeneeChoice.defenderPlayerId) && (
+        <CeneeChoiceWindow
+          choice={pendingCeneeChoice}
+          onResolve={resolveCeneeChoice}
+        />
+      )}
+
+
+
       {/* Confirm Quit dialog */}
       <AlertDialog open={confirmQuit} onOpenChange={setConfirmQuit}>
         <AlertDialogContent>
