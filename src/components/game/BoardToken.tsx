@@ -42,7 +42,7 @@ const BoardToken = ({ mortal, owner, gameState, size = 140, selectable, onClick,
   return (
     <motion.div
       className={`mortal-token
-        rounded-full relative cursor-pointer transition-all duration-300 overflow-hidden
+        rounded-full relative cursor-pointer transition-all duration-300
         ${!haloStyle && mortal.isMetamorphosed ? 'ring-2 ring-ether/60' : !mortal.isMetamorphosed ? 'ring-1 ring-border/40' : ''}
         ${isRetired ? 'grayscale opacity-40 pointer-events-none' : ''}
         ${isIncapacitated && !isRetired ? 'grayscale opacity-60' : ''}
@@ -60,35 +60,41 @@ const BoardToken = ({ mortal, owner, gameState, size = 140, selectable, onClick,
       onMouseEnter={() => onHover?.(mortal)}
       onMouseLeave={() => onHover?.(null)}
     >
-      {showImage ? (
-        <img src={imageSrc} alt={displayName} className="absolute inset-0 w-full h-full object-cover rounded-full" onError={() => setImgFailed(true)} />
-      ) : (
-        <div className="absolute inset-0 flex items-center justify-center"
-          style={{ background: mortal.isMetamorphosed ? 'linear-gradient(135deg, hsl(var(--ether-dim)), hsl(var(--card)))' : 'linear-gradient(135deg, hsl(var(--card)), hsl(var(--secondary)))' }}>
-          <span className="font-display font-bold text-muted-foreground" style={{ fontSize: fontPx }}>
-            {mortal.isMetamorphosed ? mortal.etherProduction : mortal.nameRecto.charAt(0)}
-          </span>
-        </div>
-      )}
+      {/* Clipped circular content (image + status overlays) */}
+      <div className="absolute inset-0 rounded-full overflow-hidden">
+        {showImage ? (
+          <img src={imageSrc} alt={displayName} className="absolute inset-0 w-full h-full object-cover rounded-full" onError={() => setImgFailed(true)} />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center"
+            style={{ background: mortal.isMetamorphosed ? 'linear-gradient(135deg, hsl(var(--ether-dim)), hsl(var(--card)))' : 'linear-gradient(135deg, hsl(var(--card)), hsl(var(--secondary)))' }}>
+            <span className="font-display font-bold text-muted-foreground" style={{ fontSize: fontPx }}>
+              {mortal.isMetamorphosed ? mortal.etherProduction : mortal.nameRecto.charAt(0)}
+            </span>
+          </div>
+        )}
 
-      {isRetired && (
-        <div className="absolute inset-0 rounded-full flex items-center justify-center bg-background/60"><span style={{ fontSize: fontPx * 1.2 }}>🚫</span></div>
-      )}
-      {isIncapacitated && !isRetired && (
-        <div className="absolute inset-0 rounded-full flex items-center justify-center bg-background/40">
-          <motion.div className="w-full h-full rounded-full flex items-center justify-center"
-            style={{ background: 'radial-gradient(circle, hsl(0 0% 20% / 0.6) 30%, hsl(0 0% 10% / 0.3) 70%)' }}
-            animate={{ opacity: [0.7, 0.9, 0.7] }} transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}>
-            <span className="font-display font-bold" style={{ color: 'hsl(270 40% 65%)', fontSize: fontPx * 1.2 }}>💤</span>
-          </motion.div>
-        </div>
-      )}
+        {isRetired && (
+          <div className="absolute inset-0 rounded-full flex items-center justify-center bg-background/60"><span style={{ fontSize: fontPx * 1.2 }}>🚫</span></div>
+        )}
+        {isIncapacitated && !isRetired && (
+          <div className="absolute inset-0 rounded-full flex items-center justify-center bg-background/40">
+            <motion.div className="w-full h-full rounded-full flex items-center justify-center"
+              style={{ background: 'radial-gradient(circle, hsl(0 0% 20% / 0.6) 30%, hsl(0 0% 10% / 0.3) 70%)' }}
+              animate={{ opacity: [0.7, 0.9, 0.7] }} transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}>
+              <span className="font-display font-bold" style={{ color: 'hsl(270 40% 65%)', fontSize: fontPx * 1.2 }}>💤</span>
+            </motion.div>
+          </div>
+        )}
+      </div>
+
+      {/* Accents that may extend beyond the token bounds — kept OUTSIDE the clip */}
       {isInvulnerable && !isRetired && (
         <motion.div className="absolute -top-1 -right-1 rounded-full flex items-center justify-center"
           style={{
             width: invSize, height: invSize,
             background: 'linear-gradient(135deg, hsl(45 90% 55%), hsl(35 80% 45%))',
             boxShadow: '0 0 8px hsl(45 90% 55% / 0.6)',
+            zIndex: 5,
           }}
           animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 2, repeat: Infinity }}>
           <Shield className="text-white" style={{ width: invSize * 0.6, height: invSize * 0.6 }} />

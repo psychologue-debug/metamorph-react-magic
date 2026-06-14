@@ -17,10 +17,11 @@ import TargetingModal from '@/components/game/TargetingModal';
 import ReactionWindow from '@/components/game/ReactionWindow';
 import CeneeChoiceWindow from '@/components/game/CeneeChoiceWindow';
 import MortalTooltip from '@/components/game/MortalTooltip';
+import PortalTooltip from '@/components/game/PortalTooltip';
 import OpponentActionNotification from '@/components/game/OpponentActionNotification';
 import { DivinityId, Mortal, Player as PlayerType, GameState as GameStateType, DIVINITIES as DIV } from '@/types/game';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Scroll, Plus, LogIn, ScrollText, RefreshCw, ChevronUp, ChevronDown, Users, ListOrdered, GitBranch, Sparkles } from 'lucide-react';
+import { Scroll, Plus, LogIn, ScrollText, RefreshCw, ChevronUp, ChevronDown, Users, ListOrdered, GitBranch, Sparkles, Eye, EyeOff } from 'lucide-react';
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences';
 import EtherCounter from '@/components/game/EtherCounter';
 import MortalGrid from '@/components/game/MortalGrid';
@@ -39,6 +40,7 @@ const Index = () => {
   const [godSelectionCount, setGodSelectionCount] = useState<number | null>(null);
   const [logOpen, setLogOpen] = useState(false);
   const [hoveredEnemyMortal, setHoveredEnemyMortal] = useState<{ mortal: Mortal; owner: PlayerType } | null>(null);
+  const [enemyMousePos, setEnemyMousePos] = useState({ x: 0, y: 0 });
   const [menuMode, setMenuMode] = useState<MenuMode>('home');
   const [createName, setCreateName] = useState('');
   const [createMaxPlayers, setCreateMaxPlayers] = useState(4);
@@ -453,30 +455,57 @@ const Index = () => {
             Cycle {gameState.turnCount} — {gameState.players.length} dieux
           </span>
 
-          {/* Display aids toggles */}
-          {([
-            { key: 'showPriorities' as const, Icon: ListOrdered, label: 'Priorités', color: 'hsl(45 95% 55%)' },
-            { key: 'showLinks' as const, Icon: GitBranch, label: 'Liens', color: 'hsl(210 70% 55%)' },
-            { key: 'showHalos' as const, Icon: Sparkles, label: 'Halos', color: 'hsl(270 70% 60%)' },
-          ]).map(({ key, Icon, label, color }) => {
-            const active = displayPrefs[key];
+          {/* Display aids — grouped frame with a master ON/OFF toggle */}
+          {(() => {
+            const aids = [
+              { key: 'showPriorities' as const, Icon: ListOrdered, label: 'Priorités', color: 'hsl(45 95% 55%)' },
+              { key: 'showLinks' as const, Icon: GitBranch, label: 'Liens', color: 'hsl(210 70% 55%)' },
+              { key: 'showHalos' as const, Icon: Sparkles, label: 'Halos', color: 'hsl(270 70% 60%)' },
+            ];
+            const allOn = aids.every(({ key }) => displayPrefs[key]);
+            const setAll = (val: boolean) =>
+              aids.forEach(({ key }) => { if (displayPrefs[key] !== val) displayPrefs.toggle(key); });
             return (
-              <button
-                key={key}
-                onClick={() => displayPrefs.toggle(key)}
-                title={`${active ? 'Masquer' : 'Afficher'} : ${label}`}
-                className="flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-lg text-xs sm:text-sm font-display font-semibold transition-colors border"
-                style={{
-                  borderColor: active ? color : 'hsl(var(--border) / 0.3)',
-                  color: active ? color : 'hsl(var(--muted-foreground))',
-                  background: active ? `${color.replace(')', ' / 0.12)')}` : 'transparent',
-                }}
-              >
-                <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span className="hidden md:inline">{label}</span>
-              </button>
+              <div className="flex items-center gap-1 sm:gap-1.5 px-1 sm:px-1.5 py-1 rounded-xl border border-border/40 bg-card/40">
+                {/* Master toggle */}
+                <button
+                  onClick={() => setAll(!allOn)}
+                  title={allOn ? 'Masquer toutes les aides' : 'Afficher toutes les aides'}
+                  className="flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-lg text-xs sm:text-sm font-display font-bold transition-colors border"
+                  style={{
+                    borderColor: allOn ? 'hsl(var(--ether))' : 'hsl(var(--border) / 0.4)',
+                    color: allOn ? 'hsl(var(--ether))' : 'hsl(var(--muted-foreground))',
+                    background: allOn ? 'hsl(var(--ether) / 0.12)' : 'transparent',
+                  }}
+                >
+                  {allOn ? <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <EyeOff className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+                  <span className="hidden lg:inline">Aides</span>
+                </button>
+
+                <div className="w-px self-stretch bg-border/40 mx-0.5" />
+
+                {aids.map(({ key, Icon, label, color }) => {
+                  const active = displayPrefs[key];
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => displayPrefs.toggle(key)}
+                      title={`${active ? 'Masquer' : 'Afficher'} : ${label}`}
+                      className="flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-lg text-xs sm:text-sm font-display font-semibold transition-colors border"
+                      style={{
+                        borderColor: active ? color : 'hsl(var(--border) / 0.3)',
+                        color: active ? color : 'hsl(var(--muted-foreground))',
+                        background: active ? `${color.replace(')', ' / 0.12)')}` : 'transparent',
+                      }}
+                    >
+                      <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <span className="hidden md:inline">{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             );
-          })}
+          })()}
 
           <button
             className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1 sm:py-1.5 rounded-lg text-sm sm:text-lg font-display font-bold tracking-wider transition-colors ${logOpen ? 'bg-ether/20 text-ether' : 'text-foreground hover:text-ether'}`}
@@ -607,6 +636,7 @@ const Index = () => {
             return (
               <div
                 className="flex-1 grid gap-1 sm:gap-2 p-1 sm:p-2 min-h-0 overflow-hidden"
+                onMouseMove={(e) => setEnemyMousePos({ x: e.clientX, y: e.clientY })}
                 style={{
                   gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
                   gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
@@ -630,18 +660,16 @@ const Index = () => {
             );
           })()}
 
-          {/* Fixed enemy tooltip zone */}
-          <AnimatePresence>
-            {hoveredEnemyMortal && (
-              <div className="absolute bottom-28 right-2 z-[99999] pointer-events-none">
-                <MortalTooltip
-                  mortal={hoveredEnemyMortal.mortal}
-                  owner={hoveredEnemyMortal.owner}
-                  gameState={gameState}
-                />
-              </div>
-            )}
-          </AnimatePresence>
+          {/* Enemy tooltip rendered in a portal so it's never clipped and always on top */}
+          {hoveredEnemyMortal && (
+            <PortalTooltip x={enemyMousePos.x} y={enemyMousePos.y}>
+              <MortalTooltip
+                mortal={hoveredEnemyMortal.mortal}
+                owner={hoveredEnemyMortal.owner}
+                gameState={gameState}
+              />
+            </PortalTooltip>
+          )}
         </div>
       </div>
 

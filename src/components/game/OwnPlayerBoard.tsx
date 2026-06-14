@@ -3,6 +3,7 @@ import { InteractionMode, canPlayCard } from '@/hooks/useGameLogic';
 import { getEffectiveCardCost } from '@/engine/costModifiers';
 import EtherCounter from './EtherCounter';
 import MortalTooltip from './MortalTooltip';
+import PortalTooltip from './PortalTooltip';
 import CeresLayout from './CeresLayout';
 import VenusLayout from './VenusLayout';
 import ApollonLayout from './ApollonLayout';
@@ -51,6 +52,7 @@ const OwnPlayerBoard = ({
   const [reactionToManage, setReactionToManage] = useState<SpellCard | null>(null);
   const [hoveredMortal, setHoveredMortal] = useState<Mortal | null>(null);
   const [hoveredSpell, setHoveredSpell] = useState<SpellCard | null>(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   return (
     <div className="flex flex-col h-full">
@@ -98,10 +100,11 @@ const OwnPlayerBoard = ({
         </div>
       )}
 
-      {/* Mortals grid + fixed tooltip zone */}
+      {/* Mortals grid + tooltip zone */}
       <div
         className="flex-1 relative overflow-hidden"
         onMouseEnter={() => setHoveredSpell(null)}
+        onMouseMove={(e) => setMousePos({ x: e.clientX, y: e.clientY })}
       >
         <div
           className="absolute inset-0"
@@ -156,14 +159,12 @@ const OwnPlayerBoard = ({
 
         {/* Floating "Métamorphoser" button removed per UX feedback */}
 
-        {/* Fixed tooltip zone — top-right of mortal area */}
-        <AnimatePresence>
-          {hoveredMortal && (
-            <div className="absolute top-2 right-2 z-[99999] pointer-events-none">
-              <MortalTooltip mortal={hoveredMortal} owner={player} gameState={gameState} />
-            </div>
-          )}
-        </AnimatePresence>
+        {/* Tooltip rendered in a portal so it's never clipped and always on top */}
+        {hoveredMortal && (
+          <PortalTooltip x={mousePos.x} y={mousePos.y}>
+            <MortalTooltip mortal={hoveredMortal} owner={player} gameState={gameState} />
+          </PortalTooltip>
+        )}
       </div>
 
       {/* Hand + Reactions row */}
