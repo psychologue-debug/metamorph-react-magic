@@ -21,7 +21,7 @@ import PortalTooltip from '@/components/game/PortalTooltip';
 import OpponentActionNotification from '@/components/game/OpponentActionNotification';
 import { DivinityId, Mortal, Player as PlayerType, GameState as GameStateType, DIVINITIES as DIV } from '@/types/game';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Scroll, Plus, LogIn, ScrollText, RefreshCw, ChevronUp, ChevronDown, Users, ListOrdered, GitBranch, Sparkles } from 'lucide-react';
+import { Scroll, Plus, LogIn, ScrollText, RefreshCw, ChevronUp, ChevronDown, Users, ListOrdered, GitBranch, Sparkles, Eye, EyeOff } from 'lucide-react';
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences';
 import EtherCounter from '@/components/game/EtherCounter';
 import MortalGrid from '@/components/game/MortalGrid';
