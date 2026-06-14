@@ -57,6 +57,10 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     mortalSnapshot: Mortal;
     effectType?: string; // e.g. 'enemy_mortal_remove' to trigger VEN-09 after reaction
   } | null>(null);
+  const [pendingMetamorphoseConfirm, setPendingMetamorphoseConfirm] = useState<{ mortalId: string; mortalName: string } | null>(null);
+  const skipMetamorphoseConfirmRef = useRef(false);
+  const [pendingSelfTargetConfirm, setPendingSelfTargetConfirm] = useState<{ mortalId: string; mortalName: string; actionLabel: string } | null>(null);
+  const selfTargetResolveRef = useRef<((confirmed: boolean) => void) | null>(null);
 
   const startGame = useCallback((playerCount: number, selectedGods?: DivinityId[], playerNames?: string[], playerIds?: string[]) => {
     const state = createMockGameState(playerCount, selectedGods, playerIds);
