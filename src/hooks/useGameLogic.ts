@@ -263,6 +263,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
         log: newLog,
         reactionWindow: null,
         forcedDiscardQueue: null,
+        pendingPerdrixChoices,
       },
     };
   }, []);
