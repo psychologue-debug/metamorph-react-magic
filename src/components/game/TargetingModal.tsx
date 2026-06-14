@@ -511,7 +511,7 @@ function EtherDestroyContent({
               style={{ background: 'hsl(var(--muted))' }}
               onClick={onCancel}
             >
-              Annuler
+              {cancelLabel(effect)}
             </button>
           )}
           <motion.button
@@ -635,7 +635,7 @@ function EtherStealContent({
                 style={{ background: 'hsl(var(--muted))' }}
                 onClick={onCancel}
               >
-                Annuler
+                {cancelLabel(effect)}
               </button>
             )}
             <motion.button
@@ -730,7 +730,7 @@ function GodSelectContent({
               style={{ background: 'hsl(var(--muted))' }}
               onClick={onCancel}
             >
-              Annuler
+              {cancelLabel(effect)}
             </button>
           </div>
         )}
@@ -818,7 +818,7 @@ function CardDiscardContent({
               style={{ background: 'hsl(var(--muted))' }}
               onClick={onCancel}
             >
-              Annuler
+              {cancelLabel(effect)}
             </button>
           )}
           <motion.button
@@ -882,7 +882,7 @@ function PayDrawDiscardContent({
                 style={{ background: 'hsl(var(--muted))' }}
                 onClick={onCancel}
               >
-                Annuler
+                {cancelLabel(effect)}
               </button>
             )}
             <motion.button
@@ -1052,7 +1052,7 @@ function ReactionDiscardContent({
               style={{ background: 'hsl(var(--muted))' }}
               onClick={onCancel}
             >
-              Annuler
+              {cancelLabel(effect)}
             </button>
           )}
           <motion.button
@@ -1140,7 +1140,7 @@ function SelectFromDiscardContent({
               style={{ background: 'hsl(var(--muted))' }}
               onClick={onCancel}
             >
-              Annuler
+              {cancelLabel(effect)}
             </button>
           )}
           <motion.button
@@ -1419,7 +1419,7 @@ function StealEtherTotalContent({
                 style={{ background: 'hsl(var(--muted))' }}
                 onClick={onCancel}
               >
-                Annuler
+                {cancelLabel(effect)}
               </button>
             )}
             <motion.button
@@ -1531,7 +1531,7 @@ function StealCardFromGodContent({
               style={{ background: 'hsl(var(--muted))' }}
               onClick={onCancel}
             >
-              Annuler
+              {cancelLabel(effect)}
             </button>
           </div>
         )}
@@ -1607,7 +1607,7 @@ function MetamorphoseExtraContent({
               style={{ background: 'hsl(var(--muted))' }}
               onClick={onCancel}
             >
-              Annuler
+              {cancelLabel(effect)}
             </button>
           </div>
         )}
@@ -1788,7 +1788,7 @@ function MoveIncapacitationsContent({
             className="px-4 py-2 rounded-lg font-display text-sm border border-border/50 text-muted-foreground hover:bg-muted"
             onClick={() => onConfirm([])}
           >
-            Annuler
+            {cancelLabel(effect)}
           </button>
           {phase === 'select_target' && (
             <button
