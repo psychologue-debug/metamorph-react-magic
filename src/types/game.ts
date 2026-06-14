@@ -153,6 +153,14 @@ export interface GameState {
   // Cénée (NEP-09): choice window offered to the Neptune defender to retromorphose
   // Cénée instead of the originally targeted mortal.
   pendingCeneeChoice?: CeneeChoiceState | null;
+  // Perdrie (MIN-03): at cycle start the owner chooses which god to steal Ether from.
+  pendingPerdrixChoices?: PerdrixChoiceState[] | null;
+}
+
+export interface PerdrixChoiceState {
+  ownerPlayerId: string;
+  amount: number;
+  mortalName: string;
 }
 
 export interface CeneeChoiceState {
