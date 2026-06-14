@@ -2533,6 +2533,36 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
             return prev;
           });
         }
+
+        // Cénée (NEP-09): the retro survived Parade/Compassion — if the Neptune defender
+        // has Cénée metamorphosed, offer the substitution choice instead of finalizing.
+        if (metamorphoseEffectUndo.effectType === 'retro_enemy_mortal') {
+          const latest = gameStateRef.current ?? gameState;
+          const defender = latest?.players.find(p => p.id === metamorphoseEffectUndo.playerId);
+          const cenee = defender?.mortals.find(
+            m => m.code === 'NEP-09' && m.isMetamorphosed && m.status !== 'incapacite' && m.status !== 'retired' && m.id !== metamorphoseEffectUndo.mortalId
+          );
+          if (defender && cenee) {
+            const attacker = latest?.players.find(p => p.id === reactionWindow.trigger.sourcePlayerId);
+            const snap = metamorphoseEffectUndo.mortalSnapshot;
+            setGameState(prev => prev ? {
+              ...prev,
+              reactionWindow: null,
+              pendingCeneeChoice: {
+                defenderPlayerId: metamorphoseEffectUndo.playerId,
+                originalMortalId: metamorphoseEffectUndo.mortalId,
+                originalSnapshot: snap,
+                ceneeId: cenee.id,
+                attackerName: attacker?.name || 'Un adversaire',
+                targetName: snap.nameVerso || snap.nameRecto,
+              },
+            } : prev);
+            setMetamorphoseEffectUndo(null);
+            setStoredMetamorphoseEffect(null);
+            metamorphoseReactionInfoRef.current = null;
+            return;
+          }
+        }
       }
       setMetamorphoseEffectUndo(null);
       setStoredMetamorphoseEffect(null);
