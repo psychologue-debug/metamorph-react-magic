@@ -158,14 +158,12 @@ const OwnPlayerBoard = ({
 
         {/* Floating "Métamorphoser" button removed per UX feedback */}
 
-        {/* Fixed tooltip zone — top-right of mortal area */}
-        <AnimatePresence>
-          {hoveredMortal && (
-            <div className="absolute top-2 right-2 z-[99999] pointer-events-none">
-              <MortalTooltip mortal={hoveredMortal} owner={player} gameState={gameState} />
-            </div>
-          )}
-        </AnimatePresence>
+        {/* Tooltip rendered in a portal so it's never clipped and always on top */}
+        {hoveredMortal && (
+          <PortalTooltip x={mousePos.x} y={mousePos.y}>
+            <MortalTooltip mortal={hoveredMortal} owner={player} gameState={gameState} />
+          </PortalTooltip>
+        )}
       </div>
 
       {/* Hand + Reactions row */}
