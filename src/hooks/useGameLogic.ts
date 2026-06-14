@@ -102,6 +102,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     setPendingReactionCard(null);
     setStoredMetamorphoseEffect(null);
     setMetamorphoseEffectUndo(null);
+    setPendingMoveUndo(null);
     metamorphoseReactionInfoRef.current = null;
     savedMortalSnapshotRef.current = null;
     setPendingMetamorphoseConfirm(null);
