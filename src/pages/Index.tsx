@@ -40,6 +40,7 @@ const Index = () => {
   const [godSelectionCount, setGodSelectionCount] = useState<number | null>(null);
   const [logOpen, setLogOpen] = useState(false);
   const [hoveredEnemyMortal, setHoveredEnemyMortal] = useState<{ mortal: Mortal; owner: PlayerType } | null>(null);
+  const [enemyMousePos, setEnemyMousePos] = useState({ x: 0, y: 0 });
   const [menuMode, setMenuMode] = useState<MenuMode>('home');
   const [createName, setCreateName] = useState('');
   const [createMaxPlayers, setCreateMaxPlayers] = useState(4);
