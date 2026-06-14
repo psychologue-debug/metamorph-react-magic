@@ -3325,6 +3325,11 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     handleForcedDiscardChoice,
     pendingCeneeChoice: gameState?.pendingCeneeChoice ?? null,
     resolveCeneeChoice,
+    pendingMetamorphoseConfirm,
+    confirmMetamorphose,
+    cancelMetamorphose,
+    pendingSelfTargetConfirm,
+    resolveSelfTargetConfirm,
   };
 }
 
