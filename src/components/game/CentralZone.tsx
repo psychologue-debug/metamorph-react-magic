@@ -10,6 +10,7 @@ interface CentralZoneProps {
 const CentralZone = ({ gameState }: CentralZoneProps) => {
   const activePlayer = gameState.players[gameState.activePlayerIndex];
   const [showDiscard, setShowDiscard] = useState(false);
+  const [showDeckTip, setShowDeckTip] = useState(false);
 
   return (
     <div className="relative flex items-center gap-1.5 sm:gap-3 flex-wrap">
