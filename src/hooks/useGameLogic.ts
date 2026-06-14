@@ -1726,6 +1726,54 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     }
   }, [pendingEffect, gameState]);
 
+  /**
+   * Cénée (NEP-09): the Neptune defender decides whether to retromorphose Cénée
+   * instead of the originally targeted mortal. The retro has already been applied
+   * to the original target; on YES we restore it and retromorphose Cénée instead.
+   */
+  const resolveCeneeChoice = useCallback((useCenee: boolean) => {
+    setGameState(prev => {
+      if (!prev || !prev.pendingCeneeChoice) return prev;
+      const choice = prev.pendingCeneeChoice;
+      if (!useCenee) {
+        return {
+          ...prev,
+          pendingCeneeChoice: null,
+          log: [{
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: 'Système',
+            action: 'Cénée',
+            detail: `Le joueur a refusé de rétromorphoser Cénée — ${choice.targetName} reste rétromorphosé`,
+          }, ...prev.log],
+        };
+      }
+      const players = prev.players.map(p => {
+        if (p.id !== choice.defenderPlayerId) return p;
+        const mortals = p.mortals.map(m => {
+          if (m.id === choice.originalMortalId) return { ...choice.originalSnapshot };
+          if (m.id === choice.ceneeId) return { ...m, isMetamorphosed: false, status: 'normal' as const };
+          return m;
+        });
+        return { ...p, mortals, metamorphosedCount: mortals.filter(m => m.isMetamorphosed).length };
+      });
+      return {
+        ...prev,
+        players,
+        pendingCeneeChoice: null,
+        log: [{
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          playerName: 'Système',
+          action: 'Cénée',
+          detail: `Cénée a été rétromorphosé à la place de ${choice.targetName}`,
+        }, ...prev.log],
+      };
+    });
+  }, []);
+
+
+
   /** Auto-heal all own incapacitated mortals (for MIN-09 2nd metamorphosis) */
   const healAllOwnMortals = useCallback((playerIdx: number) => {
     setGameState((prev) => {
