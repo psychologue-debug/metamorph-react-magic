@@ -781,6 +781,26 @@ const Index = () => {
         />
       )}
 
+      {/* Metamorphose confirmation (local, active player only) */}
+      {pendingMetamorphoseConfirm && (
+        <MetamorphoseConfirmWindow
+          mortalName={pendingMetamorphoseConfirm.mortalName}
+          onConfirm={confirmMetamorphose}
+          onCancel={cancelMetamorphose}
+        />
+      )}
+
+      {/* Self-target safety confirmation (local) */}
+      {pendingSelfTargetConfirm && (
+        <SelfTargetConfirmWindow
+          mortalName={pendingSelfTargetConfirm.mortalName}
+          actionLabel={pendingSelfTargetConfirm.actionLabel}
+          onResolve={resolveSelfTargetConfirm}
+        />
+      )}
+
+
+
 
 
       {/* Confirm Quit dialog */}
