@@ -1864,6 +1864,54 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     });
   }, []);
 
+  /**
+   * Perdrie (MIN-03): the owner picks which god (player) to steal Ether from at cycle
+   * start. Resolves the FIRST pending steal in the queue against the chosen target.
+   */
+  const resolvePerdrixChoice = useCallback((targetPlayerId: string) => {
+    setGameState(prev => {
+      if (!prev || !prev.pendingPerdrixChoices || prev.pendingPerdrixChoices.length === 0) return prev;
+      const [choice, ...rest] = prev.pendingPerdrixChoices;
+      const ownerIdx = prev.players.findIndex(p => p.id === choice.ownerPlayerId);
+      const targetIdx = prev.players.findIndex(p => p.id === targetPlayerId);
+      const newLog = [...prev.log];
+      let players = prev.players;
+      if (ownerIdx >= 0 && targetIdx >= 0 && targetIdx !== ownerIdx) {
+        const actualSteal = Math.min(choice.amount, prev.players[targetIdx].ether);
+        if (actualSteal > 0) {
+          players = prev.players.map((p, i) => {
+            if (i === ownerIdx) return { ...p, ether: p.ether + actualSteal };
+            if (i === targetIdx) return { ...p, ether: p.ether - actualSteal };
+            return p;
+          });
+          newLog.unshift({
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: prev.players[ownerIdx].name,
+            action: choice.mortalName,
+            detail: `a volé ${actualSteal} Éther à ${prev.players[targetIdx].name}`,
+          });
+        } else {
+          newLog.unshift({
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: prev.players[ownerIdx].name,
+            action: choice.mortalName,
+            detail: `n'a rien pu voler à ${prev.players[targetIdx].name} (réservoir vide)`,
+          });
+        }
+      }
+      return {
+        ...prev,
+        players,
+        log: newLog,
+        pendingPerdrixChoices: rest.length > 0 ? rest : null,
+      };
+    });
+  }, []);
+
+
+
 
 
   /** Auto-heal all own incapacitated mortals (for MIN-09 2nd metamorphosis) */
