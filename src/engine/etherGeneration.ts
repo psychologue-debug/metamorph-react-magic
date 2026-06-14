@@ -7,6 +7,8 @@ import { generateUUID } from '@/lib/uuid';
 interface EtherGenerationResult {
   updatedPlayers: Player[];
   logs: GameLogEntry[];
+  // Perdrie (MIN-03): the owner must choose which god to steal from at cycle start.
+  perdrixSteals: { ownerIndex: number; amount: number; mortalName: string }[];
 }
 
 /**
