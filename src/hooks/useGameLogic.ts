@@ -3254,6 +3254,8 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     handleReactionPass,
     handleReactionActivate,
     handleForcedDiscardChoice,
+    pendingCeneeChoice: gameState?.pendingCeneeChoice ?? null,
+    resolveCeneeChoice,
   };
 }
 
