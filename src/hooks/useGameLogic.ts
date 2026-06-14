@@ -1442,23 +1442,11 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
         actionLabel = 'Guérison';
         actionDetail = `a levé l'incapacité de ${mortal.nameVerso || mortal.nameRecto} de ${targetPlayer.name}`;
       } else if (isRetroOwn || isRetroEnemy) {
-        let actualRetroMortalId = mortalId;
-        let actualRetroPlayerId = playerId;
-        if (isRetroEnemy) {
-          const defenderPlayer = prev.players.find(p => p.id === playerId);
-          if (defenderPlayer) {
-            const cenee = defenderPlayer.mortals.find(
-              m => m.code === 'NEP-09' && m.isMetamorphosed && m.status !== 'incapacite' && m.status !== 'retired' && m.id !== mortalId
-            );
-            if (cenee) {
-              actualRetroMortalId = cenee.id;
-              toast.info(`${cenee.nameVerso} se sacrifie à la place de ${mortal.nameVerso || mortal.nameRecto} !`, {
-                style: { background: 'hsl(195 70% 20%)', border: '1px solid hsl(195 70% 40%)', color: 'white', fontSize: '16px' },
-                duration: 4000,
-              });
-            }
-          }
-        }
+        // Cénée (NEP-09) is no longer auto-substituted: the retro is applied to the
+        // actual target. If the Neptune defender has Cénée metamorphosed, a choice
+        // window is offered afterwards (see pendingCeneeChoice).
+        const actualRetroMortalId = mortalId;
+        const actualRetroPlayerId = playerId;
 
         const retroTarget = prev.players.find(p => p.id === actualRetroPlayerId)?.mortals.find(m => m.id === actualRetroMortalId);
         let updatedPlayers = prev.players.map(p => {
@@ -1674,6 +1662,32 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
         }
       }
 
+      // Cénée (NEP-09): no reaction window opened — if the Neptune defender has Cénée
+      // metamorphosed (and the target wasn't Cénée), offer the substitution choice.
+      if (isRetroEnemy) {
+        const latest = gameStateRef.current ?? gameState;
+        const defender = latest?.players.find(p => p.id === playerId);
+        const cenee = defender?.mortals.find(
+          m => m.code === 'NEP-09' && m.isMetamorphosed && m.status !== 'incapacite' && m.status !== 'retired' && m.id !== mortalId
+        );
+        const snapshot = savedMortalSnapshotRef.current;
+        if (defender && cenee && snapshot && snapshot.mortal.id === mortalId) {
+          const attacker = latest?.players[currentEffect.sourcePlayerIndex];
+          savedMortalSnapshotRef.current = null;
+          setGameState(prev => prev ? {
+            ...prev,
+            pendingCeneeChoice: {
+              defenderPlayerId: playerId,
+              originalMortalId: mortalId,
+              originalSnapshot: snapshot.mortal,
+              ceneeId: cenee.id,
+              attackerName: attacker?.name || 'Un adversaire',
+              targetName: snapshot.mortal.nameVerso || snapshot.mortal.nameRecto,
+            },
+          } : prev);
+        }
+      }
+
       // No reaction window opened — trigger VEN-09 (Pins) immediately if removal
       if (isRemove) {
         setGameState(prev => {
@@ -1711,6 +1725,54 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
       }
     }
   }, [pendingEffect, gameState]);
+
+  /**
+   * Cénée (NEP-09): the Neptune defender decides whether to retromorphose Cénée
+   * instead of the originally targeted mortal. The retro has already been applied
+   * to the original target; on YES we restore it and retromorphose Cénée instead.
+   */
+  const resolveCeneeChoice = useCallback((useCenee: boolean) => {
+    setGameState(prev => {
+      if (!prev || !prev.pendingCeneeChoice) return prev;
+      const choice = prev.pendingCeneeChoice;
+      if (!useCenee) {
+        return {
+          ...prev,
+          pendingCeneeChoice: null,
+          log: [{
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: 'Système',
+            action: 'Cénée',
+            detail: `Le joueur a refusé de rétromorphoser Cénée — ${choice.targetName} reste rétromorphosé`,
+          }, ...prev.log],
+        };
+      }
+      const players = prev.players.map(p => {
+        if (p.id !== choice.defenderPlayerId) return p;
+        const mortals = p.mortals.map(m => {
+          if (m.id === choice.originalMortalId) return { ...choice.originalSnapshot };
+          if (m.id === choice.ceneeId) return { ...m, isMetamorphosed: false, status: 'normal' as const };
+          return m;
+        });
+        return { ...p, mortals, metamorphosedCount: mortals.filter(m => m.isMetamorphosed).length };
+      });
+      return {
+        ...prev,
+        players,
+        pendingCeneeChoice: null,
+        log: [{
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          playerName: 'Système',
+          action: 'Cénée',
+          detail: `Cénée a été rétromorphosé à la place de ${choice.targetName}`,
+        }, ...prev.log],
+      };
+    });
+  }, []);
+
+
 
   /** Auto-heal all own incapacitated mortals (for MIN-09 2nd metamorphosis) */
   const healAllOwnMortals = useCallback((playerIdx: number) => {
@@ -2519,6 +2581,36 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
             return prev;
           });
         }
+
+        // Cénée (NEP-09): the retro survived Parade/Compassion — if the Neptune defender
+        // has Cénée metamorphosed, offer the substitution choice instead of finalizing.
+        if (metamorphoseEffectUndo.effectType === 'retro_enemy_mortal') {
+          const latest = gameStateRef.current ?? gameState;
+          const defender = latest?.players.find(p => p.id === metamorphoseEffectUndo.playerId);
+          const cenee = defender?.mortals.find(
+            m => m.code === 'NEP-09' && m.isMetamorphosed && m.status !== 'incapacite' && m.status !== 'retired' && m.id !== metamorphoseEffectUndo.mortalId
+          );
+          if (defender && cenee) {
+            const attacker = latest?.players.find(p => p.id === reactionWindow.trigger.sourcePlayerId);
+            const snap = metamorphoseEffectUndo.mortalSnapshot;
+            setGameState(prev => prev ? {
+              ...prev,
+              reactionWindow: null,
+              pendingCeneeChoice: {
+                defenderPlayerId: metamorphoseEffectUndo.playerId,
+                originalMortalId: metamorphoseEffectUndo.mortalId,
+                originalSnapshot: snap,
+                ceneeId: cenee.id,
+                attackerName: attacker?.name || 'Un adversaire',
+                targetName: snap.nameVerso || snap.nameRecto,
+              },
+            } : prev);
+            setMetamorphoseEffectUndo(null);
+            setStoredMetamorphoseEffect(null);
+            metamorphoseReactionInfoRef.current = null;
+            return;
+          }
+        }
       }
       setMetamorphoseEffectUndo(null);
       setStoredMetamorphoseEffect(null);
@@ -3162,6 +3254,8 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     handleReactionPass,
     handleReactionActivate,
     handleForcedDiscardChoice,
+    pendingCeneeChoice: gameState?.pendingCeneeChoice ?? null,
+    resolveCeneeChoice,
   };
 }
 

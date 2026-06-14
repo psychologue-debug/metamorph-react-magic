@@ -15,6 +15,7 @@ import GodSelectionScreen from '@/components/game/GodSelectionScreen';
 import LobbyScreen from '@/components/game/LobbyScreen';
 import TargetingModal from '@/components/game/TargetingModal';
 import ReactionWindow from '@/components/game/ReactionWindow';
+import CeneeChoiceWindow from '@/components/game/CeneeChoiceWindow';
 import MortalTooltip from '@/components/game/MortalTooltip';
 import OpponentActionNotification from '@/components/game/OpponentActionNotification';
 import { DivinityId, Mortal, Player as PlayerType, GameState as GameStateType, DIVINITIES as DIV } from '@/types/game';
@@ -106,6 +107,8 @@ const Index = () => {
     handleReactionPass,
     handleReactionActivate,
     handleForcedDiscardChoice,
+    pendingCeneeChoice,
+    resolveCeneeChoice,
   } = useGameLogic(multiplayerConfig);
 
   // Multiplayer sync: persist gameState to DB & receive Realtime updates
@@ -733,6 +736,17 @@ const Index = () => {
           localPlayerId={multiplayerConfig?.localPlayerId}
         />
       )}
+
+      {/* Cénée (NEP-09) substitution choice — only shown to the Neptune defender */}
+      {pendingCeneeChoice &&
+        (!multiplayerConfig || multiplayerConfig.localPlayerId === pendingCeneeChoice.defenderPlayerId) && (
+        <CeneeChoiceWindow
+          choice={pendingCeneeChoice}
+          onResolve={resolveCeneeChoice}
+        />
+      )}
+
+
 
       {/* Confirm Quit dialog */}
       <AlertDialog open={confirmQuit} onOpenChange={setConfirmQuit}>
