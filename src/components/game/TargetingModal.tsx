@@ -37,6 +37,19 @@ export interface TargetingResult {
   etherStolen?: { playerId: string; amount: number }[];
 }
 
+/**
+ * Label for the cancel/skip button inside a triggered-effect window.
+ * - When the effect was triggered by a spell (spellRefund present), cancelling
+ *   refunds the spell, so keep "Annuler".
+ * - When triggered by a metamorphosis flip effect, cancelling only renounces the
+ *   effect WITHOUT undoing the metamorphosis — make that explicit.
+ */
+const cancelLabel = (effect: PendingEffect) =>
+  effect.spellRefund
+    ? 'Annuler'
+    : "Renoncer à l'effet (n'annule pas la métamorphose)";
+
+
 const TargetingModal = ({ effect, gameState, onResolve, onCancel, onGodDiscard, onCardDiscard, onPayDrawDiscard, onInitiatePayDraw, onReactionDiscard, onGlane, onSelectGod, onPlaySpellAtDiscount, onPayMultipleEnemyDiscard, onStealCard, onMetamorphoseExtra, onMoveIncapacitations }: TargetingModalProps) => {
   // No interaction needed
   if (effect.type === 'none') {
