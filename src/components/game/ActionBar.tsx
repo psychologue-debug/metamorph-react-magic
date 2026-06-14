@@ -101,8 +101,8 @@ const ActionBar = ({
         onClick={disabled ? undefined : onToggleActivate}
       >
         {isActivateMode ? <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" /> : <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />}
-        <span className="hidden sm:inline">{isActivateMode ? 'Annuler' : 'Activer un Effet'}</span>
-        <span className="sm:hidden">{isActivateMode ? '✕' : 'Effet'}</span>
+        <span className="hidden sm:inline">{isActivateMode ? 'Annuler' : 'Activer un Mortel'}</span>
+        <span className="sm:hidden">{isActivateMode ? '✕' : 'Mortel'}</span>
       </motion.button>
 
       <motion.button
