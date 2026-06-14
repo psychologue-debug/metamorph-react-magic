@@ -17,6 +17,7 @@ import TargetingModal from '@/components/game/TargetingModal';
 import ReactionWindow from '@/components/game/ReactionWindow';
 import CeneeChoiceWindow from '@/components/game/CeneeChoiceWindow';
 import MortalTooltip from '@/components/game/MortalTooltip';
+import PortalTooltip from '@/components/game/PortalTooltip';
 import OpponentActionNotification from '@/components/game/OpponentActionNotification';
 import { DivinityId, Mortal, Player as PlayerType, GameState as GameStateType, DIVINITIES as DIV } from '@/types/game';
 import { motion, AnimatePresence } from 'framer-motion';
