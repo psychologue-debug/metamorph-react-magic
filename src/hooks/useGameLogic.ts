@@ -3310,52 +3310,93 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
       return;
     }
 
-    setGameState(prev => {
-      if (!prev) return prev;
-      const pi = pendingEffect.sourcePlayerIndex;
-      let updatedPlayers = [...prev.players];
-      const newLog = [...prev.log];
+    const prev = gameStateRef.current;
+    if (!prev) {
+      setPendingEffect(null);
+      return;
+    }
 
-      for (const move of moves) {
-        // Heal the source mortal
-        updatedPlayers = updatedPlayers.map(p => {
-          if (p.id !== move.fromPlayerId) return p;
-          return {
-            ...p,
-            mortals: p.mortals.map(m =>
-              m.id === move.fromMortalId ? { ...m, status: 'normal' as const } : m
-            ),
-          };
-        });
-        // Incapacitate the target mortal
-        updatedPlayers = updatedPlayers.map(p => {
-          if (p.id !== move.toPlayerId) return p;
-          return {
-            ...p,
-            mortals: p.mortals.map(m =>
-              m.id === move.toMortalId ? { ...m, status: 'incapacite' as const } : m
-            ),
-          };
-        });
+    const pi = pendingEffect.sourcePlayerIndex;
+    const ownerId = prev.players[pi]?.id;
+    let updatedPlayers = [...prev.players];
+    const newLog = [...prev.log];
 
-        const fromMortal = prev.players.find(p => p.id === move.fromPlayerId)?.mortals.find(m => m.id === move.fromMortalId);
-        const toMortal = prev.players.find(p => p.id === move.toPlayerId)?.mortals.find(m => m.id === move.toMortalId);
-        newLog.unshift({
-          id: crypto.randomUUID(),
-          timestamp: Date.now(),
-          playerName: prev.players[pi].name,
-          action: 'Quatre Colombes',
-          detail: `a déplacé l'incapacité de ${fromMortal?.nameVerso || 'un mortel'} vers ${toMortal?.nameVerso || 'un mortel'}`,
+    // Snapshots of every mortal touched, captured BEFORE applying, so Compassion can revert.
+    const moveSnapshots: {
+      fromPlayerId: string; fromMortalId: string; fromSnapshot: Mortal;
+      toPlayerId: string; toMortalId: string; toSnapshot: Mortal;
+    }[] = [];
+
+    for (const move of moves) {
+      const fromMortal = prev.players.find(p => p.id === move.fromPlayerId)?.mortals.find(m => m.id === move.fromMortalId);
+      const toMortal = prev.players.find(p => p.id === move.toPlayerId)?.mortals.find(m => m.id === move.toMortalId);
+      if (fromMortal && toMortal) {
+        moveSnapshots.push({
+          fromPlayerId: move.fromPlayerId,
+          fromMortalId: move.fromMortalId,
+          fromSnapshot: { ...fromMortal },
+          toPlayerId: move.toPlayerId,
+          toMortalId: move.toMortalId,
+          toSnapshot: { ...toMortal },
         });
       }
 
-      return { ...prev, players: updatedPlayers, log: newLog };
-    });
+      // Heal the source mortal
+      updatedPlayers = updatedPlayers.map(p => {
+        if (p.id !== move.fromPlayerId) return p;
+        return { ...p, mortals: p.mortals.map(m => m.id === move.fromMortalId ? { ...m, status: 'normal' as const } : m) };
+      });
+      // Incapacitate the target mortal
+      updatedPlayers = updatedPlayers.map(p => {
+        if (p.id !== move.toPlayerId) return p;
+        return { ...p, mortals: p.mortals.map(m => m.id === move.toMortalId ? { ...m, status: 'incapacite' as const } : m) };
+      });
+
+      newLog.unshift({
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        playerName: prev.players[pi].name,
+        action: 'Quatre Colombes',
+        detail: `a déplacé l'incapacité de ${fromMortal?.nameVerso || 'un mortel'} vers ${toMortal?.nameVerso || 'un mortel'}`,
+      });
+    }
+
+    const appliedState = { ...prev, players: updatedPlayers, log: newLog };
+    setGameState(appliedState);
     setPendingEffect(null);
     toast.success(`${moves.length} incapacité(s) déplacée(s) !`, {
       style: { background: 'hsl(280 40% 20%)', border: '1px solid hsl(280 50% 40%)', color: 'white', fontSize: '16px' },
     });
+
+    // Moves that incapacitate an ENEMY mortal can be reacted to with Compassion.
+    const enemyMoves = moveSnapshots.filter(m => m.toPlayerId !== ownerId);
+    if (enemyMoves.length === 0) return;
+
+    const targetPlayerIds = Array.from(new Set(enemyMoves.map(m => m.toPlayerId)));
+    const trigger: ReactionTrigger = {
+      type: 'mortal_effect',
+      sourcePlayerId: ownerId,
+      targetPlayerIds,
+      targetMortalId: enemyMoves[0].toMortalId,
+      effectDescription: `${pendingEffect.sourceMortalName || 'Quatre Colombes'} incapacite un de vos mortels (déplacement d'incapacité)`,
+    };
+    const reactors = getEligibleReactors(trigger, appliedState);
+    if (reactors.length === 0) return;
+
+    setPendingMoveUndo(enemyMoves);
+    setGameState(p => p ? {
+      ...p,
+      reactionWindow: {
+        trigger,
+        reactorQueue: reactors,
+        currentReactorIndex: 0,
+        phase: 'waiting_ready' as const,
+        responses: [],
+        timerStartedAt: Date.now(),
+      },
+    } : p);
   }, [pendingEffect]);
+
 
   return {
     gameState,
