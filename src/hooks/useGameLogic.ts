@@ -2680,6 +2680,47 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
       r => !r.passed && r.cardName === 'Parade'
     );
 
+    // === BAC-04 (Quatre Colombes): per-defender Compassion reverts the moved incapacitation ===
+    if (pendingMoveUndo) {
+      const compassionResponders = new Set(
+        reactionWindow.responses.filter(r => !r.passed && r.cardName === 'Compassion').map(r => r.playerId)
+      );
+      const undo = pendingMoveUndo;
+      setPendingMoveUndo(null);
+      if (compassionResponders.size > 0) {
+        const cancelled = undo.filter(m => compassionResponders.has(m.toPlayerId));
+        if (cancelled.length > 0) {
+          setGameState(prev => {
+            if (!prev) return prev;
+            const restoreMap = new Map<string, Map<string, Mortal>>();
+            for (const mv of cancelled) {
+              if (!restoreMap.has(mv.toPlayerId)) restoreMap.set(mv.toPlayerId, new Map());
+              restoreMap.get(mv.toPlayerId)!.set(mv.toMortalId, mv.toSnapshot);
+              if (!restoreMap.has(mv.fromPlayerId)) restoreMap.set(mv.fromPlayerId, new Map());
+              restoreMap.get(mv.fromPlayerId)!.set(mv.fromMortalId, mv.fromSnapshot);
+            }
+            return {
+              ...prev,
+              players: prev.players.map(p => {
+                const m = restoreMap.get(p.id);
+                if (!m) return p;
+                return { ...p, mortals: p.mortals.map(mo => m.get(mo.id) ?? mo) };
+              }),
+              log: [{
+                id: crypto.randomUUID(),
+                timestamp: Date.now(),
+                playerName: 'Système',
+                action: 'Compassion',
+                detail: `Le déplacement d'incapacité a été annulé par Compassion`,
+              }, ...prev.log],
+            };
+          });
+        }
+      }
+      setGameState(prev => prev ? { ...prev, reactionWindow: null } : prev);
+      return;
+    }
+
     // === Phase 2: After targeting (metamorphoseEffectUndo is set) ===
     if (metamorphoseEffectUndo) {
       const hasCompassion = reactionWindow.responses.some(
