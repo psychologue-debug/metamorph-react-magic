@@ -99,10 +99,11 @@ const OwnPlayerBoard = ({
         </div>
       )}
 
-      {/* Mortals grid + fixed tooltip zone */}
+      {/* Mortals grid + tooltip zone */}
       <div
         className="flex-1 relative overflow-hidden"
         onMouseEnter={() => setHoveredSpell(null)}
+        onMouseMove={(e) => setMousePos({ x: e.clientX, y: e.clientY })}
       >
         <div
           className="absolute inset-0"
