@@ -1342,7 +1342,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
   }, []);
 
   /** Handle mortal targeting clicks from the board (bubble mode) */
-  const handleTargetMortalClick = useCallback((playerId: string, mortalId: string) => {
+  const handleTargetMortalClick = useCallback((playerId: string, mortalId: string, skipSelfConfirm = false) => {
     // Use ref to always read the LATEST pendingEffect (avoids stale closure)
     const currentEffect = pendingEffectRef.current;
     if (!currentEffect) return;
