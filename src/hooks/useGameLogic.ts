@@ -61,6 +61,18 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
   const skipMetamorphoseConfirmRef = useRef(false);
   const [pendingSelfTargetConfirm, setPendingSelfTargetConfirm] = useState<{ mortalId: string; mortalName: string; actionLabel: string } | null>(null);
   const selfTargetResolveRef = useRef<((confirmed: boolean) => void) | null>(null);
+  // BAC-04 (Quatre Colombes): per-move snapshots so a defender's Compassion can revert
+  // the incapacitation moved onto one of their mortals (incapacitation stays on source).
+  const [pendingMoveUndo, setPendingMoveUndo] = useState<{
+    fromPlayerId: string;
+    fromMortalId: string;
+    fromSnapshot: Mortal;
+    toPlayerId: string;
+    toMortalId: string;
+    toSnapshot: Mortal;
+  }[] | null>(null);
+
+
 
   const startGame = useCallback((playerCount: number, selectedGods?: DivinityId[], playerNames?: string[], playerIds?: string[]) => {
     const state = createMockGameState(playerCount, selectedGods, playerIds);
