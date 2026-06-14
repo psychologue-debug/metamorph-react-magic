@@ -150,6 +150,18 @@ export interface GameState {
   pendingMetamorphoseEffect?: any; // Stored effect to apply after reaction resolution
   gameOver?: boolean; // Set when victory condition is met at end of cycle
   forcedDiscardQueue?: ForcedDiscardQueueState | null;
+  // Cénée (NEP-09): choice window offered to the Neptune defender to retromorphose
+  // Cénée instead of the originally targeted mortal.
+  pendingCeneeChoice?: CeneeChoiceState | null;
+}
+
+export interface CeneeChoiceState {
+  defenderPlayerId: string;
+  originalMortalId: string;
+  originalSnapshot: Mortal; // pre-retro snapshot of the targeted mortal
+  ceneeId: string;
+  attackerName: string;
+  targetName: string;
 }
 
 export interface GameLogEntry {
