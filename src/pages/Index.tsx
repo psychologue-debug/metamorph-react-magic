@@ -802,6 +802,18 @@ const Index = () => {
         />
       )}
 
+      {/* Perdrie (MIN-03) steal-target choice — shown only to the owner */}
+      {pendingPerdrixChoices && pendingPerdrixChoices.length > 0 &&
+        (!multiplayerConfig || multiplayerConfig.localPlayerId === pendingPerdrixChoices[0].ownerPlayerId) && (
+        <PerdrixChoiceWindow
+          choice={pendingPerdrixChoices[0]}
+          gameState={gameState}
+          onResolve={resolvePerdrixChoice}
+        />
+      )}
+
+
+
 
 
 
