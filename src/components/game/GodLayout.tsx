@@ -35,7 +35,7 @@ interface GodLayoutInternalProps extends GodLayoutProps {
 const GodLayout = ({
   mortals, owner, gameState, selectable, onMortalClick, onMortalHover,
   positions, connections,
-  tokenRatio = 0.186, minTokenSize = 37, maxTokenSize = 186,
+  tokenRatio = 0.205, minTokenSize = 41, maxTokenSize = 205,
 }: GodLayoutInternalProps) => {
   const { showLinks } = useDisplayPreferences();
   const containerRef = useRef<HTMLDivElement>(null);
