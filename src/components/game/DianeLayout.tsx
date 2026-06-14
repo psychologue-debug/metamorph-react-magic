@@ -13,15 +13,13 @@ const POSITIONS: Record<string, { x: number; y: number }> = {
   'DIA-06': { x: 82, y: 82 },
 };
 
+const BLUE = 'hsl(210 70% 50%)';
+
 const CONNECTIONS: ConnectionDef[] = [
-  // Yellow hub: DIA-05
-  { from: 'DIA-05', to: 'DIA-03', color: 'hsl(50 95% 55%)' },
-  { from: 'DIA-05', to: 'DIA-08', color: 'hsl(50 95% 55%)' },
-  { from: 'DIA-05', to: 'DIA-09', color: 'hsl(50 95% 55%)' },
-  // Blue: DIA-02 → DIA-05, DIA-05 → DIA-09
-  { from: 'DIA-02', to: 'DIA-05', color: 'hsl(210 70% 50%)' },
-  // Purple bundle: DIA-01 → DIA-04
-  { from: 'DIA-01', to: 'DIA-04', color: 'hsl(270 70% 50%)' },
+  { from: 'DIA-05', to: 'DIA-03', color: BLUE },
+  { from: 'DIA-05', to: 'DIA-08', color: BLUE },
+  { from: 'DIA-05', to: 'DIA-09', color: BLUE },
+  { from: 'DIA-02', to: 'DIA-05', color: BLUE },
 ];
 
 const DianeLayout = (props: GodLayoutProps) => (
