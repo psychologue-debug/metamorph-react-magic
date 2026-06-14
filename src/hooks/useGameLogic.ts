@@ -92,6 +92,10 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     setMetamorphoseEffectUndo(null);
     metamorphoseReactionInfoRef.current = null;
     savedMortalSnapshotRef.current = null;
+    setPendingMetamorphoseConfirm(null);
+    skipMetamorphoseConfirmRef.current = false;
+    setPendingSelfTargetConfirm(null);
+    selfTargetResolveRef.current = null;
     toast.dismiss();
   }, []);
 
