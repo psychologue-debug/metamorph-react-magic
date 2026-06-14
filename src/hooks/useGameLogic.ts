@@ -3401,6 +3401,8 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     cancelMetamorphose,
     pendingSelfTargetConfirm,
     resolveSelfTargetConfirm,
+    pendingPerdrixChoices: gameState?.pendingPerdrixChoices ?? null,
+    resolvePerdrixChoice,
   };
 }
 
