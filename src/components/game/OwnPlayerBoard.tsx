@@ -3,6 +3,7 @@ import { InteractionMode, canPlayCard } from '@/hooks/useGameLogic';
 import { getEffectiveCardCost } from '@/engine/costModifiers';
 import EtherCounter from './EtherCounter';
 import MortalTooltip from './MortalTooltip';
+import PortalTooltip from './PortalTooltip';
 import CeresLayout from './CeresLayout';
 import VenusLayout from './VenusLayout';
 import ApollonLayout from './ApollonLayout';
