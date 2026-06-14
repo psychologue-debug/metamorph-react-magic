@@ -621,6 +621,17 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     setPendingMetamorphoseConfirm(null);
   }, []);
 
+  const resolveSelfTargetConfirm = useCallback((confirmed: boolean) => {
+    const resolver = selfTargetResolveRef.current;
+    if (resolver) {
+      resolver(confirmed);
+    } else {
+      setPendingSelfTargetConfirm(null);
+    }
+  }, []);
+
+
+
 
 
   const handleCardClick = useCallback((cardId: string) => {
