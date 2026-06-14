@@ -605,6 +605,20 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     }
   }, [interactionMode, gameState]);
 
+  const confirmMetamorphose = useCallback((dontAskAgain: boolean) => {
+    if (dontAskAgain) skipMetamorphoseConfirmRef.current = true;
+    const id = pendingMetamorphoseConfirm?.mortalId;
+    setPendingMetamorphoseConfirm(null);
+    if (id) handleMortalClick(id, true);
+  }, [pendingMetamorphoseConfirm, handleMortalClick]);
+
+  const cancelMetamorphose = useCallback(() => {
+    // Cancelling triggers no effect whatsoever; just close the dialog.
+    setPendingMetamorphoseConfirm(null);
+  }, []);
+
+
+
   const handleCardClick = useCallback((cardId: string) => {
     if (interactionMode !== 'playing_spell' && interactionMode !== 'placing_reaction') return;
     let spellGeneratedEtherForPlayer = -1;
