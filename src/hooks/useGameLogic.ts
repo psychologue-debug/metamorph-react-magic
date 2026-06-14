@@ -138,6 +138,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
 
     let newDeck = [...state.deck];
     let newDiscardPile = [...state.discardPile];
+    let pendingPerdrixChoices: PerdrixChoiceState[] | null = null;
     const newLog = [
       {
         id: crypto.randomUUID(),
