@@ -286,6 +286,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     setPendingReactionCard(null);
     setStoredMetamorphoseEffect(null);
     setMetamorphoseEffectUndo(null);
+    setPendingMoveUndo(null);
     clearTransientActionRefs();
     setInteractionMode('idle');
     toast.dismiss();
