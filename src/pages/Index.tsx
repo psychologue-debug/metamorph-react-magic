@@ -455,30 +455,57 @@ const Index = () => {
             Cycle {gameState.turnCount} — {gameState.players.length} dieux
           </span>
 
-          {/* Display aids toggles */}
-          {([
-            { key: 'showPriorities' as const, Icon: ListOrdered, label: 'Priorités', color: 'hsl(45 95% 55%)' },
-            { key: 'showLinks' as const, Icon: GitBranch, label: 'Liens', color: 'hsl(210 70% 55%)' },
-            { key: 'showHalos' as const, Icon: Sparkles, label: 'Halos', color: 'hsl(270 70% 60%)' },
-          ]).map(({ key, Icon, label, color }) => {
-            const active = displayPrefs[key];
+          {/* Display aids — grouped frame with a master ON/OFF toggle */}
+          {(() => {
+            const aids = [
+              { key: 'showPriorities' as const, Icon: ListOrdered, label: 'Priorités', color: 'hsl(45 95% 55%)' },
+              { key: 'showLinks' as const, Icon: GitBranch, label: 'Liens', color: 'hsl(210 70% 55%)' },
+              { key: 'showHalos' as const, Icon: Sparkles, label: 'Halos', color: 'hsl(270 70% 60%)' },
+            ];
+            const allOn = aids.every(({ key }) => displayPrefs[key]);
+            const setAll = (val: boolean) =>
+              aids.forEach(({ key }) => { if (displayPrefs[key] !== val) displayPrefs.toggle(key); });
             return (
-              <button
-                key={key}
-                onClick={() => displayPrefs.toggle(key)}
-                title={`${active ? 'Masquer' : 'Afficher'} : ${label}`}
-                className="flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-lg text-xs sm:text-sm font-display font-semibold transition-colors border"
-                style={{
-                  borderColor: active ? color : 'hsl(var(--border) / 0.3)',
-                  color: active ? color : 'hsl(var(--muted-foreground))',
-                  background: active ? `${color.replace(')', ' / 0.12)')}` : 'transparent',
-                }}
-              >
-                <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span className="hidden md:inline">{label}</span>
-              </button>
+              <div className="flex items-center gap-1 sm:gap-1.5 px-1 sm:px-1.5 py-1 rounded-xl border border-border/40 bg-card/40">
+                {/* Master toggle */}
+                <button
+                  onClick={() => setAll(!allOn)}
+                  title={allOn ? 'Masquer toutes les aides' : 'Afficher toutes les aides'}
+                  className="flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-lg text-xs sm:text-sm font-display font-bold transition-colors border"
+                  style={{
+                    borderColor: allOn ? 'hsl(var(--ether))' : 'hsl(var(--border) / 0.4)',
+                    color: allOn ? 'hsl(var(--ether))' : 'hsl(var(--muted-foreground))',
+                    background: allOn ? 'hsl(var(--ether) / 0.12)' : 'transparent',
+                  }}
+                >
+                  {allOn ? <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <EyeOff className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+                  <span className="hidden lg:inline">Aides</span>
+                </button>
+
+                <div className="w-px self-stretch bg-border/40 mx-0.5" />
+
+                {aids.map(({ key, Icon, label, color }) => {
+                  const active = displayPrefs[key];
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => displayPrefs.toggle(key)}
+                      title={`${active ? 'Masquer' : 'Afficher'} : ${label}`}
+                      className="flex items-center gap-1 px-1.5 sm:px-2 py-1 rounded-lg text-xs sm:text-sm font-display font-semibold transition-colors border"
+                      style={{
+                        borderColor: active ? color : 'hsl(var(--border) / 0.3)',
+                        color: active ? color : 'hsl(var(--muted-foreground))',
+                        background: active ? `${color.replace(')', ' / 0.12)')}` : 'transparent',
+                      }}
+                    >
+                      <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <span className="hidden md:inline">{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             );
-          })}
+          })()}
 
           <button
             className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1 sm:py-1.5 rounded-lg text-sm sm:text-lg font-display font-bold tracking-wider transition-colors ${logOpen ? 'bg-ether/20 text-ether' : 'text-foreground hover:text-ether'}`}
