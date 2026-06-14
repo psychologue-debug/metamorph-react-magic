@@ -633,18 +633,16 @@ const Index = () => {
             );
           })()}
 
-          {/* Fixed enemy tooltip zone */}
-          <AnimatePresence>
-            {hoveredEnemyMortal && (
-              <div className="absolute bottom-28 right-2 z-[99999] pointer-events-none">
-                <MortalTooltip
-                  mortal={hoveredEnemyMortal.mortal}
-                  owner={hoveredEnemyMortal.owner}
-                  gameState={gameState}
-                />
-              </div>
-            )}
-          </AnimatePresence>
+          {/* Enemy tooltip rendered in a portal so it's never clipped and always on top */}
+          {hoveredEnemyMortal && (
+            <PortalTooltip x={enemyMousePos.x} y={enemyMousePos.y}>
+              <MortalTooltip
+                mortal={hoveredEnemyMortal.mortal}
+                owner={hoveredEnemyMortal.owner}
+                gameState={gameState}
+              />
+            </PortalTooltip>
+          )}
         </div>
       </div>
 
