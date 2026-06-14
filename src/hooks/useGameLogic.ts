@@ -1372,19 +1372,16 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     }
 
     // Self-target safety confirmation: if the player targets one of THEIR OWN mortals
-    // with a harmful effect (incapacitate / remove from game / retromorphose), ask first.
-    if (!skipSelfConfirm && (isIncapacitate || isRemove || isRetroEnemy)) {
+    // with a harmful effect (incapacitate / remove from game), ask first.
+    // (retro_enemy can't target own; retro_own is intentional, so neither prompts.)
+    if (!skipSelfConfirm && (isIncapacitate || isRemove)) {
       const latest = gameStateRef.current ?? gameState;
       const sourceId = latest?.players[currentEffect.sourcePlayerIndex]?.id;
       if (sourceId && playerId === sourceId) {
         const ownPlayer = latest?.players.find((p) => p.id === playerId);
         const ownMortal = ownPlayer?.mortals.find((m) => m.id === mortalId);
         if (ownMortal) {
-          const actionLabel = isRemove
-            ? 'retirer du jeu'
-            : isRetroEnemy
-            ? 'rétromorphoser'
-            : 'incapaciter';
+          const actionLabel = isRemove ? 'retirer du jeu' : 'incapaciter';
           selfTargetResolveRef.current = (confirmed: boolean) => {
             setPendingSelfTargetConfirm(null);
             selfTargetResolveRef.current = null;
@@ -1399,6 +1396,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
         }
       }
     }
+
 
 
 
