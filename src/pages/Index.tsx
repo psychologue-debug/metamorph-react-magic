@@ -609,6 +609,7 @@ const Index = () => {
             return (
               <div
                 className="flex-1 grid gap-1 sm:gap-2 p-1 sm:p-2 min-h-0 overflow-hidden"
+                onMouseMove={(e) => setEnemyMousePos({ x: e.clientX, y: e.clientY })}
                 style={{
                   gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
                   gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
