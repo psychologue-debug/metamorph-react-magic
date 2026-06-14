@@ -444,6 +444,24 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
 
     if (interactionMode !== 'metamorphosing') return;
 
+    // Confirmation step before metamorphosing (unless disabled for the game).
+    // Clicking "non" must NOT trigger any effect linked to the metamorphose.
+    if (!skipConfirm && !skipMetamorphoseConfirmRef.current && gameState) {
+      const confirmPlayer = gameState.players[gameState.activePlayerIndex];
+      const confirmMortal = confirmPlayer?.mortals.find((m) => m.id === mortalId);
+      if (
+        confirmMortal &&
+        !confirmMortal.isMetamorphosed &&
+        confirmMortal.status !== 'incapacite' &&
+        confirmMortal.status !== 'retired'
+      ) {
+        setPendingMetamorphoseConfirm({ mortalId, mortalName: confirmMortal.nameRecto });
+        return;
+      }
+    }
+
+
+
     // We need to track if an effect should fire, outside setGameState
     let effectToTrigger: PendingEffect | null = null;
     let metamorphoseCostPaid = 0;
