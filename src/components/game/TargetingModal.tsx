@@ -37,6 +37,19 @@ export interface TargetingResult {
   etherStolen?: { playerId: string; amount: number }[];
 }
 
+/**
+ * Label for the cancel/skip button inside a triggered-effect window.
+ * - When the effect was triggered by a spell (spellRefund present), cancelling
+ *   refunds the spell, so keep "Annuler".
+ * - When triggered by a metamorphosis flip effect, cancelling only renounces the
+ *   effect WITHOUT undoing the metamorphosis — make that explicit.
+ */
+const cancelLabel = (effect: PendingEffect) =>
+  effect.spellRefund
+    ? 'Annuler'
+    : "Renoncer à l'effet (n'annule pas la métamorphose)";
+
+
 const TargetingModal = ({ effect, gameState, onResolve, onCancel, onGodDiscard, onCardDiscard, onPayDrawDiscard, onInitiatePayDraw, onReactionDiscard, onGlane, onSelectGod, onPlaySpellAtDiscount, onPayMultipleEnemyDiscard, onStealCard, onMetamorphoseExtra, onMoveIncapacitations }: TargetingModalProps) => {
   // No interaction needed
   if (effect.type === 'none') {
@@ -498,7 +511,7 @@ function EtherDestroyContent({
               style={{ background: 'hsl(var(--muted))' }}
               onClick={onCancel}
             >
-              Annuler
+              {cancelLabel(effect)}
             </button>
           )}
           <motion.button
@@ -622,7 +635,7 @@ function EtherStealContent({
                 style={{ background: 'hsl(var(--muted))' }}
                 onClick={onCancel}
               >
-                Annuler
+                {cancelLabel(effect)}
               </button>
             )}
             <motion.button
@@ -717,7 +730,7 @@ function GodSelectContent({
               style={{ background: 'hsl(var(--muted))' }}
               onClick={onCancel}
             >
-              Annuler
+              {cancelLabel(effect)}
             </button>
           </div>
         )}
@@ -805,7 +818,7 @@ function CardDiscardContent({
               style={{ background: 'hsl(var(--muted))' }}
               onClick={onCancel}
             >
-              Annuler
+              {cancelLabel(effect)}
             </button>
           )}
           <motion.button
@@ -869,7 +882,7 @@ function PayDrawDiscardContent({
                 style={{ background: 'hsl(var(--muted))' }}
                 onClick={onCancel}
               >
-                Annuler
+                {cancelLabel(effect)}
               </button>
             )}
             <motion.button
@@ -1039,7 +1052,7 @@ function ReactionDiscardContent({
               style={{ background: 'hsl(var(--muted))' }}
               onClick={onCancel}
             >
-              Annuler
+              {cancelLabel(effect)}
             </button>
           )}
           <motion.button
@@ -1127,7 +1140,7 @@ function SelectFromDiscardContent({
               style={{ background: 'hsl(var(--muted))' }}
               onClick={onCancel}
             >
-              Annuler
+              {cancelLabel(effect)}
             </button>
           )}
           <motion.button
@@ -1406,7 +1419,7 @@ function StealEtherTotalContent({
                 style={{ background: 'hsl(var(--muted))' }}
                 onClick={onCancel}
               >
-                Annuler
+                {cancelLabel(effect)}
               </button>
             )}
             <motion.button
@@ -1518,7 +1531,7 @@ function StealCardFromGodContent({
               style={{ background: 'hsl(var(--muted))' }}
               onClick={onCancel}
             >
-              Annuler
+              {cancelLabel(effect)}
             </button>
           </div>
         )}
@@ -1594,7 +1607,7 @@ function MetamorphoseExtraContent({
               style={{ background: 'hsl(var(--muted))' }}
               onClick={onCancel}
             >
-              Annuler
+              {cancelLabel(effect)}
             </button>
           </div>
         )}
@@ -1775,7 +1788,7 @@ function MoveIncapacitationsContent({
             className="px-4 py-2 rounded-lg font-display text-sm border border-border/50 text-muted-foreground hover:bg-muted"
             onClick={() => onConfirm([])}
           >
-            Annuler
+            {cancelLabel(effect)}
           </button>
           {phase === 'select_target' && (
             <button
