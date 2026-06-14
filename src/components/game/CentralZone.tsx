@@ -10,6 +10,7 @@ interface CentralZoneProps {
 const CentralZone = ({ gameState }: CentralZoneProps) => {
   const activePlayer = gameState.players[gameState.activePlayerIndex];
   const [showDiscard, setShowDiscard] = useState(false);
+  const [showDeckTip, setShowDeckTip] = useState(false);
 
   return (
     <div className="relative flex items-center gap-1.5 sm:gap-3 flex-wrap">
@@ -34,9 +35,26 @@ const CentralZone = ({ gameState }: CentralZoneProps) => {
       <div className="h-3 sm:h-4 w-px bg-border/40" />
 
       <div className="flex items-center gap-1 sm:gap-2">
-        <div className="flex items-center gap-0.5 sm:gap-1 bg-secondary/60 rounded-lg px-1.5 sm:px-2 py-0.5">
+        <div
+          className="relative flex items-center gap-0.5 sm:gap-1 bg-secondary/60 rounded-lg px-1.5 sm:px-2 py-0.5"
+          onMouseEnter={() => setShowDeckTip(true)}
+          onMouseLeave={() => setShowDeckTip(false)}
+        >
           <Layers className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-ether" />
           <span className="text-[10px] sm:text-xs font-display font-bold text-foreground">{gameState.deck.length}</span>
+          <AnimatePresence>
+            {showDeckTip && (
+              <motion.div
+                className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-40 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-display font-semibold text-foreground shadow-xl pointer-events-none"
+                style={{ background: 'hsl(var(--card) / 0.98)', border: '1px solid hsl(var(--border) / 0.5)', backdropFilter: 'blur(8px)' }}
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+              >
+                {gameState.deck.length} cartes restantes dans la pioche
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
         <button
           className="flex items-center gap-0.5 sm:gap-1 bg-secondary/60 rounded-lg px-1.5 sm:px-2 py-0.5 hover:bg-ether/20 transition-colors cursor-pointer"

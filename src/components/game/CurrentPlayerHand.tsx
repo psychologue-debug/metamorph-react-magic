@@ -178,6 +178,7 @@ const CurrentPlayerHand = ({ player, gameState, interactionMode, onMortalClick, 
                 exit={{ opacity: 0, y: 10 }}
               >
                 <div className="font-display text-base font-bold text-foreground mb-1">{reactionToManage.name}</div>
+                <div className="text-sm font-display font-bold text-ether mb-1">Coût : {reactionToManage.cost} ⚡</div>
                 <div className="text-sm text-muted-foreground mb-3">{reactionToManage.description}</div>
                 <div className="flex gap-2">
                   <button

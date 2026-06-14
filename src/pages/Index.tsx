@@ -16,6 +16,9 @@ import LobbyScreen from '@/components/game/LobbyScreen';
 import TargetingModal from '@/components/game/TargetingModal';
 import ReactionWindow from '@/components/game/ReactionWindow';
 import CeneeChoiceWindow from '@/components/game/CeneeChoiceWindow';
+import MetamorphoseConfirmWindow from '@/components/game/MetamorphoseConfirmWindow';
+import SelfTargetConfirmWindow from '@/components/game/SelfTargetConfirmWindow';
+import PerdrixChoiceWindow from '@/components/game/PerdrixChoiceWindow';
 import MortalTooltip from '@/components/game/MortalTooltip';
 import PortalTooltip from '@/components/game/PortalTooltip';
 import OpponentActionNotification from '@/components/game/OpponentActionNotification';
@@ -111,6 +114,13 @@ const Index = () => {
     handleForcedDiscardChoice,
     pendingCeneeChoice,
     resolveCeneeChoice,
+    pendingMetamorphoseConfirm,
+    confirmMetamorphose,
+    cancelMetamorphose,
+    pendingSelfTargetConfirm,
+    resolveSelfTargetConfirm,
+    pendingPerdrixChoices,
+    resolvePerdrixChoice,
   } = useGameLogic(multiplayerConfig);
 
   // Multiplayer sync: persist gameState to DB & receive Realtime updates
@@ -773,6 +783,38 @@ const Index = () => {
           onResolve={resolveCeneeChoice}
         />
       )}
+
+      {/* Metamorphose confirmation (local, active player only) */}
+      {pendingMetamorphoseConfirm && (
+        <MetamorphoseConfirmWindow
+          mortalName={pendingMetamorphoseConfirm.mortalName}
+          onConfirm={confirmMetamorphose}
+          onCancel={cancelMetamorphose}
+        />
+      )}
+
+      {/* Self-target safety confirmation (local) */}
+      {pendingSelfTargetConfirm && (
+        <SelfTargetConfirmWindow
+          mortalName={pendingSelfTargetConfirm.mortalName}
+          actionLabel={pendingSelfTargetConfirm.actionLabel}
+          onResolve={resolveSelfTargetConfirm}
+        />
+      )}
+
+      {/* Perdrie (MIN-03) steal-target choice — shown only to the owner */}
+      {pendingPerdrixChoices && pendingPerdrixChoices.length > 0 &&
+        (!multiplayerConfig || multiplayerConfig.localPlayerId === pendingPerdrixChoices[0].ownerPlayerId) && (
+        <PerdrixChoiceWindow
+          choice={pendingPerdrixChoices[0]}
+          gameState={gameState}
+          onResolve={resolvePerdrixChoice}
+        />
+      )}
+
+
+
+
 
 
 

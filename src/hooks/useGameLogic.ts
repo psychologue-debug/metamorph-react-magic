@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { generateUUID } from '@/lib/uuid';
-import { GameState, Player, SpellCard, TurnPhase, DivinityId, Mortal, ReactionTrigger, ReactionWindowState, GameLogEntry } from '@/types/game';
+import { GameState, Player, SpellCard, TurnPhase, DivinityId, Mortal, ReactionTrigger, ReactionWindowState, GameLogEntry, PerdrixChoiceState } from '@/types/game';
 import { createMockGameState } from '@/data/mockGame';
 import { toast } from 'sonner';
 import { getEffectiveMetamorphosisCost, getEffectiveCardCost } from '@/engine/costModifiers';
@@ -57,6 +57,10 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     mortalSnapshot: Mortal;
     effectType?: string; // e.g. 'enemy_mortal_remove' to trigger VEN-09 after reaction
   } | null>(null);
+  const [pendingMetamorphoseConfirm, setPendingMetamorphoseConfirm] = useState<{ mortalId: string; mortalName: string } | null>(null);
+  const skipMetamorphoseConfirmRef = useRef(false);
+  const [pendingSelfTargetConfirm, setPendingSelfTargetConfirm] = useState<{ mortalId: string; mortalName: string; actionLabel: string } | null>(null);
+  const selfTargetResolveRef = useRef<((confirmed: boolean) => void) | null>(null);
 
   const startGame = useCallback((playerCount: number, selectedGods?: DivinityId[], playerNames?: string[], playerIds?: string[]) => {
     const state = createMockGameState(playerCount, selectedGods, playerIds);
@@ -88,6 +92,10 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     setMetamorphoseEffectUndo(null);
     metamorphoseReactionInfoRef.current = null;
     savedMortalSnapshotRef.current = null;
+    setPendingMetamorphoseConfirm(null);
+    skipMetamorphoseConfirmRef.current = false;
+    setPendingSelfTargetConfirm(null);
+    selfTargetResolveRef.current = null;
     toast.dismiss();
   }, []);
 
@@ -130,6 +138,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
 
     let newDeck = [...state.deck];
     let newDiscardPile = [...state.discardPile];
+    let pendingPerdrixChoices: PerdrixChoiceState[] | null = null;
     const newLog = [
       {
         id: crypto.randomUUID(),
@@ -185,6 +194,16 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
       });
       updatedPlayers = genResult.updatedPlayers;
       newLog.unshift(...genResult.logs);
+      if (genResult.perdrixSteals.length > 0) {
+        pendingPerdrixChoices = genResult.perdrixSteals
+          .filter(s => s.amount > 0)
+          .map(s => ({
+            ownerPlayerId: updatedPlayers[s.ownerIndex].id,
+            amount: s.amount,
+            mortalName: s.mortalName,
+          }));
+        if (pendingPerdrixChoices.length === 0) pendingPerdrixChoices = null;
+      }
       newLog.unshift({
         id: crypto.randomUUID(),
         timestamp: Date.now(),
@@ -244,6 +263,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
         log: newLog,
         reactionWindow: null,
         forcedDiscardQueue: null,
+        pendingPerdrixChoices,
       },
     };
   }, []);
@@ -346,7 +366,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     return () => clearTimeout(timer);
   }, [gameState?.activePlayerIndex, gameState?.players[gameState?.activePlayerIndex ?? 0]?.skipNextTurn, handleEndTurn, requestEndTurnDiscard]);
 
-  const handleMortalClick = useCallback((mortalId: string) => {
+  const handleMortalClick = useCallback((mortalId: string, skipConfirm = false) => {
     if (interactionMode === 'activating_effect') {
       // Activation mode: trigger mortal's activated ability
       if (!gameState) return;
@@ -439,6 +459,24 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     }
 
     if (interactionMode !== 'metamorphosing') return;
+
+    // Confirmation step before metamorphosing (unless disabled for the game).
+    // Clicking "non" must NOT trigger any effect linked to the metamorphose.
+    if (!skipConfirm && !skipMetamorphoseConfirmRef.current && gameState) {
+      const confirmPlayer = gameState.players[gameState.activePlayerIndex];
+      const confirmMortal = confirmPlayer?.mortals.find((m) => m.id === mortalId);
+      if (
+        confirmMortal &&
+        !confirmMortal.isMetamorphosed &&
+        confirmMortal.status !== 'incapacite' &&
+        confirmMortal.status !== 'retired'
+      ) {
+        setPendingMetamorphoseConfirm({ mortalId, mortalName: confirmMortal.nameRecto });
+        return;
+      }
+    }
+
+
 
     // We need to track if an effect should fire, outside setGameState
     let effectToTrigger: PendingEffect | null = null;
@@ -582,6 +620,31 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
       }
     }
   }, [interactionMode, gameState]);
+
+  const confirmMetamorphose = useCallback((dontAskAgain: boolean) => {
+    if (dontAskAgain) skipMetamorphoseConfirmRef.current = true;
+    const id = pendingMetamorphoseConfirm?.mortalId;
+    setPendingMetamorphoseConfirm(null);
+    if (id) handleMortalClick(id, true);
+  }, [pendingMetamorphoseConfirm, handleMortalClick]);
+
+  const cancelMetamorphose = useCallback(() => {
+    // Cancelling triggers no effect whatsoever; just close the dialog.
+    setPendingMetamorphoseConfirm(null);
+  }, []);
+
+  const resolveSelfTargetConfirm = useCallback((confirmed: boolean) => {
+    const resolver = selfTargetResolveRef.current;
+    if (resolver) {
+      resolver(confirmed);
+    } else {
+      setPendingSelfTargetConfirm(null);
+    }
+  }, []);
+
+
+
+
 
   const handleCardClick = useCallback((cardId: string) => {
     if (interactionMode !== 'playing_spell' && interactionMode !== 'placing_reaction') return;
@@ -1302,7 +1365,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
   }, []);
 
   /** Handle mortal targeting clicks from the board (bubble mode) */
-  const handleTargetMortalClick = useCallback((playerId: string, mortalId: string) => {
+  const handleTargetMortalClick = useCallback((playerId: string, mortalId: string, skipSelfConfirm = false) => {
     // Use ref to always read the LATEST pendingEffect (avoids stale closure)
     const currentEffect = pendingEffectRef.current;
     if (!currentEffect) return;
@@ -1330,6 +1393,35 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
       resolveMetamorphoseExtraRef.current?.(mortalId);
       return;
     }
+
+    // Self-target safety confirmation: if the player targets one of THEIR OWN mortals
+    // with a harmful effect (incapacitate / remove from game), ask first.
+    // (retro_enemy can't target own; retro_own is intentional, so neither prompts.)
+    if (!skipSelfConfirm && (isIncapacitate || isRemove)) {
+      const latest = gameStateRef.current ?? gameState;
+      const sourceId = latest?.players[currentEffect.sourcePlayerIndex]?.id;
+      if (sourceId && playerId === sourceId) {
+        const ownPlayer = latest?.players.find((p) => p.id === playerId);
+        const ownMortal = ownPlayer?.mortals.find((m) => m.id === mortalId);
+        if (ownMortal) {
+          const actionLabel = isRemove ? 'retirer du jeu' : 'incapaciter';
+          selfTargetResolveRef.current = (confirmed: boolean) => {
+            setPendingSelfTargetConfirm(null);
+            selfTargetResolveRef.current = null;
+            if (confirmed) handleTargetMortalClick(playerId, mortalId, true);
+          };
+          setPendingSelfTargetConfirm({
+            mortalId,
+            mortalName: ownMortal.nameVerso || ownMortal.nameRecto,
+            actionLabel,
+          });
+          return;
+        }
+      }
+    }
+
+
+
 
     // Track whether the click was valid so we only clear pendingEffect on success
     let targetValid = false;
@@ -1771,6 +1863,54 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
       };
     });
   }, []);
+
+  /**
+   * Perdrie (MIN-03): the owner picks which god (player) to steal Ether from at cycle
+   * start. Resolves the FIRST pending steal in the queue against the chosen target.
+   */
+  const resolvePerdrixChoice = useCallback((targetPlayerId: string) => {
+    setGameState(prev => {
+      if (!prev || !prev.pendingPerdrixChoices || prev.pendingPerdrixChoices.length === 0) return prev;
+      const [choice, ...rest] = prev.pendingPerdrixChoices;
+      const ownerIdx = prev.players.findIndex(p => p.id === choice.ownerPlayerId);
+      const targetIdx = prev.players.findIndex(p => p.id === targetPlayerId);
+      const newLog = [...prev.log];
+      let players = prev.players;
+      if (ownerIdx >= 0 && targetIdx >= 0 && targetIdx !== ownerIdx) {
+        const actualSteal = Math.min(choice.amount, prev.players[targetIdx].ether);
+        if (actualSteal > 0) {
+          players = prev.players.map((p, i) => {
+            if (i === ownerIdx) return { ...p, ether: p.ether + actualSteal };
+            if (i === targetIdx) return { ...p, ether: p.ether - actualSteal };
+            return p;
+          });
+          newLog.unshift({
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: prev.players[ownerIdx].name,
+            action: choice.mortalName,
+            detail: `a volé ${actualSteal} Éther à ${prev.players[targetIdx].name}`,
+          });
+        } else {
+          newLog.unshift({
+            id: crypto.randomUUID(),
+            timestamp: Date.now(),
+            playerName: prev.players[ownerIdx].name,
+            action: choice.mortalName,
+            detail: `n'a rien pu voler à ${prev.players[targetIdx].name} (réservoir vide)`,
+          });
+        }
+      }
+      return {
+        ...prev,
+        players,
+        log: newLog,
+        pendingPerdrixChoices: rest.length > 0 ? rest : null,
+      };
+    });
+  }, []);
+
+
 
 
 
@@ -3256,6 +3396,13 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     handleForcedDiscardChoice,
     pendingCeneeChoice: gameState?.pendingCeneeChoice ?? null,
     resolveCeneeChoice,
+    pendingMetamorphoseConfirm,
+    confirmMetamorphose,
+    cancelMetamorphose,
+    pendingSelfTargetConfirm,
+    resolveSelfTargetConfirm,
+    pendingPerdrixChoices: gameState?.pendingPerdrixChoices ?? null,
+    resolvePerdrixChoice,
   };
 }
 
