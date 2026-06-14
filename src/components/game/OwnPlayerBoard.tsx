@@ -51,6 +51,7 @@ const OwnPlayerBoard = ({
   const [reactionToManage, setReactionToManage] = useState<SpellCard | null>(null);
   const [hoveredMortal, setHoveredMortal] = useState<Mortal | null>(null);
   const [hoveredSpell, setHoveredSpell] = useState<SpellCard | null>(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   return (
     <div className="flex flex-col h-full">
