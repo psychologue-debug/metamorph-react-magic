@@ -1662,6 +1662,32 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
         }
       }
 
+      // Cénée (NEP-09): no reaction window opened — if the Neptune defender has Cénée
+      // metamorphosed (and the target wasn't Cénée), offer the substitution choice.
+      if (isRetroEnemy) {
+        const latest = gameStateRef.current ?? gameState;
+        const defender = latest?.players.find(p => p.id === playerId);
+        const cenee = defender?.mortals.find(
+          m => m.code === 'NEP-09' && m.isMetamorphosed && m.status !== 'incapacite' && m.status !== 'retired' && m.id !== mortalId
+        );
+        const snapshot = savedMortalSnapshotRef.current;
+        if (defender && cenee && snapshot && snapshot.mortal.id === mortalId) {
+          const attacker = latest?.players[currentEffect.sourcePlayerIndex];
+          savedMortalSnapshotRef.current = null;
+          setGameState(prev => prev ? {
+            ...prev,
+            pendingCeneeChoice: {
+              defenderPlayerId: playerId,
+              originalMortalId: mortalId,
+              originalSnapshot: snapshot.mortal,
+              ceneeId: cenee.id,
+              attackerName: attacker?.name || 'Un adversaire',
+              targetName: snapshot.mortal.nameVerso || snapshot.mortal.nameRecto,
+            },
+          } : prev);
+        }
+      }
+
       // No reaction window opened — trigger VEN-09 (Pins) immediately if removal
       if (isRemove) {
         setGameState(prev => {
