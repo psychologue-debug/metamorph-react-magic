@@ -155,38 +155,22 @@ export function calculateCycleEtherGeneration(
     }
   }
 
-  // MIN-03 (Perdrie): steal ether from richest enemy god
+  // MIN-03 (Perdrie): the steal target is no longer automatic — the owner chooses
+  // which god to steal from at cycle start (see pendingPerdrixChoices). We only report
+  // the pending steals here; the actual transfer happens once the owner has chosen.
   for (const steal of stolenFromEnemy) {
-    // Find richest enemy
-    let richestIdx = -1;
-    let richestEther = -1;
-    for (let i = 0; i < updatedPlayers.length; i++) {
-      if (i === steal.ownerIndex) continue;
-      if (updatedPlayers[i].ether > richestEther) {
-        richestEther = updatedPlayers[i].ether;
-        richestIdx = i;
-      }
-    }
-    if (richestIdx >= 0) {
-      const actualSteal = Math.min(steal.amount, updatedPlayers[richestIdx].ether);
-      if (actualSteal > 0) {
-        updatedPlayers = updatedPlayers.map((p, i) => {
-          if (i === steal.ownerIndex) return { ...p, ether: p.ether + actualSteal };
-          if (i === richestIdx) return { ...p, ether: p.ether - actualSteal };
-          return p;
-        });
-        logs.push({
-          id: generateUUID(),
-          timestamp: Date.now(),
-          playerName: updatedPlayers[steal.ownerIndex].name,
-          action: steal.mortalName,
-          detail: `a volé ${actualSteal} Éther à ${updatedPlayers[richestIdx].name}`,
-        });
-      }
+    if (steal.amount > 0) {
+      logs.push({
+        id: generateUUID(),
+        timestamp: Date.now(),
+        playerName: updatedPlayers[steal.ownerIndex].name,
+        action: steal.mortalName,
+        detail: `doit choisir à quel dieu voler ${steal.amount} Éther`,
+      });
     }
   }
 
-  return { updatedPlayers, logs };
+  return { updatedPlayers, logs, perdrixSteals: stolenFromEnemy };
 }
 
 /**
