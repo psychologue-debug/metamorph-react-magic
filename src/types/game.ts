@@ -21,6 +21,7 @@ export interface ReactionTrigger {
   type: ReactionTriggerType;
   sourcePlayerId: string;
   targetPlayerId?: string;
+  targetPlayerIds?: string[]; // multi-target effects (e.g. BAC-04 move incapacitations)
   targetMortalId?: string;
   cardName?: string;
   metamorphoseCost?: number; // for Résistance refund
