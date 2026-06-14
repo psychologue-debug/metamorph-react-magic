@@ -113,6 +113,11 @@ const Index = () => {
     handleForcedDiscardChoice,
     pendingCeneeChoice,
     resolveCeneeChoice,
+    pendingMetamorphoseConfirm,
+    confirmMetamorphose,
+    cancelMetamorphose,
+    pendingSelfTargetConfirm,
+    resolveSelfTargetConfirm,
   } = useGameLogic(multiplayerConfig);
 
   // Multiplayer sync: persist gameState to DB & receive Realtime updates
