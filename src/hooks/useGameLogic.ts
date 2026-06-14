@@ -194,6 +194,16 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
       });
       updatedPlayers = genResult.updatedPlayers;
       newLog.unshift(...genResult.logs);
+      if (genResult.perdrixSteals.length > 0) {
+        pendingPerdrixChoices = genResult.perdrixSteals
+          .filter(s => s.amount > 0)
+          .map(s => ({
+            ownerPlayerId: updatedPlayers[s.ownerIndex].id,
+            amount: s.amount,
+            mortalName: s.mortalName,
+          }));
+        if (pendingPerdrixChoices.length === 0) pendingPerdrixChoices = null;
+      }
       newLog.unshift({
         id: crypto.randomUUID(),
         timestamp: Date.now(),
