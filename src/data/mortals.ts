@@ -299,7 +299,7 @@ export const MORTAL_TEMPLATES: MortalTemplate[] = [
   },
   {
     god: 'diane', code: 'DIA-10', nameRecto: 'Ardée', nameVerso: 'Héron',
-    type: 'animal', cost: 4, etherProduction: 0,
+    type: 'animal', cost: 7, etherProduction: 0,
     effectPermanent: 'Défaussez 4 cartes (sortilège ou réactions, posées ou non) pour rétromorphoser le Héron et un mortel ennemi.',
   },
   // === Neptune ===
