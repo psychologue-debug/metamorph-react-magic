@@ -1442,23 +1442,11 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
         actionLabel = 'Guérison';
         actionDetail = `a levé l'incapacité de ${mortal.nameVerso || mortal.nameRecto} de ${targetPlayer.name}`;
       } else if (isRetroOwn || isRetroEnemy) {
-        let actualRetroMortalId = mortalId;
-        let actualRetroPlayerId = playerId;
-        if (isRetroEnemy) {
-          const defenderPlayer = prev.players.find(p => p.id === playerId);
-          if (defenderPlayer) {
-            const cenee = defenderPlayer.mortals.find(
-              m => m.code === 'NEP-09' && m.isMetamorphosed && m.status !== 'incapacite' && m.status !== 'retired' && m.id !== mortalId
-            );
-            if (cenee) {
-              actualRetroMortalId = cenee.id;
-              toast.info(`${cenee.nameVerso} se sacrifie à la place de ${mortal.nameVerso || mortal.nameRecto} !`, {
-                style: { background: 'hsl(195 70% 20%)', border: '1px solid hsl(195 70% 40%)', color: 'white', fontSize: '16px' },
-                duration: 4000,
-              });
-            }
-          }
-        }
+        // Cénée (NEP-09) is no longer auto-substituted: the retro is applied to the
+        // actual target. If the Neptune defender has Cénée metamorphosed, a choice
+        // window is offered afterwards (see pendingCeneeChoice).
+        const actualRetroMortalId = mortalId;
+        const actualRetroPlayerId = playerId;
 
         const retroTarget = prev.players.find(p => p.id === actualRetroPlayerId)?.mortals.find(m => m.id === actualRetroMortalId);
         let updatedPlayers = prev.players.map(p => {
