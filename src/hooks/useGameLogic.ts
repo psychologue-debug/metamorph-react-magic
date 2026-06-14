@@ -1371,6 +1371,37 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
       return;
     }
 
+    // Self-target safety confirmation: if the player targets one of THEIR OWN mortals
+    // with a harmful effect (incapacitate / remove from game / retromorphose), ask first.
+    if (!skipSelfConfirm && (isIncapacitate || isRemove || isRetroEnemy)) {
+      const latest = gameStateRef.current ?? gameState;
+      const sourceId = latest?.players[currentEffect.sourcePlayerIndex]?.id;
+      if (sourceId && playerId === sourceId) {
+        const ownPlayer = latest?.players.find((p) => p.id === playerId);
+        const ownMortal = ownPlayer?.mortals.find((m) => m.id === mortalId);
+        if (ownMortal) {
+          const actionLabel = isRemove
+            ? 'retirer du jeu'
+            : isRetroEnemy
+            ? 'rétromorphoser'
+            : 'incapaciter';
+          selfTargetResolveRef.current = (confirmed: boolean) => {
+            setPendingSelfTargetConfirm(null);
+            selfTargetResolveRef.current = null;
+            if (confirmed) handleTargetMortalClick(playerId, mortalId, true);
+          };
+          setPendingSelfTargetConfirm({
+            mortalId,
+            mortalName: ownMortal.nameVerso || ownMortal.nameRecto,
+            actionLabel,
+          });
+          return;
+        }
+      }
+    }
+
+
+
     // Track whether the click was valid so we only clear pendingEffect on success
     let targetValid = false;
 
