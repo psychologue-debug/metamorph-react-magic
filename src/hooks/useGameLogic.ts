@@ -473,7 +473,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
       return;
     }
 
-    if (interactionMode !== 'metamorphosing') return;
+    if (mode !== 'metamorphosing') return;
 
     // Confirmation step before metamorphosing (unless disabled for the game).
     // Clicking "non" must NOT trigger any effect linked to the metamorphose.
