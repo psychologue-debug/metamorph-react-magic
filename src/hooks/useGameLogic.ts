@@ -380,8 +380,9 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     return () => clearTimeout(timer);
   }, [gameState?.activePlayerIndex, gameState?.players[gameState?.activePlayerIndex ?? 0]?.skipNextTurn, handleEndTurn, requestEndTurnDiscard]);
 
-  const handleMortalClick = useCallback((mortalId: string, skipConfirm = false) => {
-    if (interactionMode === 'activating_effect') {
+  const handleMortalClick = useCallback((mortalId: string, skipConfirm = false, forcedMode?: InteractionMode) => {
+    const mode = forcedMode ?? interactionMode;
+    if (mode === 'activating_effect') {
       // Activation mode: trigger mortal's activated ability
       if (!gameState) return;
       const player = gameState.players[gameState.activePlayerIndex];
