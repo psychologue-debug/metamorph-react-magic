@@ -640,7 +640,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     if (dontAskAgain) skipMetamorphoseConfirmRef.current = true;
     const id = pendingMetamorphoseConfirm?.mortalId;
     setPendingMetamorphoseConfirm(null);
-    if (id) handleMortalClick(id, true);
+    if (id) handleMortalClick(id, true, 'metamorphosing');
   }, [pendingMetamorphoseConfirm, handleMortalClick]);
 
   const cancelMetamorphose = useCallback(() => {
