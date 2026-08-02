@@ -380,8 +380,9 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     return () => clearTimeout(timer);
   }, [gameState?.activePlayerIndex, gameState?.players[gameState?.activePlayerIndex ?? 0]?.skipNextTurn, handleEndTurn, requestEndTurnDiscard]);
 
-  const handleMortalClick = useCallback((mortalId: string, skipConfirm = false) => {
-    if (interactionMode === 'activating_effect') {
+  const handleMortalClick = useCallback((mortalId: string, skipConfirm = false, forcedMode?: InteractionMode) => {
+    const mode = forcedMode ?? interactionMode;
+    if (mode === 'activating_effect') {
       // Activation mode: trigger mortal's activated ability
       if (!gameState) return;
       const player = gameState.players[gameState.activePlayerIndex];
@@ -472,7 +473,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
       return;
     }
 
-    if (interactionMode !== 'metamorphosing') return;
+    if (mode !== 'metamorphosing') return;
 
     // Confirmation step before metamorphosing (unless disabled for the game).
     // Clicking "non" must NOT trigger any effect linked to the metamorphose.
@@ -639,7 +640,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     if (dontAskAgain) skipMetamorphoseConfirmRef.current = true;
     const id = pendingMetamorphoseConfirm?.mortalId;
     setPendingMetamorphoseConfirm(null);
-    if (id) handleMortalClick(id, true);
+    if (id) handleMortalClick(id, true, 'metamorphosing');
   }, [pendingMetamorphoseConfirm, handleMortalClick]);
 
   const cancelMetamorphose = useCallback(() => {
@@ -660,8 +661,9 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
 
 
 
-  const handleCardClick = useCallback((cardId: string) => {
-    if (interactionMode !== 'playing_spell' && interactionMode !== 'placing_reaction') return;
+  const handleCardClick = useCallback((cardId: string, forcedMode?: InteractionMode) => {
+    const mode = forcedMode ?? interactionMode;
+    if (mode !== 'playing_spell' && mode !== 'placing_reaction') return;
     let spellGeneratedEtherForPlayer = -1;
 
     setGameState((prev) => {
@@ -688,7 +690,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
       }
 
       // In placing_reaction mode, only reaction cards are valid
-      if (interactionMode === 'placing_reaction') {
+      if (mode === 'placing_reaction') {
         toast.error('Seules les cartes Réaction peuvent être posées dans ce mode');
         return prev;
       }
@@ -1130,6 +1132,24 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
   const togglePlaceReactionMode = useCallback(() => {
     setInteractionMode((prev) => (prev === 'placing_reaction' ? 'idle' : 'placing_reaction'));
   }, []);
+
+  // ---- Context-menu driven actions (click the object, then choose the action) ----
+  const requestMetamorphoseMortal = useCallback((mortalId: string) => {
+    handleMortalClick(mortalId, false, 'metamorphosing');
+  }, [handleMortalClick]);
+
+  const requestActivateMortal = useCallback((mortalId: string) => {
+    handleMortalClick(mortalId, false, 'activating_effect');
+  }, [handleMortalClick]);
+
+  const requestPlaySpell = useCallback((cardId: string) => {
+    handleCardClick(cardId, 'playing_spell');
+  }, [handleCardClick]);
+
+  const requestPlaceReaction = useCallback((cardId: string) => {
+    handleCardClick(cardId, 'placing_reaction');
+  }, [handleCardClick]);
+
 
   const handleToggleReactionWindow = useCallback(() => {
     setGameState((prev) => {
@@ -3467,6 +3487,10 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     toggleSpellMode,
     toggleActivateMode,
     togglePlaceReactionMode,
+    requestMetamorphoseMortal,
+    requestActivateMortal,
+    requestPlaySpell,
+    requestPlaceReaction,
     handleToggleReactionWindow,
     resolveEffect,
     cancelEffect,

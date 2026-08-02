@@ -85,10 +85,10 @@ const Index = () => {
     handleReactionPlaceFaceDown,
     handleDiscardReaction,
     cancelReactionDialog,
-    toggleMetamorphoseMode,
-    toggleSpellMode,
-    toggleActivateMode,
-    togglePlaceReactionMode,
+    requestMetamorphoseMortal,
+    requestActivateMortal,
+    requestPlaySpell,
+    requestPlaceReaction,
     handleToggleReactionWindow,
     resolveEffect,
     cancelEffect,
@@ -570,10 +570,10 @@ const Index = () => {
             player={currentPlayer}
             gameState={gameState}
             interactionMode={interactionMode}
-            onMortalClick={handleMortalClick}
-            onCardClick={handleCardClick}
             onDiscardReaction={handleDiscardReaction}
             onTargetMortalClick={isMortalTargeting ? (mortalId: string) => handleTargetMortalClick(currentPlayer.id, mortalId) : undefined}
+            isOwnTurn={isOwnTurn}
+            actionsLocked={!!(reactionWindow && reactionWindow.phase !== 'resolved')}
             targetingBanner={
               pendingEffect && pendingEffect.type === 'metamorphose_extra'
                 ? `${pendingEffect.sourceMortalName} : choisissez sur le plateau le mortel à métamorphoser (coût + ${pendingEffect.extraMetamorphoseCostAdded || 6} Éther). Les mortels grisés ne peuvent pas être ciblés.`
@@ -593,11 +593,28 @@ const Index = () => {
                 toast.error('Ce n\'est pas votre tour');
                 return;
               }
-              if (interactionMode !== 'metamorphosing') {
-                toggleMetamorphoseMode();
+              requestMetamorphoseMortal(mortalId);
+            }}
+            onRequestActivateMortal={(mortalId) => {
+              if (!isOwnTurn) {
+                toast.error('Ce n\'est pas votre tour');
+                return;
               }
-              // Defer to next tick so the mode change is applied before the click
-              setTimeout(() => handleMortalClick(mortalId), 0);
+              requestActivateMortal(mortalId);
+            }}
+            onRequestPlaySpell={(cardId) => {
+              if (!isOwnTurn) {
+                toast.error('Ce n\'est pas votre tour');
+                return;
+              }
+              requestPlaySpell(cardId);
+            }}
+            onRequestPlaceReaction={(cardId) => {
+              if (!isOwnTurn) {
+                toast.error('Ce n\'est pas votre tour');
+                return;
+              }
+              requestPlaceReaction(cardId);
             }}
           />
 
@@ -605,7 +622,6 @@ const Index = () => {
           <div className="px-2 sm:px-3 py-1.5 sm:py-2 border-t shrink-0" style={{ borderColor: 'hsl(var(--border) / 0.3)' }}>
             <ActionBar
               gameState={gameState}
-              interactionMode={interactionMode}
               isOwnTurn={isOwnTurn}
               reactionWindowActive={!!(reactionWindow && reactionWindow.phase !== 'resolved')}
               onEndTurn={() => {
@@ -616,12 +632,9 @@ const Index = () => {
                   setConfirmEndTurn(true);
                 }
               }}
-              onToggleMetamorphose={toggleMetamorphoseMode}
-              onToggleSpell={toggleSpellMode}
-              onToggleActivate={toggleActivateMode}
-              onTogglePlaceReaction={togglePlaceReactionMode}
             />
           </div>
+
         </div>
 
         {/* RIGHT: Opponents */}
