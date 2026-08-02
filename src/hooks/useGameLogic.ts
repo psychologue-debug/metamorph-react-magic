@@ -1133,6 +1133,24 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     setInteractionMode((prev) => (prev === 'placing_reaction' ? 'idle' : 'placing_reaction'));
   }, []);
 
+  // ---- Context-menu driven actions (click the object, then choose the action) ----
+  const requestMetamorphoseMortal = useCallback((mortalId: string) => {
+    handleMortalClick(mortalId, false, 'metamorphosing');
+  }, [handleMortalClick]);
+
+  const requestActivateMortal = useCallback((mortalId: string) => {
+    handleMortalClick(mortalId, false, 'activating_effect');
+  }, [handleMortalClick]);
+
+  const requestPlaySpell = useCallback((cardId: string) => {
+    handleCardClick(cardId, 'playing_spell');
+  }, [handleCardClick]);
+
+  const requestPlaceReaction = useCallback((cardId: string) => {
+    handleCardClick(cardId, 'placing_reaction');
+  }, [handleCardClick]);
+
+
   const handleToggleReactionWindow = useCallback(() => {
     setGameState((prev) => {
       if (!prev) return prev;
