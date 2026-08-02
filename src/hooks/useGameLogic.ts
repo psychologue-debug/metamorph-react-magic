@@ -690,7 +690,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
       }
 
       // In placing_reaction mode, only reaction cards are valid
-      if (interactionMode === 'placing_reaction') {
+      if (mode === 'placing_reaction') {
         toast.error('Seules les cartes Réaction peuvent être posées dans ce mode');
         return prev;
       }
