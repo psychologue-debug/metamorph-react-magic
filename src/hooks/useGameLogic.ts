@@ -661,8 +661,9 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
 
 
 
-  const handleCardClick = useCallback((cardId: string) => {
-    if (interactionMode !== 'playing_spell' && interactionMode !== 'placing_reaction') return;
+  const handleCardClick = useCallback((cardId: string, forcedMode?: InteractionMode) => {
+    const mode = forcedMode ?? interactionMode;
+    if (mode !== 'playing_spell' && mode !== 'placing_reaction') return;
     let spellGeneratedEtherForPlayer = -1;
 
     setGameState((prev) => {
