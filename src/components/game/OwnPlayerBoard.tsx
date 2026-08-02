@@ -1,9 +1,11 @@
 import { Player, GameState, DIVINITIES, SpellCard, Mortal } from '@/types/game';
 import { InteractionMode, canPlayCard } from '@/hooks/useGameLogic';
-import { getEffectiveCardCost } from '@/engine/costModifiers';
+import { getEffectiveCardCost, getEffectiveMetamorphosisCost } from '@/engine/costModifiers';
+import { hasActivatedEffect, getActivatedEffect } from '@/engine/activatedEffects';
 import EtherCounter from './EtherCounter';
 import MortalTooltip from './MortalTooltip';
 import PortalTooltip from './PortalTooltip';
+import ActionBubble, { BubbleAction } from './ActionBubble';
 import CeresLayout from './CeresLayout';
 import VenusLayout from './VenusLayout';
 import ApollonLayout from './ApollonLayout';
@@ -13,46 +15,142 @@ import DianeLayout from './DianeLayout';
 import BacchusLayout from './BacchusLayout';
 import GameCard from './GameCard';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Zap, Sword, RefreshCw } from 'lucide-react';
+import { Shield, Sword, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 
 interface OwnPlayerBoardProps {
   player: Player;
   gameState: GameState;
   interactionMode: InteractionMode;
-  onMortalClick?: (mortalId: string) => void;
-  onCardClick?: (cardId: string) => void;
   onDiscardReaction?: (cardId: string) => void;
   onTargetMortalClick?: (mortalId: string) => void;
   /** When set, only these mortal IDs are clickable; the others are visually grayed. */
   eligibleMortalIds?: Set<string>;
   /** Optional banner shown above the board (e.g. inline targeting prompt). */
   targetingBanner?: string | null;
-  /** Click on a non-meta mortal in idle mode → request to start metamorphose on that mortal. */
+  /** True when it is the local player's turn (actions allowed). */
+  isOwnTurn?: boolean;
+  /** True when a reaction window is open — all normal actions are locked. */
+  actionsLocked?: boolean;
   onRequestMetamorphoseMortal?: (mortalId: string) => void;
+  onRequestActivateMortal?: (mortalId: string) => void;
+  onRequestPlaySpell?: (cardId: string) => void;
+  onRequestPlaceReaction?: (cardId: string) => void;
 }
+
+type MenuState =
+  | { kind: 'mortal'; mortal: Mortal; x: number; y: number }
+  | { kind: 'card'; card: SpellCard; x: number; y: number }
+  | null;
 
 const OwnPlayerBoard = ({
   player,
   gameState,
   interactionMode,
-  onMortalClick,
-  onCardClick,
   onDiscardReaction,
   onTargetMortalClick,
   eligibleMortalIds,
   targetingBanner,
+  isOwnTurn = false,
+  actionsLocked = false,
   onRequestMetamorphoseMortal,
+  onRequestActivateMortal,
+  onRequestPlaySpell,
+  onRequestPlaceReaction,
 }: OwnPlayerBoardProps) => {
   const divinity = DIVINITIES[player.divinity];
-  const isMetaMode = interactionMode === 'metamorphosing';
-  const isSpellMode = interactionMode === 'playing_spell';
-  const isActivateMode = interactionMode === 'activating_effect';
-  const isReactionMode = interactionMode === 'placing_reaction';
   const [reactionToManage, setReactionToManage] = useState<SpellCard | null>(null);
   const [hoveredMortal, setHoveredMortal] = useState<Mortal | null>(null);
   const [hoveredSpell, setHoveredSpell] = useState<SpellCard | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [menu, setMenu] = useState<MenuState>(null);
+
+  const blockedReason = actionsLocked
+    ? 'Fenêtre de réaction en cours'
+    : !isOwnTurn
+    ? "Ce n'est pas votre tour"
+    : null;
+
+  /** Build the legal actions for a mortal of the local player. */
+  const buildMortalActions = (mortal: Mortal): BubbleAction[] => {
+    const actions: BubbleAction[] = [];
+    const isRetired = mortal.status === 'retired';
+    const isIncap = mortal.status === 'incapacite';
+
+    if (!mortal.isMetamorphosed) {
+      const cost = getEffectiveMetamorphosisCost(mortal, player, gameState);
+      let reason: string | null = blockedReason;
+      if (!reason && isRetired) reason = 'Ce mortel est retiré du jeu';
+      else if (!reason && isIncap) reason = 'Ce mortel est en Torpeur';
+      else if (!reason && player.cannotMetamorphose) reason = 'Métamorphose interdite ce tour';
+      else if (!reason && player.metamorphosesThisTurn >= player.maxMetamorphosesThisTurn)
+        reason = 'Métamorphose déjà effectuée ce tour';
+      else if (!reason && player.ether < cost) reason = `Éther insuffisant (${player.ether}/${cost})`;
+
+      actions.push({
+        key: 'metamorphose',
+        label: `Métamorphoser — ${cost} Éther`,
+        hint: `${mortal.nameRecto} → ${mortal.nameVerso}`,
+        disabled: !!reason,
+        reason: reason || undefined,
+        onClick: () => onRequestMetamorphoseMortal?.(mortal.id),
+      });
+      return actions;
+    }
+
+    // Metamorphosed mortal → possible activated ability
+    if (hasActivatedEffect(mortal)) {
+      const result = getActivatedEffect(mortal, player, gameState);
+      let reason: string | null = blockedReason;
+      if (!reason && isRetired) reason = 'Ce mortel est retiré du jeu';
+      else if (!reason && isIncap) reason = 'Ce mortel est en Torpeur';
+      else if (!reason && (!result || result.type === 'error'))
+        reason = result?.errorMessage || 'Effet indisponible';
+
+      actions.push({
+        key: 'activate',
+        label: 'Activer le mortel',
+        hint: mortal.effectVerso || undefined,
+        disabled: !!reason,
+        reason: reason || undefined,
+        onClick: () => onRequestActivateMortal?.(mortal.id),
+      });
+    }
+    return actions;
+  };
+
+  const buildCardActions = (card: SpellCard): BubbleAction[] => {
+    const actions: BubbleAction[] = [];
+    if (card.type === 'reaction') {
+      let reason: string | null = blockedReason;
+      if (!reason && player.reactions.length >= 2) reason = 'Maximum 2 Réactions posées';
+      actions.push({
+        key: 'place',
+        label: 'Poser face cachée',
+        hint: `Coût à l'activation : ${card.cost} Éther`,
+        disabled: !!reason,
+        reason: reason || undefined,
+        onClick: () => onRequestPlaceReaction?.(card.id),
+      });
+      return actions;
+    }
+
+    const cost = getEffectiveCardCost(card, player);
+    let reason: string | null = blockedReason;
+    if (!reason && player.ether < cost) reason = `Éther insuffisant (${player.ether}/${cost})`;
+    else if (!reason && !canPlayCard(card, player, gameState))
+      reason = card.activationCondition ? `Condition non remplie : ${card.activationCondition}` : 'Conditions non remplies';
+
+    actions.push({
+      key: 'play',
+      label: `Jouer le sortilège — ${cost} Éther`,
+      hint: card.description,
+      disabled: !!reason,
+      reason: reason || undefined,
+      onClick: () => onRequestPlaySpell?.(card.id),
+    });
+    return actions;
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -81,19 +179,8 @@ const OwnPlayerBoard = ({
         </div>
       </div>
 
-      {/* Mode indicator */}
-      {interactionMode !== 'idle' && (
-        <div className="px-2 sm:px-3 py-1 sm:py-2 text-center font-display text-xs sm:text-base font-semibold shrink-0"
-          style={{ background: 'hsl(var(--divine) / 0.1)', color: 'hsl(var(--divine))' }}>
-          {isMetaMode ? '🎯 Choisissez un mortel à métamorphoser'
-            : isActivateMode ? '⚡ Cliquez un mortel métamorphosé pour activer son effet'
-            : isReactionMode ? '🛡️ Cliquez une Réaction à poser'
-            : '🃏 Choisissez un sort à jouer'}
-        </div>
-      )}
-
       {/* Inline targeting banner (for non-modal effects like BAC-02 metamorphose_extra) */}
-      {targetingBanner && interactionMode === 'idle' && (
+      {targetingBanner && (
         <div className="px-2 sm:px-3 py-1 sm:py-2 text-center font-display text-xs sm:text-base font-semibold shrink-0"
           style={{ background: 'hsl(var(--ether) / 0.15)', color: 'hsl(var(--ether))' }}>
           🐬 {targetingBanner}
@@ -115,27 +202,24 @@ const OwnPlayerBoard = ({
           }}
         >
           {(() => {
-            // Wrap clicks: when an eligibleMortalIds set is provided, ignore clicks on others
-            // and visually communicate the constraint via per-token grayscale wrappers below.
-            const wrappedTargetClick = onTargetMortalClick
-              ? (mortalId: string) => {
-                  if (eligibleMortalIds && !eligibleMortalIds.has(mortalId)) return;
-                  onTargetMortalClick(mortalId);
-                }
-              : undefined;
+            const handleMortalTokenClick = (mortalId: string) => {
+              // Targeting has priority over the contextual action bubble
+              if (onTargetMortalClick) {
+                if (eligibleMortalIds && !eligibleMortalIds.has(mortalId)) return;
+                onTargetMortalClick(mortalId);
+                return;
+              }
+              const mortal = player.mortals.find((m) => m.id === mortalId);
+              if (!mortal) return;
+              setMenu({ kind: 'mortal', mortal, x: mousePos.x, y: mousePos.y });
+            };
 
             const layoutProps = {
               mortals: player.mortals,
               owner: player,
               gameState: gameState,
-              selectable: isMetaMode || isActivateMode || !!onTargetMortalClick,
-              onMortalClick: isMetaMode
-                ? onMortalClick
-                : isActivateMode
-                ? onMortalClick
-                : wrappedTargetClick
-                ? wrappedTargetClick
-                : undefined,
+              selectable: true,
+              onMortalClick: handleMortalTokenClick,
               onMortalHover: setHoveredMortal,
             };
             const layouts: Record<string, React.FC<any>> = {
@@ -146,21 +230,16 @@ const OwnPlayerBoard = ({
             return <Layout {...layoutProps} />;
           })()}
 
-          {/* Overlay: dim non-eligible mortals when an eligibility set is provided */}
+          {/* Overlay: subtle tint when an eligibility set is provided */}
           {eligibleMortalIds && (
             <div className="absolute inset-0 pointer-events-none">
-              {/* This relies on the layout placing tokens with absolute % coords; we re-render an overlay
-                  that grays out tokens not in the set by matching their DOM position is complex.
-                  Simpler path: tint the entire board slightly and let the targeting bubble guide. */}
               <div className="absolute inset-0" style={{ background: 'hsl(var(--background) / 0.05)' }} />
             </div>
           )}
         </div>
 
-        {/* Floating "Métamorphoser" button removed per UX feedback */}
-
         {/* Tooltip rendered in a portal so it's never clipped and always on top */}
-        {hoveredMortal && (
+        {hoveredMortal && !menu && (
           <PortalTooltip x={mousePos.x} y={mousePos.y}>
             <MortalTooltip mortal={hoveredMortal} owner={player} gameState={gameState} />
           </PortalTooltip>
@@ -174,32 +253,32 @@ const OwnPlayerBoard = ({
           <div className="flex-1 min-w-0">
             <div className="text-xs sm:text-sm text-muted-foreground font-display mb-1 uppercase tracking-wider flex items-center gap-1">
               <Sword className="w-3 h-3 sm:w-4 sm:h-4" /> Main ({player.hand.length}/2)
-              {isSpellMode && <span className="text-divine ml-1 hidden sm:inline">— Cliquez pour jouer</span>}
-              {isReactionMode && <span className="text-reaction ml-1 hidden sm:inline">— Cliquez une Réaction</span>}
+              <span className="ml-1 hidden sm:inline normal-case tracking-normal">— cliquez une carte pour agir</span>
             </div>
             <div className="flex gap-2 flex-wrap">
-              {player.hand.map((card) => {
-                const playable = isSpellMode ? canPlayCard(card, player, gameState) : true;
-                const isReactionCard = card.type === 'reaction';
-                const reactionPlaceable = isReactionMode && isReactionCard && player.reactions.length < 2;
-                const dimmed = (isSpellMode && !playable) || (isReactionMode && !isReactionCard);
-                const highlighted = (isSpellMode && playable) || (isReactionMode && reactionPlaceable);
-                return (
-                  <div
-                    key={card.id}
-                    className={`relative transition-all ${dimmed ? 'opacity-40' : ''} ${highlighted ? (isReactionMode ? 'ring-1 ring-reaction/50 rounded-lg' : 'ring-1 ring-divine/50 rounded-lg') : ''}`}
-                    onMouseEnter={() => setHoveredSpell(card)}
-                    onMouseLeave={() => setHoveredSpell(null)}
-                  >
-                    <GameCard
-                      card={card}
-                      effectiveCost={getEffectiveCardCost(card, player)}
-                      small
-                      onClick={(isSpellMode || isReactionMode) ? () => onCardClick?.(card.id) : undefined}
-                    />
-                  </div>
-                );
-              })}
+              {player.hand.map((card) => (
+                <div
+                  key={card.id}
+                  className="relative transition-all rounded-lg hover:ring-1 hover:ring-divine/50"
+                  onMouseEnter={() => setHoveredSpell(card)}
+                  onMouseLeave={() => setHoveredSpell(null)}
+                >
+                  <GameCard
+                    card={card}
+                    effectiveCost={getEffectiveCardCost(card, player)}
+                    small
+                    onClick={(e?: any) => {
+                      setHoveredSpell(null);
+                      setMenu({
+                        kind: 'card',
+                        card,
+                        x: e?.clientX ?? mousePos.x,
+                        y: e?.clientY ?? mousePos.y,
+                      });
+                    }}
+                  />
+                </div>
+              ))}
               {player.hand.length === 0 && (
                 <p className="text-sm text-muted-foreground italic">Vide</p>
               )}
@@ -261,7 +340,7 @@ const OwnPlayerBoard = ({
 
         {/* Fixed spell tooltip — top-right of hand section, above hand bar */}
         <AnimatePresence>
-          {hoveredSpell && !hoveredMortal && (
+          {hoveredSpell && !hoveredMortal && !menu && (
             <div className="absolute bottom-full right-2 mb-2 z-[99999] pointer-events-none">
               <motion.div
                 initial={{ opacity: 0, y: 5 }}
@@ -290,6 +369,33 @@ const OwnPlayerBoard = ({
           )}
         </AnimatePresence>
       </div>
+
+      {/* Contextual action bubble */}
+      {menu && menu.kind === 'mortal' && (
+        <ActionBubble
+          x={menu.x}
+          y={menu.y}
+          title={menu.mortal.isMetamorphosed ? menu.mortal.nameVerso : menu.mortal.nameRecto}
+          subtitle={menu.mortal.isMetamorphosed ? 'Mortel métamorphosé' : 'Mortel'}
+          actions={buildMortalActions(menu.mortal)}
+          emptyMessage={
+            menu.mortal.isMetamorphosed
+              ? "Ce mortel n'a pas d'effet activable."
+              : 'Aucune action possible sur ce mortel.'
+          }
+          onClose={() => setMenu(null)}
+        />
+      )}
+      {menu && menu.kind === 'card' && (
+        <ActionBubble
+          x={menu.x}
+          y={menu.y}
+          title={menu.card.name}
+          subtitle={menu.card.type === 'reaction' ? 'Réaction' : 'Sortilège'}
+          actions={buildCardActions(menu.card)}
+          onClose={() => setMenu(null)}
+        />
+      )}
     </div>
   );
 };
