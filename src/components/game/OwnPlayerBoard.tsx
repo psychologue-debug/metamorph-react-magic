@@ -110,7 +110,7 @@ const OwnPlayerBoard = ({
       actions.push({
         key: 'activate',
         label: 'Activer le mortel',
-        hint: mortal.effectVerso || undefined,
+        hint: mortal.effectPermanent || mortal.effectOnMetamorphose || undefined,
         disabled: !!reason,
         reason: reason || undefined,
         onClick: () => onRequestActivateMortal?.(mortal.id),
@@ -262,20 +262,16 @@ const OwnPlayerBoard = ({
                   className="relative transition-all rounded-lg hover:ring-1 hover:ring-divine/50"
                   onMouseEnter={() => setHoveredSpell(card)}
                   onMouseLeave={() => setHoveredSpell(null)}
+                  onClick={(e) => {
+                    setHoveredSpell(null);
+                    setMenu({ kind: 'card', card, x: e.clientX, y: e.clientY });
+                  }}
                 >
                   <GameCard
                     card={card}
                     effectiveCost={getEffectiveCardCost(card, player)}
                     small
-                    onClick={(e?: any) => {
-                      setHoveredSpell(null);
-                      setMenu({
-                        kind: 'card',
-                        card,
-                        x: e?.clientX ?? mousePos.x,
-                        y: e?.clientY ?? mousePos.y,
-                      });
-                    }}
+                    onClick={() => {}}
                   />
                 </div>
               ))}
