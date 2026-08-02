@@ -218,7 +218,7 @@ const OwnPlayerBoard = ({
               mortals: player.mortals,
               owner: player,
               gameState: gameState,
-              selectable: true,
+              selectable: !!onTargetMortalClick,
               onMortalClick: handleMortalTokenClick,
               onMortalHover: setHoveredMortal,
             };
