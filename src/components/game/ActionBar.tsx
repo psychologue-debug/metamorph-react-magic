@@ -1,36 +1,21 @@
 import { GameState } from '@/types/game';
-import { InteractionMode } from '@/hooks/useGameLogic';
 import { motion } from 'framer-motion';
-import { SkipForward, Sparkles, Hand, X, Flame, Shield } from 'lucide-react';
+import { SkipForward, MousePointerClick } from 'lucide-react';
 
 interface ActionBarProps {
   gameState: GameState;
-  interactionMode: InteractionMode;
   isOwnTurn?: boolean;
   reactionWindowActive?: boolean;
   onEndTurn: () => void;
-  onToggleMetamorphose: () => void;
-  onToggleSpell: () => void;
-  onToggleActivate: () => void;
-  onTogglePlaceReaction: () => void;
 }
 
 const ActionBar = ({
   gameState,
-  interactionMode,
   isOwnTurn = true,
   reactionWindowActive = false,
   onEndTurn,
-  onToggleMetamorphose,
-  onToggleSpell,
-  onToggleActivate,
-  onTogglePlaceReaction,
 }: ActionBarProps) => {
   const activePlayer = gameState.players[gameState.activePlayerIndex];
-  const isMetaMode = interactionMode === 'metamorphosing';
-  const isSpellMode = interactionMode === 'playing_spell';
-  const isActivateMode = interactionMode === 'activating_effect';
-  const isReactionMode = interactionMode === 'placing_reaction';
   const isSleeping = activePlayer.skipNextTurn;
   const disabled = !isOwnTurn || isSleeping || reactionWindowActive;
 
@@ -54,74 +39,13 @@ const ActionBar = ({
           💤 Tour sauté
         </div>
       )}
-
-      <motion.button
-        className={`flex items-center gap-1 sm:gap-2 h-8 sm:h-9 px-2 sm:px-4 rounded-lg text-xs sm:text-sm font-display font-semibold transition-all ${
-          isMetaMode ? 'ring-2 ring-ether' : ''
-        } ${disabled ? 'opacity-30 pointer-events-none' : ''}`}
-        style={{
-          background: isMetaMode
-            ? `linear-gradient(135deg, hsl(var(--ether)), hsl(var(--ether-dim)))`
-            : `linear-gradient(135deg, hsl(var(--ether) / 0.8), hsl(var(--ether-dim) / 0.8))`,
-          color: 'hsl(var(--primary-foreground))',
-        }}
-        whileHover={disabled ? {} : { scale: 1.05 }}
-        whileTap={disabled ? {} : { scale: 0.95 }}
-        onClick={disabled ? undefined : onToggleMetamorphose}
-      >
-        {isMetaMode ? <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
-        <span className="hidden sm:inline">{isMetaMode ? 'Annuler' : 'Métamorphoser'}</span>
-        <span className="sm:hidden">{isMetaMode ? '✕' : 'Méta.'}</span>
-      </motion.button>
-
-      <motion.button
-        className={`flex items-center gap-1 sm:gap-2 h-8 sm:h-9 px-2 sm:px-4 rounded-lg text-xs sm:text-sm font-display font-semibold border border-divine/30 text-foreground transition-all ${
-          isSpellMode ? 'ring-2 ring-divine' : ''
-        } ${disabled ? 'opacity-30 pointer-events-none' : ''}`}
-        style={{ background: isSpellMode ? 'hsl(var(--divine) / 0.2)' : 'hsl(var(--divine) / 0.1)' }}
-        whileHover={disabled ? {} : { scale: 1.05 }}
-        whileTap={disabled ? {} : { scale: 0.95 }}
-        onClick={disabled ? undefined : onToggleSpell}
-      >
-        {isSpellMode ? <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-divine" /> : <Hand className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-divine" />}
-        <span className="hidden sm:inline">{isSpellMode ? 'Annuler' : 'Jouer un Sort'}</span>
-        <span className="sm:hidden">{isSpellMode ? '✕' : 'Sort'}</span>
-      </motion.button>
-
-      <motion.button
-        className={`flex items-center gap-1 sm:gap-2 h-8 sm:h-9 px-2 sm:px-4 rounded-lg text-xs sm:text-sm font-display font-semibold border border-amber-500/30 text-foreground transition-all ${
-          isActivateMode ? 'ring-2 ring-amber-500' : ''
-        } ${disabled ? 'opacity-30 pointer-events-none' : ''}`}
-        style={{
-          background: isActivateMode ? 'hsl(30 60% 20% / 0.4)' : 'hsl(30 60% 20% / 0.15)',
-          boxShadow: '0 0 0 3px hsl(45 95% 55%), 0 0 12px 4px hsl(45 95% 55% / 0.5), 0 0 24px 8px hsl(45 85% 45% / 0.25)',
-        }}
-        whileHover={disabled ? {} : { scale: 1.05 }}
-        whileTap={disabled ? {} : { scale: 0.95 }}
-        onClick={disabled ? undefined : onToggleActivate}
-      >
-        {isActivateMode ? <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" /> : <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />}
-        <span className="hidden sm:inline">{isActivateMode ? 'Annuler' : 'Activer un Mortel'}</span>
-        <span className="sm:hidden">{isActivateMode ? '✕' : 'Mortel'}</span>
-      </motion.button>
-
-      <motion.button
-        className={`flex items-center gap-1 sm:gap-2 h-8 sm:h-9 px-2 sm:px-4 rounded-lg text-xs sm:text-sm font-display font-semibold border text-foreground transition-all ${
-          isReactionMode ? 'ring-2' : ''
-        } ${disabled ? 'opacity-30 pointer-events-none' : ''}`}
-        style={{
-          background: isReactionMode ? 'hsl(var(--reaction) / 0.25)' : 'hsl(var(--reaction) / 0.1)',
-          borderColor: 'hsl(var(--reaction) / 0.4)',
-          ...(isReactionMode ? { ringColor: 'hsl(var(--reaction))' } : {}),
-        }}
-        whileHover={disabled ? {} : { scale: 1.05 }}
-        whileTap={disabled ? {} : { scale: 0.95 }}
-        onClick={disabled ? undefined : onTogglePlaceReaction}
-      >
-        {isReactionMode ? <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-reaction" /> : <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-reaction" />}
-        <span className="hidden sm:inline">{isReactionMode ? 'Annuler' : 'Poser une Réaction'}</span>
-        <span className="sm:hidden">{isReactionMode ? '✕' : 'Réact.'}</span>
-      </motion.button>
+      {isOwnTurn && !isSleeping && !reactionWindowActive && (
+        <div className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-display text-muted-foreground">
+          <MousePointerClick className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-divine" />
+          <span className="hidden sm:inline">Cliquez un mortel ou une carte pour choisir une action</span>
+          <span className="sm:hidden">Cliquez un mortel ou une carte</span>
+        </div>
+      )}
 
       <div className="flex-1 min-w-0" />
 
