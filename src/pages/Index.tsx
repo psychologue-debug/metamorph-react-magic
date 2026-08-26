@@ -16,6 +16,7 @@ import LobbyScreen from '@/components/game/LobbyScreen';
 import TargetingModal from '@/components/game/TargetingModal';
 import ReactionWindow from '@/components/game/ReactionWindow';
 import TurnStartOverlay from '@/components/game/TurnStartOverlay';
+import PauseOverlay from '@/components/game/PauseOverlay';
 import CeneeChoiceWindow from '@/components/game/CeneeChoiceWindow';
 import MetamorphoseConfirmWindow from '@/components/game/MetamorphoseConfirmWindow';
 import SelfTargetConfirmWindow from '@/components/game/SelfTargetConfirmWindow';
@@ -122,6 +123,8 @@ const Index = () => {
     resolveSelfTargetConfirm,
     pendingPerdrixChoices,
     resolvePerdrixChoice,
+    togglePause,
+    removePlayerFromGame,
   } = useGameLogic(multiplayerConfig);
 
   // Multiplayer sync: persist gameState to DB & receive Realtime updates
@@ -135,6 +138,13 @@ const Index = () => {
     setGameState,
     onGameStartedFromRemote,
   });
+  // Reconnection: the session is already 'playing' — pull the live game state
+  useEffect(() => {
+    if (multiplayer.lobby?.status !== 'playing') return;
+    if (gameStarted && gameState) return;
+    loadGameState();
+  }, [multiplayer.lobby?.status, gameStarted, gameState, loadGameState]);
+
   const isMortalTargeting = pendingEffect && (
     pendingEffect.type === 'enemy_mortal_incapacitate' ||
     pendingEffect.type === 'enemy_mortal_remove' ||
@@ -525,6 +535,21 @@ const Index = () => {
             <ScrollText className="w-4 h-4 sm:w-5 sm:h-5" />
             <span className="hidden sm:inline">Chroniques</span>
           </button>
+          {multiplayerConfig && (
+            <motion.button
+              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-display font-semibold border border-ether/40 text-ether transition-all"
+              style={{ background: 'hsl(var(--ether) / 0.1)' }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => togglePause(
+                gameState.players.find(p => p.id === multiplayer.playerId)?.name || 'Un joueur'
+              )}
+              title="Mettre la partie en pause"
+            >
+              <Pause className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Pause</span>
+            </motion.button>
+          )}
           <motion.button
             className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-display font-semibold border border-destructive/40 text-destructive transition-all"
             style={{ background: 'hsl(var(--destructive) / 0.1)' }}
@@ -777,6 +802,14 @@ const Index = () => {
         />
       )}
 
+      {/* Pause overlay */}
+      <PauseOverlay
+        pausedBy={gameState.paused?.by ?? null}
+        onResume={() => togglePause(
+          gameState.players.find(p => p.id === multiplayer.playerId)?.name || 'Un joueur'
+        )}
+      />
+
       {/* Turn start banner */}
       <TurnStartOverlay
         isOwnTurn={isOwnTurn}
@@ -850,10 +883,20 @@ const Index = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
+              onClick={async () => {
                 setConfirmQuit(false);
-                if (multiplayer.lobby) {
-                  multiplayer.leaveSession();
+                if (multiplayer.lobby && gameState) {
+                  // End our turn first so the next god can play, then remove our board
+                  if (gameState.players[gameState.activePlayerIndex]?.id === multiplayer.playerId) {
+                    handleEndTurn();
+                    await new Promise(r => setTimeout(r, 200));
+                  }
+                  removePlayerFromGame(multiplayer.playerId);
+                  // Let the debounced sync push the updated state before we drop the session
+                  await new Promise(r => setTimeout(r, 600));
+                  await multiplayer.leaveSession();
+                } else if (multiplayer.lobby) {
+                  await multiplayer.leaveSession();
                 }
                 resetGame();
               }}
