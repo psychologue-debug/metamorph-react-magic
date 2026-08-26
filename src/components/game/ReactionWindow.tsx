@@ -223,7 +223,8 @@ const ReactionWindow = ({
           <h2 className="font-display text-2xl font-bold text-foreground mb-2">
             Fenêtre de Réaction
           </h2>
-          <p className="text-muted-foreground font-body mb-2">{triggerDesc}</p>
+          <p className="text-muted-foreground font-body mb-3">{triggerDesc}</p>
+          <TriggerCardPanel gameState={gameState} reactionWindow={reactionWindow} />
           <p className="text-lg font-display text-foreground mb-6">
             C'est au tour de <strong style={{ color: `hsl(${currentReactor.divinity ? currentReactor.divinity : 'var(--foreground)'})` }}>{currentReactor.name}</strong> de réagir
           </p>
@@ -279,7 +280,8 @@ const ReactionWindow = ({
         </div>
 
         {/* Trigger info */}
-        <p className="text-sm text-muted-foreground font-body mb-4">{triggerDesc}</p>
+        <p className="text-sm text-muted-foreground font-body mb-2">{triggerDesc}</p>
+        <TriggerCardPanel gameState={gameState} reactionWindow={reactionWindow} />
 
         {!choosing ? (
           /* Ask Yes/No */
