@@ -1870,6 +1870,78 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     }
   }, [pendingEffect, gameState]);
 
+  /** Pause / resume the game (multiplayer). Anyone can toggle. */
+  const togglePause = useCallback((byName: string) => {
+    setGameState(prev => {
+      if (!prev) return prev;
+      const resuming = !!prev.paused;
+      return {
+        ...prev,
+        paused: resuming ? null : { by: byName },
+        log: [{
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          playerName: byName,
+          action: resuming ? 'Reprise' : 'Pause',
+          detail: resuming ? 'a repris la partie' : 'a mis la partie en pause',
+        }, ...prev.log],
+      };
+    });
+  }, []);
+
+  /**
+   * Remove a player from an ongoing game (they quit).
+   * Their board disappears, their cards go to the discard pile and the remaining
+   * gods keep playing without interruption.
+   */
+  const removePlayerFromGame = useCallback((leavingPlayerId: string) => {
+    setGameState(prev => {
+      if (!prev) return prev;
+      const idx = prev.players.findIndex(p => p.id === leavingPlayerId);
+      if (idx < 0) return prev;
+      const leaving = prev.players[idx];
+      const players = prev.players.filter(p => p.id !== leavingPlayerId);
+      if (players.length === 0) return prev;
+
+      let activePlayerIndex = prev.activePlayerIndex;
+      if (idx < activePlayerIndex) activePlayerIndex -= 1;
+      if (activePlayerIndex >= players.length) activePlayerIndex = 0;
+
+      let cycleStartPlayerIndex = prev.cycleStartPlayerIndex;
+      if (idx < cycleStartPlayerIndex) cycleStartPlayerIndex -= 1;
+      if (cycleStartPlayerIndex >= players.length) cycleStartPlayerIndex = 0;
+
+      const reactionWindow = prev.reactionWindow &&
+        (prev.reactionWindow.reactorQueue.includes(leavingPlayerId) ||
+         prev.reactionWindow.trigger.sourcePlayerId === leavingPlayerId)
+        ? null
+        : prev.reactionWindow;
+
+      return {
+        ...prev,
+        players,
+        activePlayerIndex,
+        cycleStartPlayerIndex,
+        reactionWindow,
+        discardPile: [...leaving.hand, ...leaving.reactions, ...prev.discardPile],
+        forcedDiscardQueue: prev.forcedDiscardQueue
+          ? { ...prev.forcedDiscardQueue, entries: prev.forcedDiscardQueue.entries.filter(e => e.playerId !== leavingPlayerId) }
+          : prev.forcedDiscardQueue,
+        pendingCeneeChoice: prev.pendingCeneeChoice?.defenderPlayerId === leavingPlayerId ? null : prev.pendingCeneeChoice,
+        pendingPerdrixChoices: prev.pendingPerdrixChoices
+          ? prev.pendingPerdrixChoices.filter(c => c.ownerPlayerId !== leavingPlayerId)
+          : prev.pendingPerdrixChoices,
+        log: [{
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          playerName: 'Système',
+          action: 'Départ',
+          detail: `${leaving.name} a quitté la partie — son plateau est retiré du jeu`,
+        }, ...prev.log],
+      };
+    });
+  }, []);
+
   /**
    * Cénée (NEP-09): the Neptune defender decides whether to retromorphose Cénée
    * instead of the originally targeted mortal. The retro has already been applied
