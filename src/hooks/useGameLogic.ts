@@ -2922,8 +2922,19 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
       prevGameStateRef.current = gameState;
       return;
     }
+    // Multiplayer guard: only the active player resolves triggered effects.
+    // Otherwise every remote client re-applies them when the synced state arrives
+    // (e.g. NEP-10 drawing a card twice, NEP-08 destroying ether twice).
+    if (multiplayerConfig) {
+      const activePlayer = gameState.players[gameState.activePlayerIndex];
+      if (activePlayer && activePlayer.id !== multiplayerConfig.localPlayerId) {
+        prevGameStateRef.current = gameState;
+        return;
+      }
+    }
     const prev = prevGameStateRef.current;
     prevGameStateRef.current = gameState;
+
 
     for (let i = 0; i < gameState.players.length; i++) {
       const oldP = prev.players[i];
