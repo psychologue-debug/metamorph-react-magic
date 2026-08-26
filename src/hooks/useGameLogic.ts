@@ -2836,12 +2836,35 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
 
     // === Phase 1: After metamorphose reaction ===
     if (hasResistanceOrSursis) {
-      // Metamorphose cancelled — clear everything
+      // Metamorphose cancelled — tell the active player which mortal reverted and how much was refunded
+      const cancelCard = reactionWindow.responses.find(
+        r => !r.passed && (r.cardName === 'Résistance' || r.cardName === 'Sursis')
+      );
+      const latest = gameStateRef.current ?? gameState;
+      const victim = latest?.players.find(p => p.id === reactionWindow.trigger.sourcePlayerId);
+      const mortal = victim?.mortals.find(m => m.id === reactionWindow.trigger.targetMortalId);
+      const refund = reactionWindow.trigger.metamorphoseCost || 0;
+      const mortalName = mortal ? (mortal.nameVerso || mortal.nameRecto) : 'votre mortel';
+      toast.warning(
+        `${cancelCard?.cardName || 'Résistance'} : ${mortalName} n'a finalement pas été métamorphosé — ${refund} Éther remboursés.`,
+        { duration: 6000, style: { background: 'hsl(0 50% 20%)', border: '1px solid hsl(0 60% 40%)', color: 'white', fontSize: '15px' } },
+      );
       setStoredMetamorphoseEffect(null);
-      setGameState(prev => prev ? { ...prev, reactionWindow: null } : prev);
+      setGameState(prev => prev ? {
+        ...prev,
+        reactionWindow: null,
+        log: [{
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          playerName: 'Système',
+          action: cancelCard?.cardName || 'Résistance',
+          detail: `${mortalName} n'a pas été métamorphosé — ${refund} Éther remboursés à ${victim?.name ?? 'son dieu'}`,
+        }, ...prev.log],
+      } : prev);
       metamorphoseReactionInfoRef.current = null;
       return;
     }
+
 
     // Metamorphose survived. Check if there's a stored effect to apply.
     if (storedMetamorphoseEffect) {
