@@ -3648,6 +3648,8 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     resolveSelfTargetConfirm,
     pendingPerdrixChoices: gameState?.pendingPerdrixChoices ?? null,
     resolvePerdrixChoice,
+    togglePause,
+    removePlayerFromGame,
   };
 }
 
