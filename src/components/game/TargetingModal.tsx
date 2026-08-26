@@ -45,8 +45,10 @@ export interface TargetingResult {
  *   effect WITHOUT undoing the metamorphosis — make that explicit.
  */
 const cancelLabel = (effect: PendingEffect) =>
-  effect.spellRefund
-    ? 'Annuler'
+  effect.spellRefund || effect.type === 'select_god_discard_all'
+    ? effect.spellRefund
+      ? 'Annuler'
+      : 'Renoncer'
     : "Renoncer à l'effet (n'annule pas la métamorphose)";
 
 

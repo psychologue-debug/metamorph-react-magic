@@ -15,6 +15,7 @@ import GodSelectionScreen from '@/components/game/GodSelectionScreen';
 import LobbyScreen from '@/components/game/LobbyScreen';
 import TargetingModal from '@/components/game/TargetingModal';
 import ReactionWindow from '@/components/game/ReactionWindow';
+import TurnStartOverlay from '@/components/game/TurnStartOverlay';
 import CeneeChoiceWindow from '@/components/game/CeneeChoiceWindow';
 import MetamorphoseConfirmWindow from '@/components/game/MetamorphoseConfirmWindow';
 import SelfTargetConfirmWindow from '@/components/game/SelfTargetConfirmWindow';
@@ -775,6 +776,12 @@ const Index = () => {
           onMoveIncapacitations={resolveMoveIncapacitations}
         />
       )}
+
+      {/* Turn start banner */}
+      <TurnStartOverlay
+        isOwnTurn={isOwnTurn}
+        turnKey={`${gameState.turnCount}-${gameState.activePlayerIndex}`}
+      />
 
       {/* Reaction Window */}
       {reactionWindow && reactionWindow.phase !== 'resolved' && (

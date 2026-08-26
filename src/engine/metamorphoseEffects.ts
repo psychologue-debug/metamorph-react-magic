@@ -770,7 +770,7 @@ export function getMetamorphoseEffect(
           sourcePlayerIndex: playerIndex,
           sourceMortalCode: mortal.code,
           sourceMortalName: mortal.nameVerso,
-          description: 'Volez une carte à un dieu.',
+          description: 'Volez une carte au hasard à un dieu.',
           maxTargets: 1,
         },
       };
@@ -788,7 +788,7 @@ export function getMetamorphoseEffect(
           sourcePlayerIndex: playerIndex,
           sourceMortalCode: mortal.code,
           sourceMortalName: mortal.nameVerso,
-          description: 'Déplacez jusqu\'à 4 incapacités d\'un mortel à un autre.',
+          description: 'Déplacez jusqu\'à 4 incapacités d\'un mortel à un autre (vos mortels comme ceux des ennemis).',
           maxTargets: 0,
           conditionNotMet: 'Aucun mortel incapacité !',
         };
@@ -799,7 +799,7 @@ export function getMetamorphoseEffect(
         sourcePlayerIndex: playerIndex,
         sourceMortalCode: mortal.code,
         sourceMortalName: mortal.nameVerso,
-        description: 'Déplacez jusqu\'à 4 incapacités d\'un mortel à un autre.',
+        description: 'Déplacez jusqu\'à 4 incapacités d\'un mortel à un autre (vos mortels comme ceux des ennemis).',
         maxTargets: 4,
       };
     }

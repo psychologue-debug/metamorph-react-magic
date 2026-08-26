@@ -148,13 +148,13 @@ export const MORTAL_TEMPLATES: MortalTemplate[] = [
   {
     god: 'bacchus', code: 'BAC-03', nameRecto: 'Les Isméniennes', nameVerso: 'Mouettes',
     type: 'animal', cost: 10, etherProduction: 1,
-    effectOnMetamorphose: 'Volez 3 Ether n\'importe où. Volez une carte à un dieu.',
+    effectOnMetamorphose: 'Volez 3 Éther n\'importe où (3 au total). Volez une carte au hasard à un dieu.',
     comment: 'Il faut cliquer sur le réservoir duquel on veut voler. Il faut cliquer sur la carte qu\'on veut voler.',
   },
   {
     god: 'bacchus', code: 'BAC-04', nameRecto: 'Les filles d\'Anius', nameVerso: 'Quatre Colombes',
     type: 'animal', cost: 18, etherProduction: 1,
-    effectOnMetamorphose: 'Déplacez jusqu\'à 4 incapacités d\'un mortel à un autre.',
+    effectOnMetamorphose: 'Déplacez jusqu\'à 4 incapacités d\'un mortel à un autre (vos mortels comme ceux des ennemis).',
     comment: 'Cela doit trigger les events "mortal_incapacitated" et "mortal_healed" autant de fois que le joueur choisit.',
   },
   {

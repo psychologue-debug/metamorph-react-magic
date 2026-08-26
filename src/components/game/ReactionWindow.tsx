@@ -1,8 +1,9 @@
 // === Reaction Window ===
 // Hot-seat reaction intervention UI with timer.
 
-import { Player, GameState, ReactionWindowState } from '@/types/game';
+import { Player, GameState, ReactionWindowState, DIVINITIES } from '@/types/game';
 import { canActivateReaction } from '@/engine/reactionEngine';
+import { SPELL_TEMPLATES } from '@/data/spellCards';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
@@ -18,6 +19,75 @@ interface ReactionWindowProps {
 }
 
 const REACTION_TIMER_SECONDS = 15;
+
+/**
+ * Card that triggered the reaction window: shows the source god, the card /
+ * metamorphosed mortal, its cost, its effect and its target when already known.
+ */
+const TriggerCardPanel = ({ gameState, reactionWindow }: { gameState: GameState; reactionWindow: ReactionWindowState }) => {
+  const trigger = reactionWindow.trigger;
+  const source = gameState.players.find(p => p.id === trigger.sourcePlayerId);
+  const sourceDiv = source ? DIVINITIES[source.divinity] : null;
+
+  const mortal = source?.mortals.find(m => m.id === trigger.targetMortalId)
+    || gameState.players.flatMap(p => p.mortals).find(m => m.id === trigger.targetMortalId);
+
+  const isMeta = trigger.type === 'metamorphose';
+  const spell = trigger.cardName
+    ? SPELL_TEMPLATES.find(t => t.name === trigger.cardName)
+    : undefined;
+
+  const title = isMeta
+    ? (mortal?.nameVerso || mortal?.nameRecto || 'Métamorphose')
+    : (trigger.cardName || 'Action');
+  const image = isMeta ? mortal?.imageVerso : undefined;
+  const cost = isMeta ? trigger.metamorphoseCost : spell?.cost;
+  const effect = isMeta ? mortal?.effectOnMetamorphose : spell?.effect;
+
+  // Target(s), when already known
+  const targetIds = trigger.targetPlayerIds ?? (trigger.targetPlayerId ? [trigger.targetPlayerId] : []);
+  const targetGods = targetIds
+    .map(id => gameState.players.find(p => p.id === id)?.name)
+    .filter(Boolean) as string[];
+  const targetMortal = !isMeta && trigger.targetMortalId
+    ? gameState.players.flatMap(p => p.mortals).find(m => m.id === trigger.targetMortalId)
+    : undefined;
+
+  return (
+    <div
+      className="rounded-xl p-3 mb-3 flex gap-3 text-left"
+      style={{ background: 'hsl(var(--secondary) / 0.5)', border: '1px solid hsl(var(--border))' }}
+    >
+      {image && (
+        <img src={image} alt={title} className="w-16 h-16 rounded-lg object-cover shrink-0" />
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-display font-bold text-foreground">{title}</span>
+          {typeof cost === 'number' && (
+            <span className="text-xs font-display text-ether">{cost} Éther</span>
+          )}
+        </div>
+        {source && (
+          <div className="text-xs text-muted-foreground font-display">
+            Joué par <span style={{ color: sourceDiv ? `hsl(${sourceDiv.color})` : undefined }}>{source.name}</span>
+            {isMeta ? ' (métamorphose)' : ''}
+          </div>
+        )}
+        {effect && (
+          <p className="text-xs text-foreground mt-1 leading-snug">{effect}</p>
+        )}
+        {(targetGods.length > 0 || targetMortal) && (
+          <p className="text-xs mt-1 font-display" style={{ color: 'hsl(var(--divine-glow))' }}>
+            Cible : {targetGods.join(', ')}
+            {targetMortal ? `${targetGods.length ? ' — ' : ''}${targetMortal.isMetamorphosed ? targetMortal.nameVerso : targetMortal.nameRecto}` : ''}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+};
+
 
 const ReactionWindow = ({
   gameState,
@@ -153,7 +223,8 @@ const ReactionWindow = ({
           <h2 className="font-display text-2xl font-bold text-foreground mb-2">
             Fenêtre de Réaction
           </h2>
-          <p className="text-muted-foreground font-body mb-2">{triggerDesc}</p>
+          <p className="text-muted-foreground font-body mb-3">{triggerDesc}</p>
+          <TriggerCardPanel gameState={gameState} reactionWindow={reactionWindow} />
           <p className="text-lg font-display text-foreground mb-6">
             C'est au tour de <strong style={{ color: `hsl(${currentReactor.divinity ? currentReactor.divinity : 'var(--foreground)'})` }}>{currentReactor.name}</strong> de réagir
           </p>
@@ -209,7 +280,8 @@ const ReactionWindow = ({
         </div>
 
         {/* Trigger info */}
-        <p className="text-sm text-muted-foreground font-body mb-4">{triggerDesc}</p>
+        <p className="text-sm text-muted-foreground font-body mb-2">{triggerDesc}</p>
+        <TriggerCardPanel gameState={gameState} reactionWindow={reactionWindow} />
 
         {!choosing ? (
           /* Ask Yes/No */
