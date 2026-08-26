@@ -1,8 +1,9 @@
 // === Reaction Window ===
 // Hot-seat reaction intervention UI with timer.
 
-import { Player, GameState, ReactionWindowState } from '@/types/game';
+import { Player, GameState, ReactionWindowState, DIVINITIES } from '@/types/game';
 import { canActivateReaction } from '@/engine/reactionEngine';
+import { SPELL_TEMPLATES } from '@/data/spellCards';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
