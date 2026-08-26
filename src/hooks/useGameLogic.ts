@@ -3053,7 +3053,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
         }
       }
     }
-  }, [gameState, reactionWindow]);
+  }, [gameState, reactionWindow, multiplayerConfig]);
 
   // === Victory detection for all players (multiplayer sync) ===
   useEffect(() => {
