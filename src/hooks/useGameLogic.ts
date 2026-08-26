@@ -1833,6 +1833,16 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
         });
       }
 
+      // Non-hostile effects (heal / retro on own board) never open a reaction window:
+      // drop any leftover undo snapshot so a LATER reaction window can't roll this
+      // resolution back (bug: healed mortal becoming incapacitated again).
+      if (isHeal || isRetroOwn) {
+        savedMortalSnapshotRef.current = null;
+        setMetamorphoseEffectUndo(null);
+      }
+
+
+
       // Support multi-target: decrement maxTargets
       const effectMaxTargets = currentEffect.maxTargets || 1;
       if (effectMaxTargets > 1 && targetsConsumedRef.current < effectMaxTargets) {
