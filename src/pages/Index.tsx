@@ -390,6 +390,9 @@ const Index = () => {
             {menuMode === 'join' && (
               <motion.div key="join" className="mt-10 flex flex-col gap-4 items-center max-w-xs mx-auto" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}>
                 <p className="font-display text-sm text-foreground uppercase tracking-wider">Rejoindre une partie</p>
+                <p className="text-xs text-muted-foreground font-body italic -mt-2">
+                  Pour vous reconnecter à une partie en cours, entrez le code et le pseudo que vous utilisiez.
+                </p>
                 <input
                   type="text"
                   placeholder="Votre pseudo"
