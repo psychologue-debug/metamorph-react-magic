@@ -156,6 +156,8 @@ export interface GameState {
   pendingCeneeChoice?: CeneeChoiceState | null;
   // Perdrie (MIN-03): at cycle start the owner chooses which god to steal Ether from.
   pendingPerdrixChoices?: PerdrixChoiceState[] | null;
+  // Multiplayer pause: any player can pause/resume the game.
+  paused?: { by: string } | null;
 }
 
 export interface PerdrixChoiceState {

@@ -142,12 +142,66 @@ export function useMultiplayer() {
       return null;
     }
 
+    // === Reconnection to a game already in progress ===
+    // The player types the game code and the pseudo they were using; we re-bind
+    // that seat to this browser's player id.
+    if (session.status === 'playing') {
+      const gs: any = session.game_state;
+      const seat = (gs?.players || []).find(
+        (p: any) => (p.name || '').trim().toLowerCase() === playerName.trim().toLowerCase()
+      );
+      if (!seat) {
+        setLoading(false);
+        setError('Pseudo introuvable dans cette partie');
+        toast.error("Aucun dieu ne porte ce pseudo dans la partie en cours");
+        return null;
+      }
+
+      const oldId: string = seat.id;
+      // Re-bind every reference to the old seat id (players, reactions, pending choices…)
+      const rebound = oldId === playerId
+        ? gs
+        : JSON.parse(JSON.stringify(gs).split(oldId).join(playerId));
+
+      const lobbyPlayers = ((session.players as any as LobbyPlayer[]) || []).map(p =>
+        p.id === oldId ? { ...p, id: playerId } : p
+      );
+      const newHostId = session.host_id === oldId ? playerId : session.host_id;
+
+      const { error: rejoinError } = await supabase
+        .from('game_sessions')
+        .update({ players: lobbyPlayers as any, game_state: rebound as any, host_id: newHostId })
+        .eq('id', session.id);
+
+      setLoading(false);
+
+      if (rejoinError) {
+        setError('Impossible de se reconnecter');
+        toast.error('Erreur lors de la reconnexion');
+        return null;
+      }
+
+      const lobbyState: LobbyState = {
+        sessionId: session.id,
+        gameCode: session.game_code,
+        hostId: newHostId,
+        maxPlayers: session.max_players,
+        status: 'playing',
+        players: lobbyPlayers,
+      };
+      setLobby(lobbyState);
+      subscribeToSession(session.id);
+      toast.success(`Reconnecté en tant que ${seat.name}`);
+      return lobbyState;
+    }
+
     if (session.status !== 'lobby') {
       setLoading(false);
       setError('La partie a déjà commencé');
       toast.error('Cette partie a déjà commencé');
       return null;
     }
+
 
     const currentPlayers = (session.players as any as LobbyPlayer[]) || [];
 

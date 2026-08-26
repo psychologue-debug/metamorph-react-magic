@@ -42,7 +42,15 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
   const [pendingReactionCard, setPendingReactionCard] = useState<SpellCard | null>(null);
   const [pendingEffect, setPendingEffect] = useState<PendingEffect | null>(null);
   const reactionWindow = gameState?.reactionWindow ?? null;
-  const [storedMetamorphoseEffect, setStoredMetamorphoseEffect] = useState<PendingEffect | null>(null);
+  const [storedMetamorphoseEffect, _setStoredMetamorphoseEffect] = useState<PendingEffect | null>(null);
+  // Ref mirror: the reaction-resolution effect can run in the same batch as the setter
+  // (multiplayer sync), where the state value would still be stale/null and the
+  // metamorphose effect would be silently dropped (e.g. Aigle's "destroy 4 Ether").
+  const storedMetaEffectRef = useRef<PendingEffect | null>(null);
+  const setStoredMetamorphoseEffect = useCallback((e: PendingEffect | null) => {
+    storedMetaEffectRef.current = e;
+    _setStoredMetamorphoseEffect(e);
+  }, []);
   const metamorphoseReactionInfoRef = useRef<{ trigger: ReactionTrigger; reactors: string[] } | null>(null);
   const savedMortalSnapshotRef = useRef<{ mortal: Mortal; playerId: string } | null>(null);
   const prevGameStateRef = useRef<GameState | null>(null);
@@ -1833,6 +1841,16 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
         });
       }
 
+      // Non-hostile effects (heal / retro on own board) never open a reaction window:
+      // drop any leftover undo snapshot so a LATER reaction window can't roll this
+      // resolution back (bug: healed mortal becoming incapacitated again).
+      if (isHeal || isRetroOwn) {
+        savedMortalSnapshotRef.current = null;
+        setMetamorphoseEffectUndo(null);
+      }
+
+
+
       // Support multi-target: decrement maxTargets
       const effectMaxTargets = currentEffect.maxTargets || 1;
       if (effectMaxTargets > 1 && targetsConsumedRef.current < effectMaxTargets) {
@@ -1851,6 +1869,78 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
       }
     }
   }, [pendingEffect, gameState]);
+
+  /** Pause / resume the game (multiplayer). Anyone can toggle. */
+  const togglePause = useCallback((byName: string) => {
+    setGameState(prev => {
+      if (!prev) return prev;
+      const resuming = !!prev.paused;
+      return {
+        ...prev,
+        paused: resuming ? null : { by: byName },
+        log: [{
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          playerName: byName,
+          action: resuming ? 'Reprise' : 'Pause',
+          detail: resuming ? 'a repris la partie' : 'a mis la partie en pause',
+        }, ...prev.log],
+      };
+    });
+  }, []);
+
+  /**
+   * Remove a player from an ongoing game (they quit).
+   * Their board disappears, their cards go to the discard pile and the remaining
+   * gods keep playing without interruption.
+   */
+  const removePlayerFromGame = useCallback((leavingPlayerId: string) => {
+    setGameState(prev => {
+      if (!prev) return prev;
+      const idx = prev.players.findIndex(p => p.id === leavingPlayerId);
+      if (idx < 0) return prev;
+      const leaving = prev.players[idx];
+      const players = prev.players.filter(p => p.id !== leavingPlayerId);
+      if (players.length === 0) return prev;
+
+      let activePlayerIndex = prev.activePlayerIndex;
+      if (idx < activePlayerIndex) activePlayerIndex -= 1;
+      if (activePlayerIndex >= players.length) activePlayerIndex = 0;
+
+      let cycleStartPlayerIndex = prev.cycleStartPlayerIndex;
+      if (idx < cycleStartPlayerIndex) cycleStartPlayerIndex -= 1;
+      if (cycleStartPlayerIndex >= players.length) cycleStartPlayerIndex = 0;
+
+      const reactionWindow = prev.reactionWindow &&
+        (prev.reactionWindow.reactorQueue.includes(leavingPlayerId) ||
+         prev.reactionWindow.trigger.sourcePlayerId === leavingPlayerId)
+        ? null
+        : prev.reactionWindow;
+
+      return {
+        ...prev,
+        players,
+        activePlayerIndex,
+        cycleStartPlayerIndex,
+        reactionWindow,
+        discardPile: [...leaving.hand, ...leaving.reactions, ...prev.discardPile],
+        forcedDiscardQueue: prev.forcedDiscardQueue
+          ? { ...prev.forcedDiscardQueue, entries: prev.forcedDiscardQueue.entries.filter(e => e.playerId !== leavingPlayerId) }
+          : prev.forcedDiscardQueue,
+        pendingCeneeChoice: prev.pendingCeneeChoice?.defenderPlayerId === leavingPlayerId ? null : prev.pendingCeneeChoice,
+        pendingPerdrixChoices: prev.pendingPerdrixChoices
+          ? prev.pendingPerdrixChoices.filter(c => c.ownerPlayerId !== leavingPlayerId)
+          : prev.pendingPerdrixChoices,
+        log: [{
+          id: crypto.randomUUID(),
+          timestamp: Date.now(),
+          playerName: 'Système',
+          action: 'Départ',
+          detail: `${leaving.name} a quitté la partie — son plateau est retiré du jeu`,
+        }, ...prev.log],
+      };
+    });
+  }, []);
 
   /**
    * Cénée (NEP-09): the Neptune defender decides whether to retromorphose Cénée
@@ -2867,11 +2957,12 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
 
 
     // Metamorphose survived. Check if there's a stored effect to apply.
-    if (storedMetamorphoseEffect) {
+    const storedEffect = storedMetaEffectRef.current ?? storedMetamorphoseEffect;
+    if (storedEffect) {
       const needsTargeting = [
         'enemy_mortal_incapacitate', 'enemy_mortal_remove',
         'mortal_heal', 'retro_own_mortal', 'retro_enemy_mortal',
-      ].includes(storedMetamorphoseEffect.type);
+      ].includes(storedEffect.type);
 
       if (needsTargeting) {
         // If Parade was played in phase 1, the metamorphose effect is fully blocked —
@@ -2893,7 +2984,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
           return;
         }
         // Phase 1 done → move to targeting. metamorphoseReactionInfoRef stays for phase 2.
-        setPendingEffect({ ...storedMetamorphoseEffect, fromMetamorphose: true });
+        setPendingEffect({ ...storedEffect, fromMetamorphose: true });
         setStoredMetamorphoseEffect(null);
         setGameState(prev => prev ? { ...prev, reactionWindow: null } : prev);
         return;
@@ -2901,10 +2992,10 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
 
       // Non-targeted effect: check if Parade blocked it
       if (!hasParade) {
-        if (storedMetamorphoseEffect.conditionNotMet && storedMetamorphoseEffect.type === 'none') {
-          toast.info(storedMetamorphoseEffect.conditionNotMet);
+        if (storedEffect.conditionNotMet && storedEffect.type === 'none') {
+          toast.info(storedEffect.conditionNotMet);
         } else {
-          setPendingEffect(storedMetamorphoseEffect);
+          setPendingEffect(storedEffect);
         }
       }
     }
@@ -3557,6 +3648,8 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
     resolveSelfTargetConfirm,
     pendingPerdrixChoices: gameState?.pendingPerdrixChoices ?? null,
     resolvePerdrixChoice,
+    togglePause,
+    removePlayerFromGame,
   };
 }
 
