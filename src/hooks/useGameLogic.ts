@@ -42,7 +42,15 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
   const [pendingReactionCard, setPendingReactionCard] = useState<SpellCard | null>(null);
   const [pendingEffect, setPendingEffect] = useState<PendingEffect | null>(null);
   const reactionWindow = gameState?.reactionWindow ?? null;
-  const [storedMetamorphoseEffect, setStoredMetamorphoseEffect] = useState<PendingEffect | null>(null);
+  const [storedMetamorphoseEffect, _setStoredMetamorphoseEffect] = useState<PendingEffect | null>(null);
+  // Ref mirror: the reaction-resolution effect can run in the same batch as the setter
+  // (multiplayer sync), where the state value would still be stale/null and the
+  // metamorphose effect would be silently dropped (e.g. Aigle's "destroy 4 Ether").
+  const storedMetaEffectRef = useRef<PendingEffect | null>(null);
+  const setStoredMetamorphoseEffect = useCallback((e: PendingEffect | null) => {
+    storedMetaEffectRef.current = e;
+    _setStoredMetamorphoseEffect(e);
+  }, []);
   const metamorphoseReactionInfoRef = useRef<{ trigger: ReactionTrigger; reactors: string[] } | null>(null);
   const savedMortalSnapshotRef = useRef<{ mortal: Mortal; playerId: string } | null>(null);
   const prevGameStateRef = useRef<GameState | null>(null);
@@ -2877,11 +2885,12 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
 
 
     // Metamorphose survived. Check if there's a stored effect to apply.
-    if (storedMetamorphoseEffect) {
+    const storedEffect = storedMetaEffectRef.current ?? storedMetamorphoseEffect;
+    if (storedEffect) {
       const needsTargeting = [
         'enemy_mortal_incapacitate', 'enemy_mortal_remove',
         'mortal_heal', 'retro_own_mortal', 'retro_enemy_mortal',
-      ].includes(storedMetamorphoseEffect.type);
+      ].includes(storedEffect.type);
 
       if (needsTargeting) {
         // If Parade was played in phase 1, the metamorphose effect is fully blocked —
@@ -2903,7 +2912,7 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
           return;
         }
         // Phase 1 done → move to targeting. metamorphoseReactionInfoRef stays for phase 2.
-        setPendingEffect({ ...storedMetamorphoseEffect, fromMetamorphose: true });
+        setPendingEffect({ ...storedEffect, fromMetamorphose: true });
         setStoredMetamorphoseEffect(null);
         setGameState(prev => prev ? { ...prev, reactionWindow: null } : prev);
         return;
@@ -2911,10 +2920,10 @@ export function useGameLogic(multiplayerConfig?: MultiplayerConfig) {
 
       // Non-targeted effect: check if Parade blocked it
       if (!hasParade) {
-        if (storedMetamorphoseEffect.conditionNotMet && storedMetamorphoseEffect.type === 'none') {
-          toast.info(storedMetamorphoseEffect.conditionNotMet);
+        if (storedEffect.conditionNotMet && storedEffect.type === 'none') {
+          toast.info(storedEffect.conditionNotMet);
         } else {
-          setPendingEffect(storedMetamorphoseEffect);
+          setPendingEffect(storedEffect);
         }
       }
     }
